@@ -1,0 +1,960 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tilchi — Mukhtasar Karimjonova bilan online ingliz tili | Bepul demo dars</title>
+<meta name="description" content="CELTA sertifikatli, IELTS 7.0 o'qituvchi bilan online ingliz tili darslari. Bolalar, IELTS va kattalar uchun. Birinchi dars bepul — Telegram orqali yoziling.">
+<meta name="theme-color" content="#F5EFE4">
+<meta property="og:title" content="Tilchi — online ingliz tili darslari">
+<meta property="og:description" content="CELTA · IELTS 7.0 · C1. Birinchi dars bepul.">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="uz_UZ">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400;1,9..144,500&family=Inter:wght@400;500;600;700&display=swap">
+
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23C8593E'/%3E%3Ctext x='16' y='23' font-family='Georgia,serif' font-size='22' font-weight='700' text-anchor='middle' fill='%23F5EFE4' font-style='italic'%3Et%3C/text%3E%3C/svg%3E">
+
+<!-- ================================================================
+     ███  MA'LUMOTLARNI SHU YERDA O'ZGARTIRING  ███
+     Sahifadagi barcha o'zgaruvchan ma'lumotlar shu bitta obyektda.
+     Pastdagi HTML'ga tegish shart emas — data-cfg atributlar
+     avtomatik to'ldiriladi. Narx raqamlarini bo'sh joysiz yozing,
+     format avtomatik ("180000" -> "180 000").
+     ================================================================ -->
+<script>
+window.SITE_CONFIG = {
+  // --- Aloqa ---
+  telegramBot: "tilchiuz_bot",          // @siz, faqat username
+
+  // --- O'qituvchi ---
+  teacher: {
+    name: "Mukhtasar Karimjonova",
+    initials: "MK",
+    photoUrl: "",                        // rasm bo'lsa URL qo'ying, bo'sh = avatar
+    ielts: "7.0",
+    cert: "CELTA",
+    cefr: "C1",
+    degree: "Bakalavr + Magistr (imtiyozli diplom)",
+    experience: "2+ yil",
+    research: "Pragmatika yo'nalishida ilmiy tadqiqot muallifi"
+  },
+
+  // --- Birinchi oqim ---
+  cohort: {
+    label: "Birinchi oqim — 2026-yil avgust",
+    groupSeats: 5                        // guruhdagi bo'sh o'rinlar (halol raqam!)
+  },
+
+  // --- Narxlar (so'mda, bo'sh joysiz) ---
+  prices: {
+    groupRegular: 250000,
+    groupLaunch: 180000,
+    indivRegular: 450000,
+    indivLaunch: 330000,
+    ieltsAddon: 150000                   // individual + haftada 3-dars
+  },
+
+  // --- Dars parametrlari ---
+  lesson: {
+    durationMin: 60,
+    groupPerWeek: 3,
+    indivPerWeek: 2
+  }
+};
+</script>
+
+<style>
+/* ============================================================
+   TOKENS
+   ============================================================ */
+:root {
+  --bg: #F5EFE4;
+  --bg-elev: #FBF7F0;
+  --bg-alt: #EDE5D5;
+  --surface: #FFFFFF;
+  --ink: #171512;
+  --ink-2: #3D372F;
+  --ink-3: #6B6558;
+  --muted: #9B9382;
+  --line: #E4DBC7;
+  --accent: #C8593E;
+  --accent-2: #B24E36;
+  --accent-soft: #F0D9CE;
+  --accent-ink: #7A2E1D;
+  --success: #4A7C59;
+  --tg: #229ED9;
+
+  --fs-display: clamp(2.6rem, 5.5vw + 0.5rem, 4.75rem);
+  --fs-h2: clamp(1.75rem, 3vw + 0.5rem, 2.5rem);
+  --fs-h3: clamp(1.2rem, 1.5vw + 0.5rem, 1.45rem);
+  --fs-lead: clamp(1.0625rem, 0.5vw + 0.9rem, 1.2rem);
+  --fs-body: 1rem;
+  --fs-sm: 0.9375rem;
+  --fs-xs: 0.8125rem;
+
+  /* Concentric radius tokens: outer = inner + padding */
+  --r-inner: 12px;
+  --r-chip: 10px;
+  --r-card: 20px;          /* inner 12 + padding 8 tier */
+  --r-form: 32px;          /* input 12 + card padding 20 */
+  --r-full: 999px;
+
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-fast: 160ms;
+  --dur-med: 240ms;
+
+  /* Layered shadow instead of border (jakub.kr recipe, warm-tinted) */
+  --edge:
+    0 0 0 1px rgba(23, 21, 18, 0.06),
+    0 1px 2px -1px rgba(23, 21, 18, 0.06),
+    0 2px 4px 0 rgba(23, 21, 18, 0.04);
+  --edge-hover:
+    0 0 0 1px rgba(23, 21, 18, 0.09),
+    0 2px 4px -1px rgba(23, 21, 18, 0.08),
+    0 6px 16px -2px rgba(23, 21, 18, 0.08);
+  --sh-focus: 0 0 0 3px rgba(200, 89, 62, 0.35);
+
+  --container: 1120px;
+}
+
+/* ============================================================
+   RESET
+   ============================================================ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: var(--fs-body);
+  line-height: 1.55;
+  color: var(--ink);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;      /* crispy text (jakub.kr) */
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  overflow-x: hidden;
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+img, svg { display: block; max-width: 100%; }
+button { font: inherit; color: inherit; background: none; border: none; cursor: pointer; }
+a { color: inherit; text-decoration: none; }
+
+h1, h2, h3 {
+  font-family: 'Fraunces', Georgia, serif;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  text-wrap: balance;                        /* balanced headings (jakub.kr) */
+}
+p { color: var(--ink-2); text-wrap: pretty; } /* no orphans (jakub.kr) */
+
+.num { font-variant-numeric: tabular-nums; } /* stable digits (jakub.kr) */
+
+:focus { outline: none; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+
+.skip {
+  position: absolute; top: -100px; left: 12px;
+  padding: 10px 16px; background: var(--ink); color: var(--bg);
+  border-radius: 8px; z-index: 200; font-weight: 600; font-size: var(--fs-sm);
+  transition: top var(--dur-fast) var(--ease);
+}
+.skip:focus { top: 12px; }
+
+.container { max-width: var(--container); margin: 0 auto; padding: 0 clamp(16px, 4vw, 40px); }
+.section { padding: clamp(56px, 7vw, 104px) 0; }
+
+.eyebrow {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: 0.75rem; font-weight: 600; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--accent-ink);
+}
+.eyebrow::before { content: ''; width: 24px; height: 1px; background: var(--accent); }
+
+/* ============================================================
+   BUTTONS  (transitions = interruptible; jakub.kr)
+   ============================================================ */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 9px;
+  padding: 14px 24px; min-height: 48px;
+  border-radius: var(--r-full);
+  font-weight: 600; font-size: var(--fs-sm);
+  white-space: nowrap; touch-action: manipulation;
+  transition: transform var(--dur-fast) var(--ease),
+              background var(--dur-fast) var(--ease),
+              box-shadow var(--dur-fast) var(--ease),
+              color var(--dur-fast) var(--ease);
+}
+/* Optical alignment: icon side gets slightly less padding (jakub.kr) */
+.btn:has(svg:first-child) { padding-left: 20px; }
+.btn:has(svg:last-child)  { padding-right: 20px; }
+
+.btn-primary {
+  background: var(--accent); color: #fff;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.15), 0 6px 20px -6px rgba(200,89,62,0.5);
+}
+.btn-primary:hover { background: var(--accent-2); transform: translateY(-1px); }
+.btn-primary:active { transform: translateY(0); }
+.btn-tg { background: var(--tg); color: #fff; box-shadow: inset 0 1px 0 rgba(255,255,255,0.15), 0 6px 20px -6px rgba(34,158,217,0.5); }
+.btn-tg:hover { background: #1c8bc0; transform: translateY(-1px); }
+.btn-outline { background: transparent; color: var(--ink); box-shadow: 0 0 0 1px var(--ink); }
+.btn-outline:hover { background: var(--ink); color: var(--bg); }
+
+/* ============================================================
+   NAV
+   ============================================================ */
+.nav {
+  position: sticky; top: 0; z-index: 100;
+  background: color-mix(in oklab, var(--bg) 84%, transparent);
+  backdrop-filter: saturate(180%) blur(14px);
+  -webkit-backdrop-filter: saturate(180%) blur(14px);
+  box-shadow: 0 0 0 0 transparent;
+  transition: box-shadow var(--dur-med) var(--ease);
+}
+.nav.scrolled { box-shadow: 0 1px 0 var(--line); }
+.nav-inner {
+  display: flex; align-items: center; justify-content: space-between; gap: 20px;
+  min-height: 66px; padding: 10px clamp(16px, 4vw, 40px);
+  max-width: var(--container); margin: 0 auto;
+}
+.logo {
+  display: inline-flex; align-items: center; gap: 10px;
+  font-family: 'Fraunces', serif; font-size: 1.45rem; font-weight: 600; letter-spacing: -0.02em;
+}
+.logo-mark {
+  width: 30px; height: 30px; background: var(--accent); color: var(--bg);
+  border-radius: 8px; display: inline-flex; align-items: center; justify-content: center;
+  font-family: 'Fraunces', serif; font-style: italic; font-weight: 700; font-size: 1.2rem;
+}
+.logo-mark::after { content: 't'; margin-top: -2px; }
+.nav-links { display: flex; gap: 2px; list-style: none; }
+.nav-links a {
+  padding: 10px 13px; font-size: var(--fs-sm); color: var(--ink-2); border-radius: 8px;
+  transition: color var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease);
+}
+.nav-links a:hover { color: var(--ink); background: var(--bg-alt); }
+@media (max-width: 760px) {
+  .nav-links { display: none; }
+  .nav .btn { padding: 11px 18px; min-height: 42px; font-size: var(--fs-xs); }
+}
+
+/* ============================================================
+   HERO
+   ============================================================ */
+.hero { padding: clamp(44px, 6vw, 88px) 0 clamp(40px, 5vw, 72px); }
+.hero-grid {
+  display: grid; grid-template-columns: 7fr 5fr;
+  gap: clamp(32px, 5vw, 64px); align-items: center;
+}
+@media (max-width: 880px) { .hero-grid { grid-template-columns: 1fr; } }
+
+.hero-eyebrow { margin-bottom: 20px; }
+.hero-title {
+  font-size: var(--fs-display); font-weight: 400;
+  line-height: 1.04; letter-spacing: -0.035em;
+}
+.hero-title em { font-style: italic; font-weight: 500; color: var(--accent); }
+.hero-title .u { position: relative; display: inline-block; }
+.hero-title .u::after {
+  content: ''; position: absolute; left: -2%; right: -2%; bottom: 0.07em;
+  height: 0.15em; background: var(--accent-soft); z-index: -1; border-radius: 2px;
+}
+.hero-sub {
+  font-size: var(--fs-lead); color: var(--ink-2);
+  margin-top: 22px; max-width: 540px; line-height: 1.55;
+}
+.hero-sub strong { color: var(--ink); font-weight: 600; }
+
+/* Credential strip — real facts, not fake stats */
+.cred-strip { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 26px; }
+.cred {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 8px 14px; border-radius: var(--r-full);
+  background: var(--surface); box-shadow: var(--edge);
+  font-size: var(--fs-xs); font-weight: 600; color: var(--ink-2);
+}
+.cred svg { color: var(--accent); flex-shrink: 0; }
+
+.hero-ctas { display: flex; gap: 12px; margin-top: 30px; flex-wrap: wrap; }
+
+/* Teacher card in hero */
+.hero-card {
+  background: var(--surface); border-radius: var(--r-form);
+  padding: 28px; box-shadow: var(--edge);
+  position: relative;
+}
+.hc-top { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; }
+.hc-avatar {
+  width: 76px; height: 76px; border-radius: 50%; flex-shrink: 0;
+  background: linear-gradient(135deg, #C8593E, #7A2E1D);
+  color: #fff; display: inline-flex; align-items: center; justify-content: center;
+  font-family: 'Fraunces', serif; font-weight: 500; font-size: 1.7rem; letter-spacing: -0.02em;
+  outline: 1px solid rgba(0,0,0,0.1); outline-offset: -1px;   /* image outline (jakub.kr) */
+  overflow: hidden;
+}
+.hc-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.hc-name { font-family: 'Fraunces', serif; font-size: 1.35rem; font-weight: 500; letter-spacing: -0.015em; }
+.hc-role { font-size: var(--fs-xs); font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 2px; }
+.hc-facts { list-style: none; display: flex; flex-direction: column; }
+.hc-facts li {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 10px 0; font-size: var(--fs-sm); color: var(--ink-2);
+  box-shadow: 0 1px 0 var(--line);
+}
+.hc-facts li:last-child { box-shadow: none; }
+.hc-facts svg { color: var(--accent); flex-shrink: 0; margin-top: 3px; }
+.hc-badge {
+  position: absolute; top: -12px; right: 24px;
+  padding: 6px 13px; background: var(--ink); color: var(--bg);
+  border-radius: var(--r-full); font-size: var(--fs-xs); font-weight: 600;
+}
+
+/* ============================================================
+   SECTION HEAD
+   ============================================================ */
+.section-head { max-width: 680px; margin-bottom: clamp(36px, 4.5vw, 56px); }
+.section-head .eyebrow { margin-bottom: 14px; }
+.section-head h2 { font-size: var(--fs-h2); font-weight: 400; }
+.section-head h2 em { font-style: italic; color: var(--accent); font-weight: 500; }
+.section-head p { margin-top: 16px; font-size: var(--fs-lead); max-width: 580px; }
+
+/* ============================================================
+   DASTURLAR (3 segment programs)
+   ============================================================ */
+.programs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+@media (max-width: 860px) { .programs { grid-template-columns: 1fr; } }
+.program {
+  background: var(--surface); border-radius: var(--r-card);
+  padding: 28px; box-shadow: var(--edge);
+  display: flex; flex-direction: column;
+  transition: box-shadow var(--dur-med) var(--ease), transform var(--dur-med) var(--ease);
+}
+.program:hover { box-shadow: var(--edge-hover); transform: translateY(-2px); }
+.program-icon {
+  width: 44px; height: 44px; border-radius: var(--r-inner);
+  background: var(--accent-soft); color: var(--accent-ink);
+  display: inline-flex; align-items: center; justify-content: center;
+  margin-bottom: 18px;
+}
+.program-age { font-size: var(--fs-xs); font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
+.program h3 { font-size: var(--fs-h3); margin-bottom: 10px; }
+.program p { font-size: var(--fs-sm); color: var(--ink-2); margin-bottom: 18px; }
+.program ul { list-style: none; margin-top: auto; }
+.program ul li {
+  display: flex; align-items: flex-start; gap: 9px;
+  padding: 8px 0; font-size: var(--fs-sm); color: var(--ink-2);
+}
+.program ul svg { color: var(--accent); flex-shrink: 0; margin-top: 4px; }
+
+/* ============================================================
+   QANDAY ISHLAYDI — 3 qadam
+   ============================================================ */
+.metod { background: var(--bg-elev); }
+.steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+@media (max-width: 760px) { .steps { grid-template-columns: 1fr; } }
+.step {
+  background: var(--surface); border-radius: var(--r-card);
+  padding: 28px; box-shadow: var(--edge);
+  display: flex; flex-direction: column; min-height: 180px;
+}
+.step-num {
+  font-family: 'Fraunces', serif; font-style: italic;
+  font-size: 2.8rem; font-weight: 400; color: var(--accent);
+  line-height: 0.9; letter-spacing: -0.04em; margin-bottom: 18px;
+}
+.step h3 { font-size: 1.15rem; margin-bottom: 8px; }
+.step p { font-size: var(--fs-sm); color: var(--ink-3); }
+.step-time { margin-top: auto; padding-top: 18px; font-size: var(--fs-xs); font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+
+/* ============================================================
+   NARXLAR — 2 tarif
+   ============================================================ */
+.pricing { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; max-width: 840px; }
+@media (max-width: 760px) { .pricing { grid-template-columns: 1fr; } }
+.plan {
+  background: var(--surface); border-radius: var(--r-card);
+  padding: 32px; box-shadow: var(--edge);
+  display: flex; flex-direction: column; position: relative;
+  transition: box-shadow var(--dur-med) var(--ease);
+}
+.plan:hover { box-shadow: var(--edge-hover); }
+.plan-popular { box-shadow: 0 0 0 2px var(--accent), 0 12px 40px -12px rgba(200,89,62,0.25); }
+.plan-popular::before {
+  content: 'Eng qulay'; position: absolute; top: -13px; left: 28px;
+  padding: 5px 12px; background: var(--accent); color: #fff;
+  border-radius: var(--r-full); font-size: var(--fs-xs); font-weight: 600;
+}
+.plan h3 { font-size: 1.35rem; margin-bottom: 4px; }
+.plan-sub { font-size: var(--fs-sm); color: var(--ink-3); margin-bottom: 22px; }
+.plan-old {
+  font-size: var(--fs-sm); color: var(--muted);
+  text-decoration: line-through; text-decoration-color: var(--accent);
+  margin-bottom: 2px;
+}
+.plan-price { display: flex; align-items: baseline; gap: 6px; margin-bottom: 4px; }
+.plan-price .amount {
+  font-family: 'Fraunces', serif; font-size: 2.4rem; font-weight: 500;
+  letter-spacing: -0.03em; font-variant-numeric: tabular-nums;
+}
+.plan-price .cur { font-family: 'Fraunces', serif; font-size: 1.15rem; color: var(--ink-2); }
+.plan-price .per { color: var(--muted); font-size: var(--fs-sm); }
+.plan-launch {
+  display: inline-flex; align-self: flex-start; margin-bottom: 20px;
+  padding: 4px 11px; border-radius: var(--r-full);
+  background: var(--accent-soft); color: var(--accent-ink);
+  font-size: var(--fs-xs); font-weight: 600;
+}
+.plan ul { list-style: none; margin-bottom: 26px; flex-grow: 1; }
+.plan ul li {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 9px 0; font-size: var(--fs-sm); color: var(--ink-2);
+  box-shadow: 0 1px 0 var(--line);
+}
+.plan ul li:last-child { box-shadow: none; }
+.plan ul svg { color: var(--accent); flex-shrink: 0; margin-top: 3px; }
+.plan .btn { width: 100%; }
+.seats-note {
+  margin-top: 14px; font-size: var(--fs-xs); color: var(--ink-3); text-align: center;
+}
+.seats-note strong { color: var(--accent-ink); }
+
+/* ============================================================
+   FAQ
+   ============================================================ */
+.faq { background: var(--bg-elev); }
+.faq-inner { max-width: 740px; margin: 0 auto; }
+.faq-list { display: flex; flex-direction: column; gap: 10px; }
+.faq-item {
+  background: var(--surface); border-radius: 14px;
+  box-shadow: var(--edge); overflow: hidden;
+  transition: box-shadow var(--dur-fast) var(--ease);
+}
+.faq-item:hover, .faq-item[open] { box-shadow: var(--edge-hover); }
+.faq-item summary {
+  padding: 20px 22px; cursor: pointer; list-style: none;
+  display: flex; align-items: center; justify-content: space-between; gap: 18px;
+  font-family: 'Fraunces', serif; font-size: 1.08rem; font-weight: 500;
+  letter-spacing: -0.01em; min-height: 44px;
+}
+.faq-item summary::-webkit-details-marker { display: none; }
+.faq-item summary::after {
+  content: ''; width: 18px; height: 18px; flex-shrink: 0;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23171512' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") no-repeat center/contain;
+  transition: transform var(--dur-fast) var(--ease);
+}
+.faq-item[open] summary::after { transform: rotate(180deg); }
+.faq-body { padding: 0 22px 22px; color: var(--ink-2); font-size: var(--fs-sm); line-height: 1.6; }
+
+/* ============================================================
+   BOOKING — Telegram bot flow
+   ============================================================ */
+.booking { background: var(--ink); color: var(--bg); position: relative; overflow: hidden; }
+.booking::before {
+  content: ''; position: absolute; top: -140px; right: -140px;
+  width: 380px; height: 380px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(200,89,62,0.3), transparent 65%);
+  pointer-events: none;
+}
+.booking-grid {
+  display: grid; grid-template-columns: 6fr 5fr;
+  gap: clamp(32px, 5vw, 64px); align-items: center;
+}
+@media (max-width: 860px) { .booking-grid { grid-template-columns: 1fr; } }
+.booking h2 { color: var(--bg); font-size: var(--fs-h2); font-weight: 400; margin: 14px 0 18px; }
+.booking h2 em { font-style: italic; color: var(--accent); font-weight: 500; }
+.booking .eyebrow { color: var(--accent-soft); }
+.booking .eyebrow::before { background: var(--accent); }
+.booking-copy p { color: color-mix(in oklab, var(--bg) 76%, transparent); font-size: var(--fs-lead); }
+.booking-copy ul { list-style: none; margin-top: 24px; display: flex; flex-direction: column; gap: 12px; }
+.booking-copy li {
+  display: flex; align-items: center; gap: 11px;
+  color: color-mix(in oklab, var(--bg) 84%, transparent); font-size: var(--fs-sm);
+}
+.booking-copy li svg { color: var(--accent); flex-shrink: 0; }
+
+/* Concentric: card r-form(32) = chip(12) + padding(20) */
+.tg-card {
+  background: var(--bg); color: var(--ink);
+  border-radius: var(--r-form); padding: clamp(22px, 3vw, 32px);
+  box-shadow: 0 24px 60px -12px rgba(0,0,0,0.45);
+  position: relative; z-index: 2;
+}
+.tg-card-title { font-family: 'Fraunces', serif; font-size: 1.3rem; font-weight: 500; margin-bottom: 4px; }
+.tg-card-sub { font-size: var(--fs-sm); color: var(--ink-3); margin-bottom: 20px; }
+.tg-label { font-size: var(--fs-xs); font-weight: 600; margin-bottom: 8px; display: block; }
+.choice-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 18px; }
+.choice-grid.lv { grid-template-columns: repeat(3, 1fr); }
+.choice {
+  position: relative; display: flex; align-items: center; justify-content: center;
+  padding: 12px 8px; min-height: 48px;
+  background: var(--surface); border-radius: var(--r-inner);
+  box-shadow: var(--edge);
+  font-size: var(--fs-sm); font-weight: 500; color: var(--ink-2);
+  cursor: pointer; text-align: center;
+  transition: box-shadow var(--dur-fast) var(--ease),
+              background var(--dur-fast) var(--ease),
+              color var(--dur-fast) var(--ease);
+}
+.choice:hover { box-shadow: var(--edge-hover); color: var(--ink); }
+.choice input { position: absolute; opacity: 0; pointer-events: none; }
+.choice:has(input:checked) {
+  background: var(--accent); color: #fff;
+  box-shadow: 0 0 0 1px var(--accent), 0 4px 12px -2px rgba(200,89,62,0.45);
+}
+.choice:focus-within { box-shadow: var(--sh-focus); }
+.tg-card .btn { width: 100%; }
+.tg-hint { margin-top: 14px; font-size: var(--fs-xs); color: var(--muted); text-align: center; }
+
+/* ============================================================
+   FOOTER
+   ============================================================ */
+.footer { padding: 48px 0 max(28px, env(safe-area-inset-bottom)); box-shadow: 0 -1px 0 var(--line); }
+.footer-inner { display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
+.footer-note { font-size: var(--fs-xs); color: var(--muted); }
+.footer a.tg-link { display: inline-flex; align-items: center; gap: 8px; font-size: var(--fs-sm); font-weight: 500; color: var(--ink-2); transition: color var(--dur-fast) var(--ease); }
+.footer a.tg-link:hover { color: var(--tg); }
+
+/* ============================================================
+   MOBILE STICKY CTA
+   ============================================================ */
+.sticky-cta {
+  position: fixed; left: 12px; right: 12px;
+  bottom: max(12px, env(safe-area-inset-bottom));
+  z-index: 90; display: none;
+  transform: translateY(120%);
+  transition: transform 300ms var(--ease);
+}
+.sticky-cta.show { transform: translateY(0); }
+.sticky-cta .btn { width: 100%; box-shadow: 0 8px 30px -6px rgba(200,89,62,0.55); }
+@media (max-width: 760px) { .sticky-cta { display: block; } }
+
+/* GSAP reveal targets: visible by default (progressive enhancement),
+   JS hides then reveals only when motion is allowed */
+.gr { will-change: transform, opacity; }
+</style>
+</head>
+
+<body>
+
+<a href="#main" class="skip">Asosiy kontentga o'tish</a>
+
+<header class="nav" id="nav">
+  <div class="nav-inner">
+    <a href="#" class="logo" aria-label="Tilchi bosh sahifa">
+      <span class="logo-mark" aria-hidden="true"></span>
+      <span>tilchi</span>
+    </a>
+    <nav aria-label="Asosiy navigatsiya">
+      <ul class="nav-links">
+        <li><a href="#dastur">Dastur</a></li>
+        <li><a href="#oqituvchi">O'qituvchi</a></li>
+        <li><a href="#narx">Narx</a></li>
+        <li><a href="#faq">FAQ</a></li>
+      </ul>
+    </nav>
+    <a href="#booking" class="btn btn-primary">Bepul demo dars</a>
+  </div>
+</header>
+
+<main id="main">
+
+<!-- ============ HERO ============ -->
+<section class="hero">
+  <div class="container">
+    <div class="hero-grid">
+      <div class="hero-copy">
+        <p class="eyebrow hero-eyebrow gr" data-hero="1" data-cfg="cohortLabel">Birinchi oqim</p>
+        <h1 class="hero-title">
+          <span class="gr" data-hero="2" style="display:block">Ingliz tilini</span>
+          <span class="gr" data-hero="3" style="display:block"><em>haqiqiy o'qituvchi</em> bilan,</span>
+          <span class="gr" data-hero="4" style="display:block"><span class="u">to'g'ri</span> o'rganing.</span>
+        </h1>
+        <p class="hero-sub gr" data-hero="5">
+          <strong data-cfg="teacherName">Mukhtasar Karimjonova</strong> — CELTA sertifikatli o'qituvchi bilan online darslar. Bolalar, IELTS va kattalar uchun alohida dastur. <strong>Birinchi dars — bepul.</strong>
+        </p>
+        <div class="cred-strip gr" data-hero="6" role="list" aria-label="O'qituvchi malakalari">
+          <span class="cred" role="listitem"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg> <span data-cfg="cert">CELTA</span></span>
+          <span class="cred num" role="listitem"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg> IELTS <span data-cfg="ielts">7.0</span></span>
+          <span class="cred" role="listitem"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"/><path d="M15.5 13l1.5 8-5-3-5 3 1.5-8"/></svg> CEFR <span data-cfg="cefr">C1</span></span>
+          <span class="cred" role="listitem"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg> Magistr</span>
+        </div>
+        <div class="hero-ctas gr" data-hero="7">
+          <a href="#booking" class="btn btn-primary">
+            Bepul demo darsni band qilish
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </a>
+          <a href="#dastur" class="btn btn-outline">Dasturni ko'rish</a>
+        </div>
+      </div>
+
+      <div class="hero-card gr" data-hero="8" id="oqituvchi">
+        <span class="hc-badge">Sizning o'qituvchingiz</span>
+        <div class="hc-top">
+          <span class="hc-avatar" id="avatar" aria-hidden="true"><span data-cfg="initials">MK</span></span>
+          <div>
+            <div class="hc-name" data-cfg="teacherName">Mukhtasar Karimjonova</div>
+            <div class="hc-role">Ingliz tili o'qituvchisi</div>
+          </div>
+        </div>
+        <ul class="hc-facts">
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg> <span><strong data-cfg="cert">CELTA</strong> — Cambridge o'qitish sertifikati</span></li>
+          <li class="num"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg> <span>IELTS <strong data-cfg="ielts">7.0</strong> · CEFR <strong data-cfg="cefr">C1</strong></span></li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg> <span data-cfg="degree">Bakalavr + Magistr (imtiyozli diplom)</span></li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg> <span><strong data-cfg="experience">2+ yil</strong> o'qitish tajribasi</span></li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg> <span data-cfg="research">Pragmatika yo'nalishida ilmiy tadqiqot muallifi</span></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ DASTURLAR ============ -->
+<section class="section" id="dastur">
+  <div class="container">
+    <div class="section-head gr">
+      <p class="eyebrow">Dastur</p>
+      <h2>Bitta o'qituvchi. <em>Uch xil yondashuv.</em></h2>
+      <p>Har bir yosh guruhi boshqacha o'rganadi — shuning uchun material, tezlik va uslub har biriga alohida moslashtiriladi.</p>
+    </div>
+    <div class="programs">
+      <article class="program gr">
+        <span class="program-icon" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 0 0-16 0"/></svg></span>
+        <p class="program-age">5–14 yosh</p>
+        <h3>Bolalar</h3>
+        <p>O'yin va interaktiv topshiriqlar orqali — bola zerikmasdan, o'zi qiziqib o'rganadi.</p>
+        <ul>
+          <li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg> Yoshga mos o'yin-metodika</li>
+          <li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg> Har oy ota-onaga progress hisoboti</li>
+          <li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg> Ota-ona darsni kuzatishi mumkin</li>
+        </ul>
+      </article>
+
+      <article class="program gr">
+        <span class="program-icon" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span>
+        <p class="program-age">Test tayyorgarligi</p>
+        <h3>IELTS</h3>
+        <p>Band-descriptor asosida tayyorgarlik — har bir modul bo'yicha aniq, o'lchanadigan reja.</p>
+        <ul>
+          <li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg> Writing — har inshoga yozma feedback</li>
+          <li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg> Speaking — imtihon formatida mashq</li>
+          <li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg> Muntazam mock testlar</li>
+        </ul>
+      </article>
+
+      <article class="program gr">
+        <span class="program-icon" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span>
+        <p class="program-age">18+ yosh</p>
+        <h3>Kattalar</h3>
+        <p>Karyera, safar va kundalik muloqot uchun — grammatikadan ko'ra <em>gapirish</em>ga urg'u.</p>
+        <ul>
+          <li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg> Speaking-first metodika</li>
+          <li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg> Ish jadvaliga mos vaqtlar</li>
+          <li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg> Real hayotiy mavzular</li>
+        </ul>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ============ QANDAY ISHLAYDI ============ -->
+<section class="section metod" id="metodika">
+  <div class="container">
+    <div class="section-head gr">
+      <p class="eyebrow">Qanday ishlaydi</p>
+      <h2>Uch qadam — <em>ortiqcha byurokratiyasiz</em>.</h2>
+    </div>
+    <div class="steps">
+      <div class="step gr">
+        <div class="step-num num">01</div>
+        <h3>Telegram'da yoziling</h3>
+        <p>Pastdagi tugma orqali botga o'ting — segment va darajangizni tanlang, bot qolganini so'raydi.</p>
+        <div class="step-time num">~2 daqiqa</div>
+      </div>
+      <div class="step gr">
+        <div class="step-num num">02</div>
+        <h3>Bepul demo dars</h3>
+        <p>O'qituvchi bilan tanishasiz, darajangiz aniqlanadi va sizga mos reja tuziladi. Majburiyatsiz.</p>
+        <div class="step-time num">30 daqiqa · Zoom</div>
+      </div>
+      <div class="step gr">
+        <div class="step-num num">03</div>
+        <h3>Darslar boshlanadi</h3>
+        <p>Guruh yoki individual formatni tanlaysiz — jadval sizning vaqtingizga moslanadi.</p>
+        <div class="step-time" data-cfg="cohortLabel">Birinchi oqim</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ NARXLAR ============ -->
+<section class="section" id="narx">
+  <div class="container">
+    <div class="section-head gr">
+      <p class="eyebrow">Narxlar</p>
+      <h2>Ikki tarif. <em>Yashirin to'lov yo'q.</em></h2>
+      <p>Birinchi oqim uchun maxsus launch narx — chunki siz bizning birinchi o'quvchilarimiz bo'lasiz.</p>
+    </div>
+
+    <div class="pricing">
+      <article class="plan plan-popular gr">
+        <h3>Guruh</h3>
+        <p class="plan-sub num">3–5 kishi · haftada <span data-cfg="groupPerWeek">3</span> dars · <span data-cfg="durationMin">60</span> daqiqa</p>
+        <p class="plan-old num"><span data-cfg="groupRegularFmt">250 000</span> so'm</p>
+        <div class="plan-price">
+          <span class="amount" data-cfg="groupLaunchFmt">180 000</span>
+          <span class="cur">so'm</span>
+          <span class="per">/oy</span>
+        </div>
+        <span class="plan-launch">Launch narx — birinchi oqim</span>
+        <ul>
+          <li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg> Kichik guruh — har kimga e'tibor yetadi</li>
+          <li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg> Uy vazifasi + tekshirish</li>
+          <li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg> Speaking mashqlari har darsda</li>
+        </ul>
+        <a href="#booking" class="btn btn-primary">Guruhga yozilish</a>
+        <p class="seats-note">Guruhda atigi <strong class="num" data-cfg="groupSeats">5</strong> o'rin — yakka o'qituvchi sig'imi</p>
+      </article>
+
+      <article class="plan gr">
+        <h3>Individual</h3>
+        <p class="plan-sub num">1-on-1 · haftada <span data-cfg="indivPerWeek">2</span> dars · <span data-cfg="durationMin">60</span> daqiqa</p>
+        <p class="plan-old num"><span data-cfg="indivRegularFmt">450 000</span> so'm</p>
+        <div class="plan-price">
+          <span class="amount" data-cfg="indivLaunchFmt">330 000</span>
+          <span class="cur">so'm</span>
+          <span class="per">/oy</span>
+        </div>
+        <span class="plan-launch">Launch narx — birinchi oqim</span>
+        <ul>
+          <li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg> To'liq shaxsiy o'quv rejasi</li>
+          <li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg> Jadval to'liq sizga moslanadi</li>
+          <li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg> IELTS intensiv: haftada 3 dars — <span class="num">+<span data-cfg="ieltsAddonFmt">150 000</span> so'm</span></li>
+        </ul>
+        <a href="#booking" class="btn btn-outline">Individual tanlash</a>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FAQ ============ -->
+<section class="section faq" id="faq">
+  <div class="container">
+    <div class="faq-inner">
+      <div class="section-head gr" style="text-align:center; margin-left:auto; margin-right:auto;">
+        <p class="eyebrow" style="justify-content:center;">Savol-javob</p>
+        <h2 style="margin-top:10px;">Ko'p so'raladigan savollar</h2>
+      </div>
+      <div class="faq-list">
+        <details class="faq-item gr">
+          <summary>Darslar qayerda o'tadi?</summary>
+          <div class="faq-body">Barcha darslar Zoom orqali online. Dars oldidan havola Telegram'da yuboriladi. Kamera va mikrofon kerak bo'ladi.</div>
+        </details>
+        <details class="faq-item gr">
+          <summary>Bepul demo dars nima o'z ichiga oladi?</summary>
+          <div class="faq-body">30 daqiqalik jonli suhbat: darajangiz aniqlanadi, maqsadingiz muhokama qilinadi va sizga mos dastur taklif etiladi. Hech qanday to'lov yoki karta so'ralmaydi.</div>
+        </details>
+        <details class="faq-item gr">
+          <summary>Nega narxlar "launch" deb belgilangan?</summary>
+          <div class="faq-body">Biz yangi boshlayapmiz — sharh va natijalar hali yig'ilmoqda. Shuning uchun birinchi oqim o'quvchilariga past narx taklif qilamiz: siz kam to'laysiz, biz esa birinchi natijalarimizni siz bilan quramiz. Keyingi oqimlarda narx oddiy tarifga qaytadi.</div>
+        </details>
+        <details class="faq-item gr">
+          <summary>To'lov qanday amalga oshiriladi?</summary>
+          <div class="faq-body">Oylik to'lov, Uzcard/Humo karta o'tkazmasi orqali. To'lov faqat demo darsdan keyin, davom etishga qaror qilsangiz.</div>
+        </details>
+        <details class="faq-item gr">
+          <summary>Darsni o'tkazib yuborsam nima bo'ladi?</summary>
+          <div class="faq-body">Kamida 12 soat oldin ogohlantirsangiz — dars boshqa vaqtga bepul ko'chiriladi. Individual formatda jadval umuman moslashuvchan.</div>
+        </details>
+        <details class="faq-item gr">
+          <summary>Bola darsda yolg'iz bo'ladimi?</summary>
+          <div class="faq-body">Xohishga ko'ra ota-ona darsni kuzatishi mumkin. Har oy bolangizning progressi haqida qisqa hisobot yuboriladi.</div>
+        </details>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ BOOKING ============ -->
+<section class="section booking" id="booking">
+  <div class="container">
+    <div class="booking-grid">
+      <div class="booking-copy gr">
+        <p class="eyebrow">Bepul demo dars</p>
+        <h2>Bir tugma — <em>qolganini bot so'raydi</em>.</h2>
+        <p>Telefon raqam yozish, forma to'ldirish shart emas. Telegram botga o'tasiz — u sizdan qulay vaqtni so'raydi va demo darsni belgilaydi.</p>
+        <ul>
+          <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg> 30 daqiqalik jonli demo dars — bepul</li>
+          <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg> Karta so'ralmaydi, majburiyat yo'q</li>
+          <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg> Javob odatda bir necha soat ichida</li>
+        </ul>
+      </div>
+
+      <div class="tg-card gr">
+        <p class="tg-card-title">Demo darsga yozilish</p>
+        <p class="tg-card-sub">Tanlovingiz botga avtomatik uzatiladi</p>
+
+        <span class="tg-label" id="seg-label">Kim uchun?</span>
+        <div class="choice-grid" role="radiogroup" aria-labelledby="seg-label">
+          <label class="choice"><input type="radio" name="seg" value="bolalar"><span>Bolalar</span></label>
+          <label class="choice"><input type="radio" name="seg" value="ielts" checked><span>IELTS</span></label>
+          <label class="choice"><input type="radio" name="seg" value="kattalar"><span>Kattalar</span></label>
+        </div>
+
+        <span class="tg-label" id="lv-label">Darajangiz (taxminan)</span>
+        <div class="choice-grid lv" role="radiogroup" aria-labelledby="lv-label">
+          <label class="choice"><input type="radio" name="lv" value="boshlovchi"><span>Boshlovchi</span></label>
+          <label class="choice"><input type="radio" name="lv" value="orta"><span>O'rta</span></label>
+          <label class="choice"><input type="radio" name="lv" value="bilmayman" checked><span>Bilmayman</span></label>
+        </div>
+
+        <a href="#" class="btn btn-tg" id="tgBtn" rel="noopener">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M9.417 15.181l-.397 5.584c.568 0 .814-.244 1.109-.537l2.663-2.545 5.518 4.041c1.012.557 1.725.264 1.998-.937l3.622-16.972.001-.001c.321-1.498-.541-2.084-1.527-1.717L2.29 9.858c-1.457.563-1.436 1.374-.249 1.741l5.409 1.687L19.98 6.076c.586-.386 1.119-.174.68.213L9.417 15.181z"/></svg>
+          Telegram'da davom etish
+        </a>
+        <p class="tg-hint">Bot: <a href="#" id="tgPlainLink" style="color: var(--ink-2); text-decoration: underline; text-underline-offset: 3px;" data-cfg="botHandle">@tilchiuz_bot</a></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer class="footer">
+  <div class="container footer-inner">
+    <a href="#" class="logo" aria-label="Tilchi">
+      <span class="logo-mark" aria-hidden="true"></span>
+      <span>tilchi</span>
+    </a>
+    <a href="#" class="tg-link" id="tgFooterLink" rel="noopener">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M9.417 15.181l-.397 5.584c.568 0 .814-.244 1.109-.537l2.663-2.545 5.518 4.041c1.012.557 1.725.264 1.998-.937l3.622-16.972.001-.001c.321-1.498-.541-2.084-1.527-1.717L2.29 9.858c-1.457.563-1.436 1.374-.249 1.741l5.409 1.687L19.98 6.076c.586-.386 1.119-.174.68.213L9.417 15.181z"/></svg>
+      <span data-cfg="botHandle">@tilchiuz_bot</span>
+    </a>
+    <p class="footer-note num">© 2026 tilchi.uz</p>
+  </div>
+</footer>
+
+<!-- Mobile sticky CTA -->
+<div class="sticky-cta" id="stickyCta">
+  <a href="#booking" class="btn btn-primary">Bepul demo dars — Telegram'da</a>
+</div>
+
+<!-- GSAP core + ScrollTrigger (cdnjs) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+
+<script>
+(function () {
+  'use strict';
+  var CFG = window.SITE_CONFIG;
+  var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ---------- 1. CONFIG hydration ---------- */
+  function fmt(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '\u00A0'); }
+  var map = {
+    teacherName: CFG.teacher.name,
+    initials: CFG.teacher.initials,
+    ielts: CFG.teacher.ielts,
+    cert: CFG.teacher.cert,
+    cefr: CFG.teacher.cefr,
+    degree: CFG.teacher.degree,
+    experience: CFG.teacher.experience,
+    research: CFG.teacher.research,
+    cohortLabel: CFG.cohort.label,
+    groupSeats: CFG.cohort.groupSeats,
+    groupPerWeek: CFG.lesson.groupPerWeek,
+    indivPerWeek: CFG.lesson.indivPerWeek,
+    durationMin: CFG.lesson.durationMin,
+    groupRegularFmt: fmt(CFG.prices.groupRegular),
+    groupLaunchFmt: fmt(CFG.prices.groupLaunch),
+    indivRegularFmt: fmt(CFG.prices.indivRegular),
+    indivLaunchFmt: fmt(CFG.prices.indivLaunch),
+    ieltsAddonFmt: fmt(CFG.prices.ieltsAddon),
+    botHandle: '@' + CFG.telegramBot
+  };
+  document.querySelectorAll('[data-cfg]').forEach(function (el) {
+    var k = el.getAttribute('data-cfg');
+    if (map[k] !== undefined) el.textContent = map[k];
+  });
+
+  // Photo swap if provided
+  if (CFG.teacher.photoUrl) {
+    var av = document.getElementById('avatar');
+    av.innerHTML = '<img src="' + CFG.teacher.photoUrl + '" alt="' + CFG.teacher.name + '">';
+  }
+
+  /* ---------- 2. Telegram deep link ---------- */
+  var botBase = 'https://t.me/' + CFG.telegramBot;
+  function buildLink() {
+    var seg = (document.querySelector('input[name="seg"]:checked') || {}).value || '';
+    var lv = (document.querySelector('input[name="lv"]:checked') || {}).value || '';
+    var payload = (seg + '_' + lv).replace(/[^A-Za-z0-9_-]/g, '').slice(0, 64);
+    return payload ? botBase + '?start=' + payload : botBase;
+  }
+  var tgBtn = document.getElementById('tgBtn');
+  function refreshLink() { tgBtn.href = buildLink(); }
+  document.querySelectorAll('input[name="seg"], input[name="lv"]').forEach(function (r) {
+    r.addEventListener('change', refreshLink);
+  });
+  refreshLink();
+  document.getElementById('tgPlainLink').href = botBase;
+  document.getElementById('tgFooterLink').href = botBase;
+
+  /* ---------- 3. Nav ---------- */
+  var nav = document.getElementById('nav');
+  var onScroll = function () { nav.classList.toggle('scrolled', window.scrollY > 8); };
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+
+  /* ---------- 4. Mobile sticky CTA (hero'dan keyin) ---------- */
+  var sticky = document.getElementById('stickyCta');
+  var bookingEl = document.getElementById('booking');
+  if ('IntersectionObserver' in window) {
+    var heroEl = document.querySelector('.hero');
+    var stickyIO = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (e.target === heroEl) sticky.classList.toggle('show', !e.isIntersecting);
+        if (e.target === bookingEl && e.isIntersecting) sticky.classList.remove('show');
+      });
+    }, { threshold: 0.05 });
+    stickyIO.observe(heroEl);
+    stickyIO.observe(bookingEl);
+  }
+
+  /* ---------- 5. Animations (GSAP) ---------- */
+  if (reduceMotion || typeof gsap === 'undefined') return;  // content stays visible
+
+  gsap.registerPlugin(ScrollTrigger);
+  gsap.defaults({ ease: 'power2.out' });
+
+  // Hero: split & stagger enter (opacity + blur + y; jakub.kr)
+  var heroEls = gsap.utils.toArray('[data-hero]');
+  gsap.set(heroEls, { autoAlpha: 0, y: 14, filter: 'blur(6px)' });
+  gsap.to(heroEls, {
+    autoAlpha: 1, y: 0, filter: 'blur(0px)',
+    duration: 0.8, stagger: 0.09, delay: 0.05,
+    clearProps: 'filter'
+  });
+
+  // Scroll reveals: batch, one-time, subtle
+  var revealEls = gsap.utils.toArray('.gr:not([data-hero])');
+  gsap.set(revealEls, { autoAlpha: 0, y: 18 });
+  ScrollTrigger.batch(revealEls, {
+    start: 'top 88%',
+    once: true,
+    onEnter: function (batch) {
+      gsap.to(batch, { autoAlpha: 1, y: 0, duration: 0.7, stagger: 0.08, overwrite: true });
+    }
+  });
+})();
+</script>
+
+</body>
+</html>
