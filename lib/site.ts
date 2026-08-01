@@ -13,6 +13,7 @@ export const site = {
     { href: '#oqituvchi', label: "O'qituvchi" },
     { href: '#narx', label: 'Narx' },
     { href: '#faq', label: 'Savollar' },
+    { href: '/blog', label: 'Blog' },
   ],
   cohort: {
     label: 'Birinchi oqim — 2026-yil avgust',

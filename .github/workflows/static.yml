@@ -37,6 +37,8 @@ jobs:
         run: pnpm velite && pnpm test
       - name: Build static export
         run: pnpm build
+      - name: Enforce JS budget
+        run: pnpm check:budget
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
