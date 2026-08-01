@@ -1,10 +1,10 @@
 import type { ReactNode } from 'react'
 import { Reveal } from '@/components/gsap/Reveal'
 import { SplitHeading } from '@/components/gsap/SplitHeading'
-import { programs, type ProgramIcon } from '@/content/sections'
+import { programs, type ProgramIconId } from '@/lib/domain/programs'
 
-const ICONS: Record<ProgramIcon, ReactNode> = {
-  bolalar: (
+const ICONS: Record<ProgramIconId, ReactNode> = {
+  kids: (
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="12" cy="8" r="4" />
       <path d="M20 21a8 8 0 0 0-16 0" />
@@ -16,7 +16,7 @@ const ICONS: Record<ProgramIcon, ReactNode> = {
       <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
     </svg>
   ),
-  kattalar: (
+  adults: (
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
     </svg>
@@ -52,7 +52,7 @@ export function Programs() {
               <Reveal key={p.title}>
                 <article className="program">
                   <span className="program-icon" aria-hidden="true">
-                    {ICONS[p.icon]}
+                    {ICONS[p.iconId]}
                   </span>
                   <div>
                     <p className="program-age">{p.age}</p>

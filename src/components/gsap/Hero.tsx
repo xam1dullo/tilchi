@@ -1,7 +1,7 @@
 'use client'
 
 import { useRef } from 'react'
-import { useGsap } from '@/lib/gsap'
+import { useGsap, loadGsap } from '@/lib/gsap'
 import { site, teacher } from '@/lib/site'
 
 const check = (
@@ -34,6 +34,7 @@ const book = (
 
 export function Hero() {
   const ref = useRef<HTMLElement>(null)
+  const burstRef = useRef<HTMLAnchorElement>(null)
 
   useGsap(({ gsap, ScrollTrigger, SplitText }) => {
     const mm = gsap.matchMedia()
@@ -52,11 +53,71 @@ export function Hero() {
       tl.from(el.querySelectorAll('[data-reveal]'), { y: 22, opacity: 0, stagger: 0.09, duration: 0.6 }, 0.25)
       tl.from(el.querySelector('.hero-card'), { y: 30, opacity: 0, duration: 0.7 }, 0.45)
 
-      return () => split?.revert()
+      const card = el.querySelector<HTMLElement>('.hero-card')
+      const titleEl = el.querySelector<HTMLElement>('.hero-title')
+      const copy = el.querySelector<HTMLElement>('.hero-copy')
+
+      const observer = ScrollTrigger.observe({
+        target: window,
+        type: 'wheel,touch',
+        onChangeY: (self) => {
+          const v = gsap.utils.clamp(-1, 1, self.velocityY / 2000)
+          if (card) gsap.to(card, { y: -v * 18, duration: 0.6, ease: 'power2.out', overwrite: 'auto' })
+          if (titleEl) gsap.to(titleEl, { y: v * 10, duration: 0.6, ease: 'power2.out', overwrite: 'auto' })
+          if (copy) gsap.to(copy, { y: v * 6, duration: 0.6, ease: 'power2.out', overwrite: 'auto' })
+        },
+        onStop: () => {
+          const settle = { y: 0, duration: 1.2, ease: 'elastic.out(1, 0.5)', overwrite: 'auto' } as const
+          if (card) gsap.to(card, settle)
+          if (titleEl) gsap.to(titleEl, settle)
+          if (copy) gsap.to(copy, settle)
+        },
+      })
+
+      return () => {
+        observer.kill()
+        split?.revert()
+      }
     })
 
     return () => mm.revert()
   }, [])
+
+  const burst = () => {
+    const btn = burstRef.current
+    if (!btn) return
+    loadGsap().then(({ gsap }) => {
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+      const rect = btn.getBoundingClientRect()
+      const x = rect.left + rect.width / 2
+      const y = rect.top + rect.height / 2
+      const colors = ['#C8593E', '#A8452E', '#F0D9CE', '#F5EFE4', '#171512']
+      const parts: HTMLElement[] = []
+      for (let i = 0; i < 16; i++) {
+        const p = document.createElement('span')
+        p.className = 'burst'
+        p.style.left = `${x}px`
+        p.style.top = `${y}px`
+        p.style.background = colors[i % colors.length]
+        document.body.appendChild(p)
+        parts.push(p)
+      }
+      gsap.to(parts, {
+        duration: 1.6,
+        ease: 'none',
+        physics2D: {
+          velocity: gsap.utils.random(140, 420),
+          angle: gsap.utils.random(-160, -20),
+          gravity: 500,
+          friction: 0.06,
+        },
+        rotation: gsap.utils.random(-220, 220),
+        scale: gsap.utils.random(0.4, 1),
+        opacity: 0,
+        onComplete: () => parts.forEach((p) => p.remove()),
+      })
+    })
+  }
 
   return (
     <section className="hero" ref={ref}>
@@ -94,7 +155,7 @@ export function Hero() {
               </span>
             </div>
             <div className="hero-ctas" data-reveal>
-              <a href="#booking" className="btn btn-primary">
+              <a href="#booking" className="btn btn-primary" ref={burstRef} onClick={burst}>
                 Bepul demo darsni band qilish
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
                   <path d="M5 12h14M13 6l6 6-6 6" />

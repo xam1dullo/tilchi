@@ -1,5 +1,5 @@
 import { Reveal } from '@/components/gsap/Reveal'
-import { trustItems } from '@/content/sections'
+import { trustItems } from '@/lib/domain/trust'
 
 export function TrustBand() {
   return (
