@@ -1,5 +1,9 @@
+'use client'
+
+import { useRef } from 'react'
 import { Reveal } from '@/components/gsap/Reveal'
 import { SplitHeading } from '@/components/gsap/SplitHeading'
+import { useGsap } from '@/lib/gsap'
 import { fmtPrice, prices, site } from '@/lib/site'
 
 const check = (
@@ -9,8 +13,30 @@ const check = (
 )
 
 export function Pricing() {
+  const ref = useRef<HTMLElement>(null)
+
+  useGsap(({ gsap }) => {
+    const mm = gsap.matchMedia()
+    ref.current?.querySelectorAll<HTMLElement>('.amount[data-price]').forEach((el) => {
+      const target = Number(el.dataset.price)
+      const state = { v: 0 }
+      mm.add('(prefers-reduced-motion: no-preference)', () => {
+        gsap.to(state, {
+          v: target,
+          duration: 1.4,
+          ease: 'power2.out',
+          scrollTrigger: { trigger: el, start: 'top 88%' },
+          onUpdate: () => {
+            el.textContent = fmtPrice(Math.round(state.v))
+          },
+        })
+      })
+    })
+    return () => mm.revert()
+  }, [])
+
   return (
-    <section className="section" id="narx">
+    <section className="section" id="narx" ref={ref}>
       <div className="container">
         <div className="sec-intro">
           <p className="eyebrow">Narxlar</p>
@@ -34,7 +60,7 @@ export function Pricing() {
               <div className="plan-money">
                 <p className="plan-old num">{fmtPrice(prices.group.regular)} so'm</p>
                 <div className="plan-price">
-                  <span className="amount num">{fmtPrice(prices.group.launch)}</span>
+                  <span className="amount num" data-price={prices.group.launch}>{fmtPrice(prices.group.launch)}</span>
                   <span className="cur">so'm</span>
                   <span className="per">/oy</span>
                 </div>
@@ -65,7 +91,7 @@ export function Pricing() {
               <div className="plan-money">
                 <p className="plan-old num">{fmtPrice(prices.indiv.regular)} so'm</p>
                 <div className="plan-price">
-                  <span className="amount num">{fmtPrice(prices.indiv.launch)}</span>
+                  <span className="amount num" data-price={prices.indiv.launch}>{fmtPrice(prices.indiv.launch)}</span>
                   <span className="cur">so'm</span>
                   <span className="per">/oy</span>
                 </div>

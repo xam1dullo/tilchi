@@ -178,9 +178,17 @@ p { color: var(--ink-2); text-wrap: pretty; max-width: 68ch; }
   backdrop-filter: saturate(180%) blur(14px);
   -webkit-backdrop-filter: saturate(180%) blur(14px);
   box-shadow: 0 0 0 0 transparent;
-  transition: box-shadow var(--dur-med) var(--ease);
+  transition: box-shadow var(--dur-med) var(--ease), transform var(--dur-med) var(--ease);
 }
 .nav.scrolled { box-shadow: 0 1px 0 var(--line); }
+.nav.nav-hidden { transform: translateY(-100%); }
+.nav-progress {
+  position: fixed; top: 0; left: 0; right: 0; height: 2px;
+  background: var(--accent);
+  transform-origin: left; transform: scaleX(0);
+  z-index: calc(var(--z-nav) + 1);
+  pointer-events: none;
+}
 .nav-inner {
   display: flex; align-items: center; justify-content: space-between; gap: 20px;
   min-height: 66px; padding: 10px clamp(16px, 4vw, 40px);

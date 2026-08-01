@@ -1,3 +1,4 @@
+import { NavMotion } from '@/components/NavMotion'
 import { SmoothScroll } from '@/components/gsap/SmoothScroll'
 import { Hero } from '@/components/gsap/Hero'
 import { TrustBand } from '@/components/sections/TrustBand'
@@ -15,6 +16,7 @@ export default function Home() {
   return (
     <>
       <JsonLd data={graphLd(orgLd, teacherLd, ieltsCourseLd, groupCourseLd, faqLd)} />
+      <NavMotion />
       <SmoothScroll>
         <Hero />
         <TrustBand />
