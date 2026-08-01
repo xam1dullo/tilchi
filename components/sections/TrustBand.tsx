@@ -1,11 +1,5 @@
 import { Reveal } from '@/components/gsap/Reveal'
-
-const items = [
-  { dt: 'Bepul', dd: "Birinchi demo dars. Karta ham, oldindan to'lov ham so'ralmaydi." },
-  { dt: '5', dd: "Guruhdagi maksimal o'rin — yakka o'qituvchining haqiqiy sig'imi.", num: true },
-  { dt: '12 soat', dd: "Shuncha oldin ogohlantirsangiz, dars bepul ko'chiriladi." },
-  { dt: 'Shartnomasiz', dd: "Oylik to'lov. Istagan oyda to'xtatasiz, jarima yo'q." },
-]
+import { trustItems } from '@/content/sections'
 
 export function TrustBand() {
   return (
@@ -13,7 +7,7 @@ export function TrustBand() {
       <div className="container">
         <Reveal>
           <dl className="trust-inner">
-            {items.map((i) => (
+            {trustItems.map((i) => (
               <div className="trust-item" key={i.dt}>
                 <dt className={i.num ? 'num' : ''}>{i.dt}</dt>
                 <dd>{i.dd}</dd>

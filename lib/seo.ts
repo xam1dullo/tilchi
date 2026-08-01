@@ -1,4 +1,5 @@
 import type { Post } from '@velite/index'
+import { faqs } from '@/content/sections'
 import { site, teacher } from '@/lib/site'
 
 export const graphLd = (...nodes: object[]) => ({
@@ -77,56 +78,11 @@ export const groupCourseLd = {
 
 export const faqLd = {
   '@type': 'FAQPage',
-  mainEntity: [
-    {
-      '@type': 'Question',
-      name: "Darslar qayerda o'tadi?",
-      acceptedAnswer: {
-        '@type': 'Answer',
-        text: "Barcha darslar Zoom orqali online. Dars oldidan havola Telegram'da yuboriladi. Kamera va mikrofon kerak bo'ladi.",
-      },
-    },
-    {
-      '@type': 'Question',
-      name: 'Bepul demo dars nima o‘z ichiga oladi?',
-      acceptedAnswer: {
-        '@type': 'Answer',
-        text: "30 daqiqalik jonli suhbat: darajangiz aniqlanadi, maqsadingiz muhokama qilinadi va sizga mos dastur taklif etiladi. Hech qanday to'lov yoki karta so'ralmaydi.",
-      },
-    },
-    {
-      '@type': 'Question',
-      name: 'Nega narxlar launch deb belgilangan?',
-      acceptedAnswer: {
-        '@type': 'Answer',
-        text: "Biz yangi boshlayapmiz — sharh va natijalar hali yig'ilmoqda. Shuning uchun birinchi oqim o'quvchilariga past narx taklif qilamiz. Keyingi oqimlarda narx oddiy tarifga qaytadi.",
-      },
-    },
-    {
-      '@type': 'Question',
-      name: "To'lov qanday amalga oshiriladi?",
-      acceptedAnswer: {
-        '@type': 'Answer',
-        text: "Oylik to'lov, Uzcard yoki Humo karta o'tkazmasi orqali. To'lov faqat demo darsdan keyin, davom etishga qaror qilsangiz.",
-      },
-    },
-    {
-      '@type': 'Question',
-      name: "Darsni o'tkazib yuborsam nima bo'ladi?",
-      acceptedAnswer: {
-        '@type': 'Answer',
-        text: "Kamida 12 soat oldin ogohlantirsangiz — dars boshqa vaqtga bepul ko'chiriladi. Individual formatda jadval umuman moslashuvchan.",
-      },
-    },
-    {
-      '@type': 'Question',
-      name: "Bola darsda yolg'iz bo'ladimi?",
-      acceptedAnswer: {
-        '@type': 'Answer',
-        text: "Xohishga ko'ra ota-ona darsni kuzatishi mumkin. Har oy bolangizning progressi haqida qisqa hisobot yuboriladi.",
-      },
-    },
-  ],
+  mainEntity: faqs.map(({ q, a }) => ({
+    '@type': 'Question',
+    name: q,
+    acceptedAnswer: { '@type': 'Answer', text: a },
+  })),
 }
 
 export const articleLd = (post: Post) => ({
