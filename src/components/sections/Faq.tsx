@@ -1,6 +1,6 @@
 import { Reveal } from '@/components/gsap/Reveal'
 import { SplitHeading } from '@/components/gsap/SplitHeading'
-import { faqs } from '@/content/sections'
+import { faqs } from '@/lib/domain/faqs'
 
 export function Faq() {
   return (

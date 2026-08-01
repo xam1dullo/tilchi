@@ -5,7 +5,8 @@ export default defineConfig({
   test: { environment: 'node' },
   resolve: {
     alias: {
-      '@': fileURLToPath(new URL('.', import.meta.url)),
+      '@/content': fileURLToPath(new URL('./content', import.meta.url)),
+      '@': fileURLToPath(new URL('./src', import.meta.url)),
       '@velite': fileURLToPath(new URL('.velite', import.meta.url)),
     },
   },

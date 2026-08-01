@@ -1,6 +1,6 @@
 import type { Post } from '@velite/index'
-import { faqs } from '@/content/sections'
-import { site, teacher } from '@/lib/site'
+import { faqs } from '@/lib/domain/faqs'
+import { site, teacher, prices } from '@/lib/site'
 
 export const graphLd = (...nodes: object[]) => ({
   '@context': 'https://schema.org',
@@ -49,7 +49,7 @@ export const ieltsCourseLd = {
   offers: {
     '@type': 'Offer',
     category: 'Individual',
-    price: '330000',
+    price: String(prices.indiv.launch),
     priceCurrency: 'UZS',
     availability: 'https://schema.org/LimitedAvailability',
   },
@@ -70,7 +70,7 @@ export const groupCourseLd = {
   offers: {
     '@type': 'Offer',
     category: 'Guruh',
-    price: '180000',
+    price: String(prices.group.launch),
     priceCurrency: 'UZS',
     availability: 'https://schema.org/LimitedAvailability',
   },

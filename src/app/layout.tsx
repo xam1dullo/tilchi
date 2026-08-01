@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next'
-import { Fraunces, Inter } from 'next/font/google'
+import { Fraunces, Instrument_Sans } from 'next/font/google'
 import './globals.css'
 import { Nav } from '@/components/Nav'
 import { Footer } from '@/components/Footer'
@@ -12,8 +12,8 @@ const serif = Fraunces({
   display: 'swap',
 })
 
-const sans = Inter({
-  subsets: ['latin'],
+const sans = Instrument_Sans({
+  subsets: ['latin', 'latin-ext'],
   variable: '--font-sans',
   display: 'swap',
 })

@@ -1,6 +1,6 @@
 import { Reveal } from '@/components/gsap/Reveal'
 import { SplitHeading } from '@/components/gsap/SplitHeading'
-import { methodSteps } from '@/content/sections'
+import { methodSteps } from '@/lib/domain/method'
 
 export function Method() {
   return (

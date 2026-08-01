@@ -23,8 +23,11 @@
       }
     ],
     "paths": {
+      "@/content/*": [
+        "./content/*"
+      ],
       "@/*": [
-        "./*"
+        "./src/*"
       ],
       "@velite/*": [
         "./.velite/*"
