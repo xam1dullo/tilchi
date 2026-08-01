@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next'
-import { Fraunces, Instrument_Sans } from 'next/font/google'
+import { Fraunces, Geist } from 'next/font/google'
 import './globals.css'
 import { Nav } from '@/components/Nav'
 import { Footer } from '@/components/Footer'
@@ -12,11 +12,7 @@ const serif = Fraunces({
   display: 'swap',
 })
 
-const sans = Instrument_Sans({
-  subsets: ['latin', 'latin-ext'],
-  variable: '--font-sans',
-  display: 'swap',
-})
+const geist = Geist({ subsets: ['latin'], variable: '--font-sans' })
 
 export const metadata: Metadata = {
   metadataBase: new URL(site.url),
@@ -53,7 +49,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="uz" className={`${serif.variable} ${sans.variable}`}>
+    <html lang="uz" className={`${serif.variable} ${geist.variable}`}>
       <body>
         <div className="grain" aria-hidden="true" />
         <a href="#main" className="skip">

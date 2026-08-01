@@ -2,18 +2,18 @@ import Link from 'next/link'
 
 export default function NotFound() {
   return (
-    <section className="section" style={{ textAlign: 'center' }}>
+    <section className="section not-found">
       <div className="container">
-        <p className="eyebrow" style={{ justifyContent: 'center' }}>
+        <p className="eyebrow">
           Xato 404
         </p>
-        <h1 className="h2" style={{ marginTop: 14 }}>
+        <h1 className="h2">
           Bunday sahifa <em>yo'q.</em>
         </h1>
-        <p className="lede" style={{ margin: '18px auto 0', maxWidth: 44 }}>
+        <p className="lede">
           Havola eskirgan yoki sahifa ko'chirilgan bo'lishi mumkin.
         </p>
-        <div style={{ marginTop: 30 }}>
+        <div className="not-found-cta">
           <Link href="/" className="btn btn-primary">
             Bosh sahifaga qaytish
           </Link>

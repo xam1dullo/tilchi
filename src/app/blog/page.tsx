@@ -15,7 +15,7 @@ export default function BlogPage() {
       <section className="blog-header">
         <div className="container">
           <p className="eyebrow">Blog</p>
-          <h1 className="h2" style={{ marginTop: 14 }}>
+          <h1 className="h2 blog-title">
             Til o'rganish haqida <em>adashmagan holda.</em>
           </h1>
           <p className="lede">Sertifikatlar, metodikalar va ko'p so'raladigan savollar — o'qituvchi nuqtai nazaridan.</p>

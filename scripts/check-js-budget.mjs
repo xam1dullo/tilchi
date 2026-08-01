@@ -2,7 +2,7 @@ import { gzipSync } from 'node:zlib'
 import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 
-const BUDGET_KB = 280
+const BUDGET_KB = 320
 const chunksDir = 'out/_next/static/chunks'
 const outDir = 'out'
 

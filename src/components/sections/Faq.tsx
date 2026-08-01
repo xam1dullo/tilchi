@@ -7,8 +7,8 @@ export function Faq() {
     <section className="section faq" id="faq">
       <div className="container">
         <div className="faq-inner">
-          <div style={{ textAlign: 'center', marginBottom: 'clamp(32px, 3.6vw, 44px)' }}>
-            <p className="eyebrow" style={{ justifyContent: 'center' }}>
+          <div className="faq-intro">
+            <p className="eyebrow">
               Savol-javob
             </p>
             <SplitHeading className="h2" >
@@ -18,7 +18,7 @@ export function Faq() {
           <Reveal>
             <div className="faq-list">
               {faqs.map((f) => (
-                <details className="faq-item" key={f.q}>
+                <details className="faq-item" name="faq" key={f.q}>
                   <summary>{f.q}</summary>
                   <div className="faq-body">{f.a}</div>
                 </details>

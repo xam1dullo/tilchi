@@ -128,11 +128,11 @@ export function Hero() {
               {site.cohort.label}
             </p>
             <h1 className="hero-title">
-              <span style={{ display: 'block' }}>Ingliz tilini</span>
-              <span style={{ display: 'block' }}>
+              <span>Ingliz tilini</span>
+              <span>
                 <em>haqiqiy o'qituvchi</em> bilan,
               </span>
-              <span style={{ display: 'block' }}>
+              <span>
                 <span className="u">to'g'ri</span> o'rganing.
               </span>
             </h1>

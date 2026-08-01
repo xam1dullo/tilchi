@@ -17,7 +17,7 @@ export function Research() {
         <div className="research-grid">
           <Reveal>
             <article className="research-card research-pub">
-              <p className="eyebrow" style={{ fontSize: '0.7rem' }}>
+              <p className="eyebrow pub-eyebrow">
                 Publikatsiya
               </p>
               <h3 className="pub-title">{teacher.researchWork.title}</h3>
@@ -30,7 +30,7 @@ export function Research() {
 
           <Reveal delay={0.08}>
             <article className="research-card">
-              <p className="eyebrow" style={{ fontSize: '0.7rem' }}>
+              <p className="eyebrow pub-eyebrow">
                 Ilmiy daraja
               </p>
               <h3>Magistratura — Lingvistika</h3>
@@ -41,7 +41,7 @@ export function Research() {
 
           <Reveal delay={0.16}>
             <article className="research-card">
-              <p className="eyebrow" style={{ fontSize: '0.7rem' }}>
+              <p className="eyebrow pub-eyebrow">
                 Sertifikatlar
               </p>
               <h3>{teacher.cert} · IELTS {teacher.ielts} · CEFR {teacher.cefr}</h3>
@@ -51,7 +51,7 @@ export function Research() {
 
           <Reveal delay={0.24}>
             <article className="research-card">
-              <p className="eyebrow" style={{ fontSize: '0.7rem' }}>
+              <p className="eyebrow pub-eyebrow">
                 Tan olinishi
               </p>
               <h3>{teacher.awards[0].title}</h3>

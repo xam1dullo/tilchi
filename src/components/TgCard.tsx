@@ -61,7 +61,7 @@ export function TgCard() {
         Telegram'da davom etish
       </a>
       <p className="tg-hint">
-        Bot: <a href={botLink(seg, lv)} style={{ color: 'var(--ink-2)', textDecoration: 'underline', textUnderlineOffset: 3 }}>@tilchiuz_bot</a>
+        Bot: <a className="tg-bot-link" href={botLink(seg, lv)}>@tilchiuz_bot</a>
       </p>
     </div>
   )
