@@ -6,6 +6,7 @@ import { MdxContent } from '@/components/MdxContent'
 import { JsonLd } from '@/components/JsonLd'
 import { articleLd } from '@/lib/seo'
 import { site } from '@/lib/site'
+import { Footer } from '@/components/Footer'
 
 export const dynamicParams = false
 
@@ -37,8 +38,9 @@ export default async function PostPage({ params }: { params: Promise<{ slug: str
   if (!post) notFound()
 
   return (
-    <article>
-      <JsonLd data={articleLd(post)} />
+    <>
+      <article>
+        <JsonLd data={articleLd(post)} />
       <header className="article-header">
         <div className="container">
           <Link href="/blog" className="article-back">
@@ -65,8 +67,10 @@ export default async function PostPage({ params }: { params: Promise<{ slug: str
           <a href={site.botUrl} className="btn btn-primary" rel="noopener">
             Telegram'da davom etish
           </a>
-        </aside>
+</aside>
       </div>
-    </article>
+      </article>
+      <Footer />
+    </>
   )
 }

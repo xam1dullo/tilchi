@@ -9,6 +9,7 @@ import { Pricing } from '@/components/sections/Pricing'
 import { Faq } from '@/components/sections/Faq'
 import { Booking } from '@/components/sections/Booking'
 import { Research } from '@/components/sections/Research'
+import { Footer } from '@/components/Footer'
 import { JsonLd } from '@/components/JsonLd'
 import { faqLd, graphLd, groupCourseLd, ieltsCourseLd, orgLd, teacherLd } from '@/lib/seo'
 
@@ -27,6 +28,7 @@ export default function Home() {
         <Faq />
         <Booking />
         <Research />
+        <Footer />
       </SmoothScroll>
     </>
   )

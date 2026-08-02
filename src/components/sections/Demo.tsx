@@ -1,5 +1,6 @@
 import { Reveal } from '@/components/gsap/Reveal'
 import { SplitHeading } from '@/components/gsap/SplitHeading'
+import { ProgressLine } from '@/components/gsap/ProgressLine'
 import { demoSteps } from '@/lib/domain/demo'
 
 export function Demo() {
@@ -13,6 +14,7 @@ export function Demo() {
           </SplitHeading>
           <p className="lede">Hech qanday sotuv bosimi yo'q. Sizga mos kelmasa — buni ochiq aytamiz.</p>
         </div>
+        <ProgressLine />
         <div className="demo-grid">
           {demoSteps.map((i) => (
             <Reveal key={i.n}>
