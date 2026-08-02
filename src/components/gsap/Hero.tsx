@@ -2,6 +2,7 @@
 
 import { useRef } from 'react'
 import { useGsap, loadGsap } from '@/lib/gsap'
+import { Magnetic } from '@/components/gsap/Magnetic'
 import { site, teacher } from '@/lib/site'
 
 const check = (
@@ -73,6 +74,23 @@ export function Hero() {
           if (copy) gsap.to(copy, settle)
         },
       })
+
+      const grid = el.querySelector<HTMLElement>('.hero-grid')
+      if (grid) {
+        gsap
+          .timeline({
+            scrollTrigger: {
+              trigger: el,
+              start: 'top top',
+              end: '+=25%',
+              scrub: true,
+              pin: true,
+              anticipatePin: 1,
+            },
+          })
+          .to(grid, { yPercent: -14, ease: 'none' }, 0)
+          .to(el.querySelector('.hero-eyebrow'), { opacity: 0.15, ease: 'none' }, 0)
+      }
 
       return () => {
         observer.kill()
@@ -155,12 +173,14 @@ export function Hero() {
               </span>
             </div>
             <div className="hero-ctas" data-reveal>
-              <a href="#booking" className="btn btn-primary" ref={burstRef} onClick={burst}>
-                Bepul demo darsni band qilish
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-                  <path d="M5 12h14M13 6l6 6-6 6" />
-                </svg>
-              </a>
+              <Magnetic>
+                <a href="#booking" className="btn btn-primary" ref={burstRef} onClick={burst}>
+                  Bepul demo darsni band qilish
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+                    <path d="M5 12h14M13 6l6 6-6 6" />
+                  </svg>
+                </a>
+              </Magnetic>
               <a href="#dastur" className="btn-text">
                 Dasturni ko'rish
               </a>

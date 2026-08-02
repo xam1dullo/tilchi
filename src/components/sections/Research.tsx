@@ -1,5 +1,5 @@
-import { Reveal } from '@/components/gsap/Reveal'
 import { SplitHeading } from '@/components/gsap/SplitHeading'
+import { ScrubList } from '@/components/gsap/ScrubList'
 import { teacher } from '@/lib/site'
 
 export function Research() {
@@ -14,51 +14,43 @@ export function Research() {
           <p className="lede">{teacher.research}. O'qitish metodikasi ilmiy ishlar va sertifikatlangan tayyorgarlik asosida qurilgan.</p>
         </div>
 
-        <div className="research-grid">
-          <Reveal>
-            <article className="research-card research-pub">
-              <p className="eyebrow pub-eyebrow">
-                Publikatsiya
-              </p>
-              <h3 className="pub-title">{teacher.researchWork.title}</h3>
-              <p className="research-meta">{teacher.researchWork.venue}</p>
-              <blockquote>
-                “O'qish va yozish ko'nikmalari — bu nafaqat mashq, balki tanqidiy fikrlash strategiyalarining natijasidir.”
-              </blockquote>
-            </article>
-          </Reveal>
+        <ScrubList className="research-grid">
+          <article className="research-card research-pub">
+            <p className="eyebrow pub-eyebrow">
+              Publikatsiya
+            </p>
+            <h3 className="pub-title">{teacher.researchWork.title}</h3>
+            <p className="research-meta">{teacher.researchWork.venue}</p>
+            <blockquote>
+              “O'qish va yozish ko'nikmalari — bu nafaqat mashq, balki tanqidiy fikrlash strategiyalarining natijasidir.”
+            </blockquote>
+          </article>
 
-          <Reveal delay={0.08}>
-            <article className="research-card">
-              <p className="eyebrow pub-eyebrow">
-                Ilmiy daraja
-              </p>
-              <h3>Magistratura — Lingvistika</h3>
-              <p>{teacher.education[0].org}, {teacher.education[0].period}</p>
-              <p className="research-meta">Bakalavr: imtiyozli diplom, 98% (4.92/5.0)</p>
-            </article>
-          </Reveal>
+          <article className="research-card">
+            <p className="eyebrow pub-eyebrow">
+              Ilmiy daraja
+            </p>
+            <h3>Magistratura — Lingvistika</h3>
+            <p>{teacher.education[0].org}, {teacher.education[0].period}</p>
+            <p className="research-meta">Bakalavr: imtiyozli diplom, 98% (4.92/5.0)</p>
+          </article>
 
-          <Reveal delay={0.16}>
-            <article className="research-card">
-              <p className="eyebrow pub-eyebrow">
-                Sertifikatlar
-              </p>
-              <h3>{teacher.cert} · IELTS {teacher.ielts} · CEFR {teacher.cefr}</h3>
-              <p className="research-meta">O'qitish metodikasi, til darajasi va test tayyorgarligi bo'yicha xalqaro sertifikatlar.</p>
-            </article>
-          </Reveal>
+          <article className="research-card">
+            <p className="eyebrow pub-eyebrow">
+              Sertifikatlar
+            </p>
+            <h3>{teacher.cert} · IELTS {teacher.ielts} · CEFR {teacher.cefr}</h3>
+            <p className="research-meta">O'qitish metodikasi, til darajasi va test tayyorgarligi bo'yicha xalqaro sertifikatlar.</p>
+          </article>
 
-          <Reveal delay={0.24}>
-            <article className="research-card">
-              <p className="eyebrow pub-eyebrow">
-                Tan olinishi
-              </p>
-              <h3>{teacher.awards[0].title}</h3>
-              <p className="research-meta">{teacher.awards[0].org}, {teacher.awards[0].period}</p>
-            </article>
-          </Reveal>
-        </div>
+          <article className="research-card">
+            <p className="eyebrow pub-eyebrow">
+              Tan olinishi
+            </p>
+            <h3>{teacher.awards[0].title}</h3>
+            <p className="research-meta">{teacher.awards[0].org}, {teacher.awards[0].period}</p>
+          </article>
+        </ScrubList>
       </div>
     </section>
   )

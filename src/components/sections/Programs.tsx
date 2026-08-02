@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
-import { Reveal } from '@/components/gsap/Reveal'
 import { SplitHeading } from '@/components/gsap/SplitHeading'
+import { ScrubList } from '@/components/gsap/ScrubList'
+import { ScrubSection } from '@/components/gsap/ScrubSection'
 import { programs, type ProgramIconId } from '@/lib/domain/programs'
 
 const ICONS: Record<ProgramIconId, ReactNode> = {
@@ -31,7 +32,7 @@ const check = (
 
 export function Programs() {
   return (
-    <section className="section" id="dastur">
+    <ScrubSection className="section" y={26} id="dastur">
       <div className="container">
         <div className="prog-grid">
           <aside className="prog-aside">
@@ -47,31 +48,29 @@ export function Programs() {
             </p>
           </aside>
 
-          <div className="prog-list">
+          <ScrubList className="prog-list">
             {programs.map((p) => (
-              <Reveal key={p.title}>
-                <article className="program">
-                  <span className="program-icon" aria-hidden="true">
-                    {ICONS[p.iconId]}
-                  </span>
-                  <div>
-                    <p className="program-age">{p.age}</p>
-                    <h3>{p.title}</h3>
-                    <p className="program-desc">{p.desc}</p>
-                    <ul>
-                      {p.items.map((i) => (
-                        <li key={i}>
-                          {check} {i}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </article>
-              </Reveal>
+              <article className="program" key={p.title}>
+                <span className="program-icon" aria-hidden="true">
+                  {ICONS[p.iconId]}
+                </span>
+                <div>
+                  <p className="program-age">{p.age}</p>
+                  <h3>{p.title}</h3>
+                  <p className="program-desc">{p.desc}</p>
+                  <ul>
+                    {p.items.map((i) => (
+                      <li key={i}>
+                        {check} {i}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </article>
             ))}
-          </div>
+          </ScrubList>
         </div>
       </div>
-    </section>
+    </ScrubSection>
   )
 }

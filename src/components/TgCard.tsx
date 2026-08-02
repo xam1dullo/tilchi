@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import { Magnetic } from '@/components/gsap/Magnetic'
 import { botLink } from '@/lib/site'
 
 const segs = [
@@ -56,10 +57,12 @@ export function TgCard() {
         ))}
       </div>
 
-      <a href={href} className="btn btn-tg" rel="noopener">
-        {tg}
-        Telegram'da davom etish
-      </a>
+      <Magnetic>
+        <a href={href} className="btn btn-tg" rel="noopener">
+          {tg}
+          Telegram'da davom etish
+        </a>
+      </Magnetic>
       <p className="tg-hint">
         Bot: <a className="tg-bot-link" href={botLink(seg, lv)}>@tilchiuz_bot</a>
       </p>
