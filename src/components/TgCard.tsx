@@ -2,19 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import { Magnetic } from '@/components/gsap/Magnetic'
-import { botLink } from '@/lib/site'
-
-const segs = [
-  { value: 'bolalar', label: 'Bolalar' },
-  { value: 'ielts', label: 'IELTS' },
-  { value: 'kattalar', label: 'Kattalar' },
-] as const
-
-const lvs = [
-  { value: 'boshlovchi', label: 'Boshlovchi' },
-  { value: 'orta', label: "O'rta" },
-  { value: 'bilmayman', label: 'Bilmayman' },
-] as const
+import { botLink, botSummary, levels, segments, tgLinkProps } from '@/lib/site'
 
 const tg = (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -37,7 +25,7 @@ export function TgCard() {
         Kim uchun?
       </span>
       <div className="choice-grid" role="radiogroup" aria-labelledby="seg-label">
-        {segs.map((s) => (
+        {segments.map((s) => (
           <label className="choice" key={s.value}>
             <input type="radio" name="seg" value={s.value} checked={seg === s.value} onChange={() => setSeg(s.value)} />
             <span>{s.label}</span>
@@ -49,7 +37,7 @@ export function TgCard() {
         Darajangiz (taxminan)
       </span>
       <div className="choice-grid" role="radiogroup" aria-labelledby="lv-label">
-        {lvs.map((s) => (
+        {levels.map((s) => (
           <label className="choice" key={s.value}>
             <input type="radio" name="lv" value={s.value} checked={lv === s.value} onChange={() => setLv(s.value)} />
             <span>{s.label}</span>
@@ -58,14 +46,18 @@ export function TgCard() {
       </div>
 
       <Magnetic>
-        <a href={href} className="btn btn-tg" rel="noopener">
+        <a {...tgLinkProps(href)} className="btn btn-tg">
           {tg}
           Telegram'da davom etish
         </a>
       </Magnetic>
       <p className="tg-hint">
-        Bot: <a className="tg-bot-link" href={botLink(seg, lv)}>@tilchiuz_bot</a>
+        Yuboriladi: <strong>{botSummary(seg, lv)}</strong> · Bot:{' '}
+        <a className="tg-bot-link" {...tgLinkProps(href)}>
+          @tilchiuz_bot
+        </a>
       </p>
+      <p className="tg-hint">Tugma yangi oynada ochiladi — Telegram kerak bo'ladi.</p>
     </div>
   )
 }

@@ -1,4 +1,4 @@
-import { site } from '@/lib/site'
+import { site, tgLinkProps } from '@/lib/site'
 
 const tg = (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -19,7 +19,7 @@ export function Footer() {
           <a href="/blog">Blog</a>
           <a href="/#dastur">Darslar</a>
         </nav>
-        <a href={site.botUrl} className="tg-link" rel="noopener">
+        <a {...tgLinkProps()} className="tg-link">
           {tg}
           <span>@{site.telegramBot}</span>
         </a>

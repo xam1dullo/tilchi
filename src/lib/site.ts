@@ -1,18 +1,18 @@
 export const site = {
   url: 'https://tilchi.uz',
   name: 'Tilchi',
-  title: "Tilchi — CELTA sertifikatli o'qituvchi bilan online ingliz tili | Birinchi dars bepul",
+  title: "Tilchi — IELTS 7.0 (C1) o'qituvchi bilan online ingliz tili | Birinchi dars bepul",
   description:
-    "Mukhtasar Karimjonova — CELTA sertifikatli, IELTS 7.0, C1 daraja. Bolalar, IELTS va kattalar uchun online ingliz tili darslari. Birinchi demo dars bepul, karta so'ralmaydi.",
+    "Mukhtasar Karimjonova — IELTS 7.0, C1 daraja, ilmiy tadqiqot muallifi. Bolalar, IELTS va kattalar uchun online ingliz tili darslari. Birinchi demo dars bepul, karta so'ralmaydi.",
   locale: 'uz_UZ',
   themeColor: '#F5EFE4',
   telegramBot: 'tilchiuz_bot',
   botUrl: 'https://t.me/tilchiuz_bot',
   nav: [
-    { href: '#dastur', label: 'Dastur' },
-    { href: '#oqituvchi', label: "O'qituvchi" },
-    { href: '#narx', label: 'Narx' },
-    { href: '#faq', label: 'Savollar' },
+    { href: '/#dastur', label: 'Dastur' },
+    { href: '/#oqituvchi', label: "O'qituvchi" },
+    { href: '/#narx', label: 'Narx' },
+    { href: '/#faq', label: 'Savollar' },
     { href: '/blog', label: 'Blog' },
   ],
   cohort: {
@@ -27,7 +27,6 @@ export const teacher = {
   initials: 'MK',
   jobTitle: "Ingliz tili o'qituvchisi",
   ielts: '7.0',
-  cert: 'CELTA',
   cefr: 'C1',
   degree: 'Bakalavr + Magistr (imtiyozli diplom)',
   experience: '2+ yil',
@@ -62,6 +61,27 @@ export const prices = {
 } as const
 
 export const fmtPrice = (n: number) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '\u00A0')
+
+export const segments = [
+  { value: 'bolalar', label: 'Bolalar' },
+  { value: 'ielts', label: 'IELTS' },
+  { value: 'kattalar', label: 'Kattalar' },
+] as const
+
+export const levels = [
+  { value: 'boshlovchi', label: 'Boshlovchi' },
+  { value: 'orta', label: "O'rta" },
+  { value: 'bilmayman', label: 'Bilmayman' },
+] as const
+
+export const botSummary = (seg: string, lv: string) => {
+  const s = segments.find((x) => x.value === seg)?.label
+  const l = levels.find((x) => x.value === lv)?.label
+  return [s, l].filter(Boolean).join(' · ')
+}
+
+export const tgLinkProps = (href: string = site.botUrl) =>
+  ({ href, target: '_blank', rel: 'noopener' }) as const
 
 export const botLink = (seg: string, lv: string) => {
   const clean = (s: string) => s.replace(/[^A-Za-z0-9_-]/g, '')

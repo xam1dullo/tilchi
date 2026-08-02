@@ -5,7 +5,7 @@ import { getPost, publishedPosts, formatDate } from '@/lib/posts'
 import { MdxContent } from '@/components/MdxContent'
 import { JsonLd } from '@/components/JsonLd'
 import { articleLd } from '@/lib/seo'
-import { site } from '@/lib/site'
+import { site, tgLinkProps } from '@/lib/site'
 import { Footer } from '@/components/Footer'
 
 export const dynamicParams = false
@@ -64,7 +64,7 @@ export default async function PostPage({ params }: { params: Promise<{ slug: str
           <p>
             Bepul demo darsda o'z darajangizni aniqlang — suhbat asosida, test to'ldirmasdan.
           </p>
-          <a href={site.botUrl} className="btn btn-primary" rel="noopener">
+          <a {...tgLinkProps(site.botUrl)} className="btn btn-primary">
             Telegram'da davom etish
           </a>
 </aside>

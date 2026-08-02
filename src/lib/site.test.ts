@@ -1,5 +1,41 @@
 import { describe, expect, it } from 'vitest'
-import { botLink, fmtPrice } from './site'
+import { botLink, botSummary, fmtPrice, site, tgLinkProps } from './site'
+
+describe('nav links', () => {
+  it('uses root-relative hrefs so anchors work from any page', () => {
+    for (const item of site.nav) {
+      expect(item.href.startsWith('/')).toBe(true)
+    }
+  })
+})
+
+describe('tgLinkProps', () => {
+  it('opens Telegram links in a new tab with noopener', () => {
+    expect(tgLinkProps('https://t.me/tilchiuz_bot?start=ielts_orta')).toEqual({
+      href: 'https://t.me/tilchiuz_bot?start=ielts_orta',
+      target: '_blank',
+      rel: 'noopener',
+    })
+  })
+
+  it('defaults to the bare bot link', () => {
+    expect(tgLinkProps().href).toBe('https://t.me/tilchiuz_bot')
+  })
+})
+
+describe('botSummary', () => {
+  it('joins segment and level labels', () => {
+    expect(botSummary('ielts', 'orta')).toBe("IELTS · O'rta")
+  })
+
+  it('handles the unknown level', () => {
+    expect(botSummary('bolalar', 'bilmayman')).toBe('Bolalar · Bilmayman')
+  })
+
+  it('returns an empty string for unknown values', () => {
+    expect(botSummary('nope', 'x')).toBe('')
+  })
+})
 
 describe('fmtPrice', () => {
   it('groups thousands with non-breaking spaces', () => {
