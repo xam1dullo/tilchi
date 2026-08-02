@@ -1,7 +1,9 @@
 import Link from 'next/link'
+import { Footer } from '@/components/Footer'
 
 export default function NotFound() {
   return (
+    <>
     <section className="section not-found">
       <div className="container">
         <p className="eyebrow">
@@ -20,5 +22,7 @@ export default function NotFound() {
         </div>
       </div>
     </section>
+    <Footer />
+    </>
   )
 }

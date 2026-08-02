@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { publishedPosts, formatDate } from '@/lib/posts'
 import { Reveal } from '@/components/gsap/Reveal'
+import { Footer } from '@/components/Footer'
 
 export const metadata: Metadata = {
   title: 'Blog',
@@ -37,6 +38,7 @@ export default function BlogPage() {
           </Reveal>
         ))}
       </section>
+      <Footer />
     </>
   )
 }

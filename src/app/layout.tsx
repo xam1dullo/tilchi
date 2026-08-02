@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from 'next'
 import { Fraunces, Geist } from 'next/font/google'
 import './globals.css'
 import { Nav } from '@/components/Nav'
-import { Footer } from '@/components/Footer'
 import { StickyCta } from '@/components/StickyCta'
 import { site } from '@/lib/site'
 
@@ -57,7 +56,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </a>
         <Nav />
         <main id="main">{children}</main>
-        <Footer />
         <StickyCta />
       </body>
     </html>
