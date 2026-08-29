@@ -3,14 +3,31 @@
 import { useRef } from 'react'
 import { useGsap, loadGsap } from '@/lib/gsap'
 import { Magnetic } from '@/components/gsap/Magnetic'
+import { WordRotator } from '@/components/gsap/WordRotator'
 import { site, teacher } from '@/lib/site'
 
-const check = (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <path d="M22 10v6M2 10l10-5 10 5-10 5z" />
-    <path d="M6 12v5c3 3 9 3 12 0v-5" />
-  </svg>
-)
+const ROTATING_WORDS = [
+  'haqiqiy',
+  'chinakam',
+  'professional',
+  'malakali',
+  'tajribali',
+  'mohir',
+  'ishonchli',
+  'samimiy',
+  'jonkuyar',
+  'natijali',
+  'zamonaviy',
+  "ilg'or",
+  'izlanuvchan',
+  'sabrli',
+  'talabchan',
+  'asl',
+  'bilimdon',
+  'sinchkov',
+  'fidoyi',
+  'halol',
+] as const
 
 const badge = (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -45,7 +62,7 @@ export function Hero() {
       if (!el) return
 
       const title = el.querySelector('.hero-title')
-      const split = title ? new SplitText(title, { type: 'words', wordsClass: 'hw' }) : null
+      const split = title ? new SplitText(title, { type: 'words', wordsClass: 'hw', exclude: '.u' }) : null
 
       const tl = gsap.timeline({ defaults: { ease: 'tilchi' } })
       if (split) {
@@ -53,6 +70,15 @@ export function Hero() {
       }
       tl.from(el.querySelectorAll('[data-reveal]'), { y: 22, opacity: 0, stagger: 0.09, duration: 0.6 }, 0.25)
       tl.from(el.querySelector('.hero-card'), { y: 30, opacity: 0, duration: 0.7 }, 0.45)
+
+      const uWord = el.querySelector<HTMLElement>('.hero-title .u')
+      if (uWord) {
+        tl.to(
+          uWord,
+          { scrambleText: { text: "to'g'ri", chars: "to'gri#?", speed: 0.8 }, duration: 1.3, ease: 'none' },
+          1.15,
+        )
+      }
 
       const card = el.querySelector<HTMLElement>('.hero-card')
       const titleEl = el.querySelector<HTMLElement>('.hero-title')
@@ -148,20 +174,20 @@ export function Hero() {
             <h1 className="hero-title">
               <span>Ingliz tilini</span>
               <span>
-                <em>haqiqiy o'qituvchi</em> bilan,
+                <em>
+                  <WordRotator words={ROTATING_WORDS} /> o'qituvchi
+                </em>{' '}
+                bilan,
               </span>
               <span>
                 <span className="u">to'g'ri</span> o'rganing.
               </span>
             </h1>
             <p className="hero-sub" data-reveal>
-              <strong>{teacher.name}</strong> — CELTA sertifikatli o'qituvchi bilan online darslar. Bolalar, IELTS va
+              <strong>{teacher.name}</strong> — IELTS 7.0, C1 darajali o'qituvchi bilan online darslar. Bolalar, IELTS va
               kattalar uchun alohida dastur. <strong>Birinchi dars — bepul.</strong>
             </p>
             <div className="cred-strip" data-reveal role="list" aria-label="O'qituvchi malakalari">
-              <span className="cred" role="listitem">
-                {check} <span>{teacher.cert}</span>
-              </span>
               <span className="cred num" role="listitem">
                 {badge} IELTS <span>{teacher.ielts}</span>
               </span>
@@ -181,13 +207,13 @@ export function Hero() {
                   </svg>
                 </a>
               </Magnetic>
-              <a href="#dastur" className="btn-text">
+              <a href="#programs" className="btn-text">
                 Dasturni ko'rish
               </a>
             </div>
           </div>
 
-          <div className="hero-card" id="oqituvchi">
+          <div className="hero-card" id="teacher">
             <span className="hc-badge">Sizning o'qituvchingiz</span>
             <div className="hc-top">
               <span className="hc-avatar">
@@ -199,11 +225,6 @@ export function Hero() {
               </div>
             </div>
             <ul className="hc-facts">
-              <li>
-                {check} <span>
-                  <strong>{teacher.cert}</strong> — Cambridge o'qitish sertifikati
-                </span>
-              </li>
               <li className="num">
                 {badge} <span>
                   IELTS <strong>{teacher.ielts}</strong> · CEFR <strong>{teacher.cefr}</strong>
@@ -229,6 +250,12 @@ export function Hero() {
                 <span>{teacher.research}</span>
               </li>
             </ul>
+            <a href="/teacher" className="teacher-preview-link">
+              To'liq professional profilni ko'rish
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+                <path d="M5 12h14M13 6l6 6-6 6" />
+              </svg>
+            </a>
           </div>
         </div>
       </div>

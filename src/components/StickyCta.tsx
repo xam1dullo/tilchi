@@ -38,7 +38,7 @@ export function StickyCta() {
   }, [isHome])
 
   return (
-    <div className="sticky-cta" ref={ref}>
+    <div className="sticky-cta" ref={ref} style={{ viewTransitionName: 'persistent-cta' }}>
       <a {...(isHome ? { href: '/#booking' } : tgLinkProps(site.botUrl))} className="btn btn-primary">
         Bepul demo dars — Telegram'da
       </a>

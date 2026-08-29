@@ -41,5 +41,5 @@ export function NavMotion() {
     return () => mm.revert()
   }, [])
 
-  return <div className="nav-progress" ref={barRef} aria-hidden="true" />
+  return <div className="nav-progress" ref={barRef} aria-hidden="true" style={{ viewTransitionName: 'persistent-progress' }} />
 }

@@ -1,9 +1,11 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { ViewTransition } from 'react'
 import { notFound } from 'next/navigation'
 import { getPost, publishedPosts, formatDate } from '@/lib/posts'
 import { MdxContent } from '@/components/MdxContent'
 import { JsonLd } from '@/components/JsonLd'
+import { PageTransition } from '@/components/PageTransition'
 import { articleLd } from '@/lib/seo'
 import { site, tgLinkProps } from '@/lib/site'
 import { Footer } from '@/components/Footer'
@@ -38,12 +40,12 @@ export default async function PostPage({ params }: { params: Promise<{ slug: str
   if (!post) notFound()
 
   return (
-    <>
+    <PageTransition>
       <article>
         <JsonLd data={articleLd(post)} />
       <header className="article-header">
         <div className="container">
-          <Link href="/blog" className="article-back">
+          <Link href="/blog" className="article-back" transitionTypes={['nav-back']}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M19 12H5M11 18l-6-6 6-6" />
             </svg>
@@ -52,7 +54,9 @@ export default async function PostPage({ params }: { params: Promise<{ slug: str
           <time dateTime={post.date} className="num">
             {formatDate(post.date)}
           </time>
-          <h1 className="article-title">{post.title}</h1>
+          <ViewTransition name={`title-${post.slug}`} share="text-morph" default="none">
+            <h1 className="article-title">{post.title}</h1>
+          </ViewTransition>
           <p className="article-lead">{post.description}</p>
         </div>
       </header>
@@ -71,6 +75,6 @@ export default async function PostPage({ params }: { params: Promise<{ slug: str
       </div>
       </article>
       <Footer />
-    </>
+    </PageTransition>
   )
 }

@@ -4,7 +4,7 @@ import { methodSteps } from '@/lib/domain/method'
 
 export function Method() {
   return (
-    <section className="section metod" id="metodika">
+    <section className="section method" id="method">
       <div className="container">
         <div className="sec-intro">
           <p className="eyebrow">Qanday ishlaydi</p>

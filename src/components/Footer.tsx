@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { site, tgLinkProps } from '@/lib/site'
 
 const tg = (
@@ -10,14 +11,16 @@ export function Footer() {
   return (
     <footer className="footer">
       <div className="container footer-inner">
-        <a href="/" className="logo" aria-label="Tilchi">
+        <Link href="/" className="logo" aria-label="Tilchi" transitionTypes={['nav-lateral']}>
           <span className="logo-mark" aria-hidden="true" />
           <span>tilchi</span>
-        </a>
+        </Link>
         <nav className="footer-legal" aria-label="Havolalar">
           <a href="/#faq">Savollar</a>
-          <a href="/blog">Blog</a>
-          <a href="/#dastur">Darslar</a>
+          <Link href="/blog" transitionTypes={['nav-lateral']}>
+            Blog
+          </Link>
+          <a href="/#programs">Darslar</a>
         </nav>
         <a {...tgLinkProps()} className="tg-link">
           {tg}

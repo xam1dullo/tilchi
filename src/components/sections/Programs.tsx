@@ -32,7 +32,7 @@ const check = (
 
 export function Programs() {
   return (
-    <ScrubSection className="section" y={26} id="dastur">
+    <ScrubSection className="section" y={26} id="programs">
       <div className="container">
         <div className="prog-grid">
           <aside className="prog-aside">

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import Link from 'next/link'
 import { site } from '@/lib/site'
 
 export function Nav() {
@@ -53,12 +54,12 @@ export function Nav() {
   }, [open])
 
   return (
-    <header className="nav" ref={ref}>
+    <header className="nav" ref={ref} style={{ viewTransitionName: 'persistent-nav' }}>
       <div className="nav-inner">
-        <a href="/" className="logo" aria-label="Tilchi bosh sahifa">
+        <Link href="/" className="logo" aria-label="Tilchi bosh sahifa" transitionTypes={['nav-lateral']}>
           <span className="logo-mark" aria-hidden="true" />
           <span>tilchi</span>
-        </a>
+        </Link>
         <button
           type="button"
           className="nav-toggle"
@@ -75,9 +76,15 @@ export function Nav() {
           <ul className={`nav-links${open ? ' open' : ''}`} id="nav-links">
             {site.nav.map((l) => (
               <li key={l.href}>
-                <a href={l.href} onClick={() => setOpen(false)}>
-                  {l.label}
-                </a>
+                {l.href.includes('#') ? (
+                  <a href={l.href} onClick={() => setOpen(false)}>
+                    {l.label}
+                  </a>
+                ) : (
+                  <Link href={l.href} transitionTypes={['nav-lateral']} onClick={() => setOpen(false)}>
+                    {l.label}
+                  </Link>
+                )}
               </li>
             ))}
           </ul>

@@ -24,8 +24,8 @@ export const teacherLd = {
   jobTitle: teacher.jobTitle,
   worksFor: { '@id': `${site.url}/#org` },
   hasCredential: [
-    { '@type': 'EducationalOccupationalCredential', name: teacher.cert, credentialCategory: 'certificate' },
     { '@type': 'EducationalOccupationalCredential', name: `IELTS ${teacher.ielts}`, credentialCategory: 'certificate' },
+    { '@type': 'EducationalOccupationalCredential', name: `CEFR ${teacher.cefr}`, credentialCategory: 'certificate' },
   ],
   knowsLanguage: [
     { '@type': 'Language', name: 'English', alternateName: 'en' },

@@ -1,6 +1,8 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { ViewTransition } from 'react'
 import { publishedPosts, formatDate } from '@/lib/posts'
+import { PageTransition } from '@/components/PageTransition'
 import { Reveal } from '@/components/gsap/Reveal'
 import { Footer } from '@/components/Footer'
 
@@ -12,7 +14,7 @@ export const metadata: Metadata = {
 
 export default function BlogPage() {
   return (
-    <>
+    <PageTransition>
       <section className="blog-header">
         <div className="container">
           <p className="eyebrow">Blog</p>
@@ -30,15 +32,19 @@ export default function BlogPage() {
               <time dateTime={post.date} className="num">
                 {formatDate(post.date)}
               </time>
-              <h2>
-                <Link href={post.href}>{post.title}</Link>
-              </h2>
+              <ViewTransition name={`title-${post.slug}`} share="text-morph" default="none">
+                <h2>
+                  <Link href={post.href} transitionTypes={['nav-forward']}>
+                    {post.title}
+                  </Link>
+                </h2>
+              </ViewTransition>
               <p>{post.description}</p>
             </article>
           </Reveal>
         ))}
       </section>
       <Footer />
-    </>
+    </PageTransition>
   )
 }

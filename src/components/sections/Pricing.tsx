@@ -36,7 +36,7 @@ export function Pricing() {
   }, [])
 
   return (
-    <section className="section" id="narx" ref={ref}>
+    <section className="section" id="pricing" ref={ref}>
       <div className="container">
         <div className="sec-intro">
           <p className="eyebrow">Narxlar</p>
