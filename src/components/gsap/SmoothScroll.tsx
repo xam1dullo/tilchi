@@ -21,15 +21,16 @@ export function SmoothScroll({ children }: { children: React.ReactNode }) {
 
       const onClick = (e: MouseEvent) => {
         const target = e.target as HTMLElement | null
-        const anchor = target?.closest?.('a[href^="#"]') as HTMLAnchorElement | null
+        const anchor = target?.closest?.('a[href^="#"], a[href^="/#"]') as HTMLAnchorElement | null
         if (!anchor) return
         const href = anchor.getAttribute('href')
         if (!href || href.length < 2) return
-        const el = document.querySelector(href)
+        const hash = href.startsWith('/') ? href.slice(1) : href
+        const el = document.querySelector(hash)
         if (!el) return
         e.preventDefault()
         smoother.scrollTo(el, true, 'top 0')
-        history.pushState(null, '', href)
+        history.pushState(null, '', hash)
       }
 
       const refresh = () => ScrollTrigger.refresh()

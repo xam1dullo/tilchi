@@ -35,6 +35,8 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Run tests
         run: pnpm velite && pnpm test
+      - name: Enforce contrast
+        run: pnpm check:contrast
       - name: Build static export
         run: pnpm build
       - name: Enforce JS budget

@@ -7,6 +7,7 @@ export interface GsapApi {
   ScrollTrigger: typeof import('gsap/ScrollTrigger').ScrollTrigger
   ScrollSmoother: typeof import('gsap/ScrollSmoother').ScrollSmoother
   SplitText: typeof import('gsap/SplitText').SplitText
+  ScrambleText: typeof import('gsap/ScrambleTextPlugin').ScrambleTextPlugin
   Physics2D: typeof import('gsap/Physics2DPlugin').Physics2DPlugin
 }
 
@@ -19,14 +20,15 @@ export function loadGsap(): Promise<GsapApi> {
       import('gsap/ScrollTrigger'),
       import('gsap/ScrollSmoother'),
       import('gsap/SplitText'),
+      import('gsap/ScrambleTextPlugin'),
       import('gsap/CustomEase'),
       import('gsap/Physics2DPlugin'),
-    ]).then(([g, st, ss, sp, ce, p2]) => {
-      g.gsap.registerPlugin(st.ScrollTrigger, ss.ScrollSmoother, sp.SplitText, ce.CustomEase, p2.Physics2DPlugin)
+    ]).then(([g, st, ss, sp, stx, ce, p2]) => {
+      g.gsap.registerPlugin(st.ScrollTrigger, ss.ScrollSmoother, sp.SplitText, stx.default, ce.CustomEase, p2.Physics2DPlugin)
       if (!ce.CustomEase.get('tilchi')) {
         ce.CustomEase.create('tilchi', '0.16, 1, 0.3, 1')
       }
-      return { gsap: g.gsap, ScrollTrigger: st.ScrollTrigger, ScrollSmoother: ss.ScrollSmoother, SplitText: sp.SplitText, Physics2D: p2.Physics2DPlugin }
+      return { gsap: g.gsap, ScrollTrigger: st.ScrollTrigger, ScrollSmoother: ss.ScrollSmoother, SplitText: sp.SplitText, ScrambleText: stx.default, Physics2D: p2.Physics2DPlugin }
     })
   }
   return ready

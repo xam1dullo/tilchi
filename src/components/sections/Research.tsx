@@ -1,10 +1,11 @@
 import { SplitHeading } from '@/components/gsap/SplitHeading'
 import { ScrubList } from '@/components/gsap/ScrubList'
+import Link from 'next/link'
 import { teacher } from '@/lib/site'
 
 export function Research() {
   return (
-    <section className="section" id="tadqiqot">
+    <section className="section" id="research">
       <div className="container">
         <div className="sec-intro">
           <p className="eyebrow">Ilmiy faoliyat</p>
@@ -39,8 +40,8 @@ export function Research() {
             <p className="eyebrow pub-eyebrow">
               Sertifikatlar
             </p>
-            <h3>{teacher.cert} · IELTS {teacher.ielts} · CEFR {teacher.cefr}</h3>
-            <p className="research-meta">O'qitish metodikasi, til darajasi va test tayyorgarligi bo'yicha xalqaro sertifikatlar.</p>
+            <h3>IELTS {teacher.ielts} · CEFR {teacher.cefr}</h3>
+            <p className="research-meta">IELTS test natijasi va CEFR daraja — tilni tasdiqlangan ko'rsatkichlar.</p>
           </article>
 
           <article className="research-card">
@@ -51,6 +52,12 @@ export function Research() {
             <p className="research-meta">{teacher.awards[0].org}, {teacher.awards[0].period}</p>
           </article>
         </ScrubList>
+        <Link href="/teacher#publications" className="research-more" transitionTypes={['nav-forward']}>
+          Barcha nashrlar va professional profilni ko'rish
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+            <path d="M5 12h14M13 6l6 6-6 6" />
+          </svg>
+        </Link>
       </div>
     </section>
   )

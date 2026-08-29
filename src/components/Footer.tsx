@@ -1,4 +1,5 @@
-import { site } from '@/lib/site'
+import Link from 'next/link'
+import { site, tgLinkProps } from '@/lib/site'
 
 const tg = (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -10,16 +11,18 @@ export function Footer() {
   return (
     <footer className="footer">
       <div className="container footer-inner">
-        <a href="/" className="logo" aria-label="Tilchi">
+        <Link href="/" className="logo" aria-label="Tilchi" transitionTypes={['nav-lateral']}>
           <span className="logo-mark" aria-hidden="true" />
           <span>tilchi</span>
-        </a>
+        </Link>
         <nav className="footer-legal" aria-label="Havolalar">
           <a href="/#faq">Savollar</a>
-          <a href="/blog">Blog</a>
-          <a href="/#dastur">Darslar</a>
+          <Link href="/blog" transitionTypes={['nav-lateral']}>
+            Blog
+          </Link>
+          <a href="/#programs">Darslar</a>
         </nav>
-        <a href={site.botUrl} className="tg-link" rel="noopener">
+        <a {...tgLinkProps()} className="tg-link">
           {tg}
           <span>@{site.telegramBot}</span>
         </a>

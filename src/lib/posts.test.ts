@@ -3,7 +3,7 @@ import { formatDate, getPost, publishedPosts } from './posts'
 
 describe('publishedPosts', () => {
   it('excludes drafts and sorts by date, newest first', () => {
-    expect(publishedPosts.map((p) => p.slug)).toEqual(['5-xato', 'ielts-cefr', 'celta'])
+    expect(publishedPosts.map((p) => p.slug)).toEqual(['5-mistakes', 'ielts-cefr'])
     expect(publishedPosts.every((p) => !p.draft)).toBe(true)
   })
 
@@ -14,7 +14,7 @@ describe('publishedPosts', () => {
 
 describe('getPost', () => {
   it('returns the post for an existing slug', () => {
-    expect(getPost('celta')?.title).toContain('CELTA')
+    expect(getPost('5-mistakes')?.title).toContain('xato')
   })
 
   it('returns undefined for an unknown slug', () => {

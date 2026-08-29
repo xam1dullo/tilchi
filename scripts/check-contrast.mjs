@@ -1,12 +1,61 @@
+import { readFileSync } from 'node:fs'
+
+const css = readFileSync('src/app/globals.css', 'utf8')
+
+const rootBlock = css.match(/:root\s*\{([\s\S]*?)\}/)
+if (!rootBlock) {
+  console.error('FAIL: :root block not found in src/app/globals.css')
+  process.exit(1)
+}
+
+const tokens = {}
+for (const m of rootBlock[1].matchAll(/(--[\w-]+):\s*([^;]+);/g)) {
+  tokens[m[1].trim()] = m[2].trim()
+}
+
+const resolve = (v) => {
+  v = v.trim()
+  if (v.startsWith('#')) return v
+  const m = v.match(/^oklch\(([\d.]+)\s+([\d.]+)\s+([\d.]+)\)$/)
+  if (m) return oklchToHex(parseFloat(m[1]), parseFloat(m[2]), parseFloat(m[3]))
+  const varM = v.match(/^var\((--[\w-]+)\)$/)
+  if (varM) return resolve(tokens[varM[1]])
+  throw new Error(`cannot parse color: ${v}`)
+}
+
+function oklchToHex(l, c, h) {
+  const hr = (h * Math.PI) / 180
+  const a = c * Math.cos(hr)
+  const b = c * Math.sin(hr)
+  const l_ = l + 0.3963377774 * a + 0.2158037573 * b
+  const m_ = l - 0.1055613458 * a - 0.0638541728 * b
+  const s_ = l - 0.0894841775 * a - 1.291485548 * b
+  const cube = (x) => x * x * x
+  const [l3, m3, s3] = [cube(l_), cube(m_), cube(s_)]
+  const rgb = [
+    4.0767416621 * l3 - 3.3077115913 * m3 + 0.2309699292 * s3,
+    -1.2684380046 * l3 + 2.6097574011 * m3 - 0.3413193965 * s3,
+    -0.0041960863 * l3 - 0.7034186147 * m3 + 1.707614701 * s3,
+  ]
+  const toCss = (v) => {
+    v = Math.min(1, Math.max(0, v))
+    const c8 = v <= 0.0031308 ? 12.92 * v : 1.055 * Math.pow(v, 1 / 2.4) - 0.055
+    return Math.round(c8 * 255).toString(16).padStart(2, '0')
+  }
+  return `#${rgb.map(toCss).join('').toUpperCase()}`
+}
+
 const pairs = [
-  ['btn-primary matn (#fff)', '#FFFFFF', '#A8452E'],
-  ['accent-soft badge matn (#7A2E1D)', '#7A2E1D', '#F0D9CE'],
-  ['accent (#C8593E) — bg', '#C8593E', '#F5EFE4'],
-  ['ink-2 matn', '#3D372F', '#F5EFE4'],
-  ['muted matn', '#6E6858', '#F5EFE4'],
-  ['ink-3 matn — bg-elev', '#6B6558', '#FBF7F0'],
-  ['tg btn matn (#fff)', '#FFFFFF', '#16719E'],
-  ['deep karta matn (#F5EFE4)', '#F5EFE4', '#241C16'],
+  ['btn-primary matn (#fff)', '#FFFFFF', '--accent-solid'],
+  ['accent-soft badge matn (#7A2E1D)', '--accent-ink', '--accent-soft'],
+  ['accent (#C8593E) — bg', '--accent', '--bg'],
+  ['accent step-num — bg-elev', '--accent', '--bg-elev'],
+  ['accent-ink matn — bg', '--accent-ink', '--bg'],
+  ['success icon — bg-elev', '--success', '--bg-elev'],
+  ['ink-2 matn', '--ink-2', '--bg'],
+  ['muted matn', '--muted', '--bg'],
+  ['muted matn — bg-elev', '--muted', '--bg-elev'],
+  ['tg btn matn (#fff)', '#FFFFFF', '--tg'],
 ]
 
 const lum = (hex) => {
@@ -21,8 +70,17 @@ const ratio = (a, b) => {
   return (l1 + 0.05) / (l2 + 0.05)
 }
 
+let fail = false
 for (const [label, fg, bg] of pairs) {
-  const r = ratio(fg, bg)
+  const fgHex = fg.startsWith('#') ? fg : resolve(tokens[fg])
+  const bgHex = bg.startsWith('#') ? bg : resolve(tokens[bg])
+  const r = ratio(fgHex, bgHex)
   const aa = r >= 4.5 ? 'AA ✓' : r >= 3 ? 'AA-large ✓' : '✗'
   console.log(`${r.toFixed(2).padStart(5)}  ${aa.padEnd(10)}  ${label}`)
+  if (r < 3) fail = true
 }
+if (fail) {
+  console.error('FAIL: contrast below 3:1 (AA-large)')
+  process.exit(1)
+}
+console.log('contrast OK')

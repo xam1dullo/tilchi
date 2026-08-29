@@ -7,7 +7,7 @@ This document defines the core domain concepts, Ubiquitous Language, and archite
 ### 1. Domain Content Modules
 - **Single Source of Truth**: Core business domain content (FAQs, course/program features, pricing structures) must reside in immutable, deep data modules.
 - **`src/lib/domain/` (Section Content Modules)**: Immutable domain data split by concern — `faqs.ts` (FAQ pairs `q`/`a`), `programs.ts` (program offerings *Bolalar*, *IELTS*, *Kattalar` with `ProgramIconId`), `demo.ts` (demo steps), `method.ts` (method steps), `trust.ts` (trust items). Consumed simultaneously by the UI presentation layer (`components/sections/`) and the SEO structured data generator (`lib/seo.ts` FAQPage schema) — no duplicated copy.
-- **`src/lib/site.ts` (Site Config Module)**: Organizational parameters, teacher profile data (*Mukhtasar Karimjonova*), certifications (CELTA, IELTS 7.0, C1), pricing schedules, and Bot link generator (`botLink(seg, lv)` → Telegram deep link with `?start=` payload).
+- **`src/lib/site.ts` (Site Config Module)**: Organizational parameters, teacher profile data (*Mukhtasar Karimjonova*), credentials (IELTS 7.0, C1 — no CELTA: the teacher has never obtained it, do not add it back), pricing schedules, and Bot link generator (`botLink(seg, lv)` → Telegram deep link with `?start=` payload).
 - **`content/posts/*.mdx` (Blog Module)**: Immutable article sources compiled by velite into `.velite/posts.json`; rendered via MDX `run()` at build time.
 
 ### 2. Architectural Seams & Locality

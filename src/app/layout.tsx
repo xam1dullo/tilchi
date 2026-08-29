@@ -24,7 +24,7 @@ export const metadata: Metadata = {
     siteName: 'Tilchi',
     locale: site.locale,
     title: 'Tilchi — online ingliz tili darslari',
-    description: 'CELTA · IELTS 7.0 · C1. Bolalar, IELTS va kattalar uchun. Birinchi dars bepul.',
+    description: 'IELTS 7.0 · C1 · Ilmiy tadqiqot muallifi. Bolalar, IELTS va kattalar uchun. Birinchi dars bepul.',
     images: [
       {
         url: '/og.png',
@@ -50,7 +50,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="uz" className={`${serif.variable} ${geist.variable}`}>
       <body>
-        <div className="grain" aria-hidden="true" />
+        <div className="grain" aria-hidden="true" style={{ viewTransitionName: 'persistent-grain' }} />
         <a href="#main" className="skip">
           Asosiy kontentga o'tish
         </a>

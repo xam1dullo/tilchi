@@ -5,7 +5,7 @@ import { site } from '@/lib/site'
 export const dynamic = 'force-static'
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const routes = ['/', '/blog', ...publishedPosts.map((p) => p.href)]
+  const routes = ['/', '/teacher', '/blog', ...publishedPosts.map((p) => p.href)]
   return routes.map((r) => ({
     url: `${site.url}${r === '/' ? '/' : `${r}/`}`,
     lastModified: new Date(),

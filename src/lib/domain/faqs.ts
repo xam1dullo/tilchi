@@ -18,7 +18,7 @@ export const faqs: readonly FaqItem[] = [
   },
   {
     q: "To'lov qanday amalga oshiriladi?",
-    a: "Oylik to'lov, Uzcard yoki Humo karta o'tkazmasi orqali. To'lov faqat demo darsdan keyin, davom etishga qaror qilsangiz.",
+    a: "Oylik to'lov, Uzcard yoki Humo karta o'tkazmasi orqali. To'lov faqat demo darsdan keyin, davom etishga qaror qilsangiz. O'tkazmadan so'ng chekni Telegram'da yuborasiz — to'lov tasdiqlanadi va darslar boshlanadi.",
   },
   {
     q: "Darsni o'tkazib yuborsam nima bo'ladi?",
