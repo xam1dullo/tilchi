@@ -55,7 +55,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           Asosiy kontentga o'tish
         </a>
         <Nav />
-        <main id="main">{children}</main>
+        <main id="main" tabIndex={-1}>{children}</main>
         <StickyCta />
       </body>
     </html>

@@ -2,11 +2,14 @@
 
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import { site } from '@/lib/site'
 
 export function Nav() {
   const ref = useRef<HTMLElement>(null)
+  const toggleRef = useRef<HTMLButtonElement>(null)
   const [open, setOpen] = useState(false)
+  const pathname = usePathname()
 
   useEffect(() => {
     const nav = ref.current
@@ -16,13 +19,26 @@ export function Nav() {
     window.addEventListener('scroll', onScroll, { passive: true })
     onScroll()
 
-    if (!('IntersectionObserver' in window)) return
+    const links = Array.from(nav.querySelectorAll<HTMLAnchorElement>('.nav-links a'))
+    const pageLinks = links.filter((a) => !a.getAttribute('href')?.includes('#'))
+    pageLinks.forEach((a) => {
+      const href = a.getAttribute('href')
+      const isCurrent = href === pathname || (href !== '/' && pathname.startsWith(`${href}/`))
+      if (isCurrent) a.setAttribute('aria-current', 'page')
+      else a.removeAttribute('aria-current')
+    })
 
-    const links = Array.from(nav.querySelectorAll<HTMLAnchorElement>('.nav-links a[href^="/#"]'))
-    const targets = links
+    if (pathname !== '/' || !('IntersectionObserver' in window)) {
+      return () => window.removeEventListener('scroll', onScroll)
+    }
+
+    const sectionLinks = links.filter((a) => a.getAttribute('href')?.startsWith('/#'))
+    const targets = sectionLinks
       .map((a) => document.querySelector(a.getAttribute('href')?.replace(/^\//, '') ?? ''))
       .filter((t): t is Element => t != null)
-    if (targets.length === 0) return
+    if (targets.length === 0) {
+      return () => window.removeEventListener('scroll', onScroll)
+    }
 
     const io = new IntersectionObserver(
       (entries) => {
@@ -30,8 +46,8 @@ export function Nav() {
           if (!e.isIntersecting) return
           const i = targets.indexOf(e.target)
           if (i < 0) return
-          links.forEach((a) => a.removeAttribute('aria-current'))
-          links[i].setAttribute('aria-current', 'true')
+          sectionLinks.forEach((a) => a.removeAttribute('aria-current'))
+          sectionLinks[i].setAttribute('aria-current', 'true')
         })
       },
       { rootMargin: '-45% 0px -50% 0px' }
@@ -42,16 +58,30 @@ export function Nav() {
       window.removeEventListener('scroll', onScroll)
       io.disconnect()
     }
-  }, [])
+  }, [pathname])
 
   useEffect(() => {
     if (!open) return
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false)
+      if (e.key === 'Escape') {
+        setOpen(false)
+        toggleRef.current?.focus()
+      }
+    }
+    const onPointerDown = (e: PointerEvent) => {
+      const target = e.target as Node | null
+      const menu = ref.current?.querySelector('.nav-links')
+      if (!menu?.contains(target) && !toggleRef.current?.contains(target)) setOpen(false)
     }
     window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
+    document.addEventListener('pointerdown', onPointerDown)
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      document.removeEventListener('pointerdown', onPointerDown)
+    }
   }, [open])
+
+  useEffect(() => setOpen(false), [pathname])
 
   return (
     <header className="nav" ref={ref} style={{ viewTransitionName: 'persistent-nav' }}>
@@ -63,6 +93,7 @@ export function Nav() {
         <button
           type="button"
           className="nav-toggle"
+          ref={toggleRef}
           aria-expanded={open}
           aria-controls="nav-links"
           aria-label={open ? 'Menyuni yopish' : 'Menyuni ochish'}
