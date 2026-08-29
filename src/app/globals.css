@@ -695,11 +695,14 @@ main:focus { outline: none; }
 @media (max-width: 900px) {
   .teacher-hero-grid { grid-template-columns: 1fr; }
   .teacher-identity { max-width: 560px; }
+  .choice-grid { grid-template-columns: repeat(2, 1fr); }
   .teacher-detail-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .teacher-training-card { grid-column: 1 / -1; }
 }
 @media (max-width: 680px) {
   .teacher-columns, .teacher-detail-grid { grid-template-columns: 1fr; }
+  .choice-grid,
+  .teacher-score-grid { grid-template-columns: 1fr; }
   .teacher-training-card { grid-column: auto; }
   .teacher-identity { padding: 24px; }
   .teacher-timeline-item { grid-template-columns: 1fr; gap: 5px; }
