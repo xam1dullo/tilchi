@@ -1,6 +1,8 @@
 import type { Post } from '@velite/index'
 import { faqs } from '@/lib/domain/faqs'
-import { site, teacher, prices } from '@/lib/site'
+import { courses, site, teacher } from '@/lib/site'
+
+const workload = (perWeek: number) => `PT${(perWeek * site.lesson.durationMin) / 60}H`
 
 export const graphLd = (...nodes: object[]) => ({
   '@context': 'https://schema.org',
@@ -10,10 +12,10 @@ export const graphLd = (...nodes: object[]) => ({
 export const orgLd = {
   '@type': 'EducationalOrganization',
   '@id': `${site.url}/#org`,
-  name: 'Tilchi',
+  name: site.name,
   url: `${site.url}/`,
-  description: 'Online ingliz tili darslari — bolalar, IELTS va kattalar uchun.',
-  areaServed: { '@type': 'Country', name: 'Uzbekistan' },
+  description: site.orgDescription,
+  areaServed: { '@type': 'Country', name: site.areaServed },
   inLanguage: 'uz',
 }
 
@@ -35,44 +37,29 @@ export const teacherLd = {
 
 export const ieltsCourseLd = {
   '@type': 'Course',
-  name: 'IELTS tayyorgarlik — online',
-  description:
-    "Band-descriptor asosida IELTS tayyorgarligi: Writing bo'yicha yozma feedback, Speaking imtihon formatida, muntazam mock testlar.",
+  name: courses.ielts.name,
+  description: courses.ielts.description,
   inLanguage: 'uz',
   provider: { '@id': `${site.url}/#org` },
   hasCourseInstance: {
     '@type': 'CourseInstance',
     courseMode: 'online',
-    courseWorkload: 'PT3H',
+    courseWorkload: workload(site.lesson.ieltsPerWeek),
     instructor: { '@id': `${site.url}/#teacher` },
-  },
-  offers: {
-    '@type': 'Offer',
-    category: 'Individual',
-    price: String(prices.indiv.launch),
-    priceCurrency: 'UZS',
-    availability: 'https://schema.org/LimitedAvailability',
   },
 }
 
 export const groupCourseLd = {
   '@type': 'Course',
-  name: 'Ingliz tili — guruh darslari',
-  description: '3–5 kishilik kichik guruhda haftada 3 dars. Uy vazifasi tekshiriladi, har darsda speaking mashqlari.',
+  name: courses.group.name,
+  description: courses.group.description,
   inLanguage: 'uz',
   provider: { '@id': `${site.url}/#org` },
   hasCourseInstance: {
     '@type': 'CourseInstance',
     courseMode: 'online',
-    courseWorkload: 'PT3H',
+    courseWorkload: workload(site.lesson.groupPerWeek),
     instructor: { '@id': `${site.url}/#teacher` },
-  },
-  offers: {
-    '@type': 'Offer',
-    category: 'Guruh',
-    price: String(prices.group.launch),
-    priceCurrency: 'UZS',
-    availability: 'https://schema.org/LimitedAvailability',
   },
 }
 
