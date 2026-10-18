@@ -2,9 +2,9 @@ import { describe, expect, it } from 'vitest'
 import { botLink, botSummary, fmtPrice, site, tgLinkProps } from './site'
 
 describe('nav links', () => {
-  it('uses root-relative hrefs so anchors work from any page', () => {
+  it('uses root-relative or https hrefs so anchors work from any page', () => {
     for (const item of site.nav) {
-      expect(item.href.startsWith('/')).toBe(true)
+      expect(item.href.startsWith('/') || item.href.startsWith('https://')).toBe(true)
     }
   })
 })

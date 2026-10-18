@@ -21,6 +21,9 @@ export function Footer() {
             Blog
           </Link>
           <a href="/#programs">Darslar</a>
+          <a href="https://app.tilchi.uz" target="_blank" rel="noopener noreferrer">
+            Sinfxona (app)
+          </a>
         </nav>
         <a {...tgLinkProps()} className="tg-link">
           {tg}

@@ -107,7 +107,11 @@ export function Nav() {
           <ul className={`nav-links${open ? ' open' : ''}`} id="nav-links">
             {site.nav.map((l) => (
               <li key={l.href}>
-                {l.href.includes('#') ? (
+                {l.href.startsWith('http') ? (
+                  <a href={l.href} target="_blank" rel="noopener noreferrer" onClick={() => setOpen(false)}>
+                    {l.label}
+                  </a>
+                ) : l.href.includes('#') ? (
                   <a href={l.href} onClick={() => setOpen(false)}>
                     {l.label}
                   </a>

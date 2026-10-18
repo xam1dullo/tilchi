@@ -10,12 +10,14 @@ export const site = {
   themeColor: '#F5EFE4',
   telegramBot: 'tilchiuz_bot',
   botUrl: 'https://t.me/tilchiuz_bot',
+  appUrl: 'https://app.tilchi.uz',
   nav: [
     { href: '/#programs', label: 'Dastur' },
     { href: '/teacher', label: "O'qituvchi" },
     { href: '/#pricing', label: 'Narx' },
     { href: '/#faq', label: 'Savollar' },
     { href: '/blog', label: 'Blog' },
+    { href: 'https://app.tilchi.uz', label: 'Sinfxona' },
   ],
   cohort: {
     label: 'Birinchi oqim — 2026-yil avgust',
