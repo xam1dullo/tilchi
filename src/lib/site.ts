@@ -1,6 +1,8 @@
 export const site = {
   url: 'https://tilchi.uz',
   name: 'Tilchi',
+  orgDescription: 'Online ingliz tili darslari — bolalar, IELTS va kattalar uchun.',
+  areaServed: 'Uzbekistan',
   title: "Tilchi — IELTS 7.0 (C1) o'qituvchi bilan online ingliz tili | Birinchi dars bepul",
   description:
     "Mukhtasar Karimjonova — IELTS 7.0, C1 daraja, ilmiy tadqiqot muallifi. Bolalar, IELTS va kattalar uchun online ingliz tili darslari. Birinchi demo dars bepul, karta so'ralmaydi.",
@@ -17,9 +19,10 @@ export const site = {
   ],
   cohort: {
     label: 'Birinchi oqim — 2026-yil avgust',
+    groupMin: 3,
     groupSeats: 5,
   },
-  lesson: { durationMin: 60, groupPerWeek: 3, indivPerWeek: 2 },
+  lesson: { durationMin: 60, groupPerWeek: 3, indivPerWeek: 2, ieltsPerWeek: 3 },
 } as const
 
 export const teacher = {
@@ -121,7 +124,7 @@ export const teacher = {
   interests: 'Kitob o‘qish va tillarni o‘rganish: arab, yapon va rus tillari.',
   awards: [
     { title: '“Best Speech Performance” sertifikati', org: 'II Respublika konferensiyasi, Yeouju Technical Institute', period: '2022' },
-    { title: "Certificate of Attendance — 20 soatlik General English kursi", org: 'Norwich Institute for Language Education (NILE), CELTA kursantlari', period: '2021' },
+    { title: "Certificate of Attendance — 20 soatlik General English kursi", org: 'Norwich Institute for Language Education (NILE)', period: '2021' },
   ],
   certifications: [
     { title: 'Multilevel CEFR English C1', detail: '№ 26BBA1767401KM', period: '18-iyun 2026' },
@@ -135,6 +138,18 @@ export const prices = {
   group: { regular: 250_000, launch: 180_000 },
   indiv: { regular: 450_000, launch: 330_000 },
   ieltsAddon: 150_000,
+} as const
+
+export const courses = {
+  group: {
+    name: 'Ingliz tili — guruh darslari',
+    description: `${site.cohort.groupMin}–${site.cohort.groupSeats} kishilik kichik guruhda haftada ${site.lesson.groupPerWeek} dars. Uy vazifasi tekshiriladi, har darsda speaking mashqlari.`,
+  },
+  ielts: {
+    name: 'IELTS tayyorgarlik — online',
+    description:
+      "Band-descriptor asosida IELTS tayyorgarligi: Writing bo'yicha yozma feedback, Speaking imtihon formatida, muntazam mock testlar.",
+  },
 } as const
 
 export const fmtPrice = (n: number) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '\u00A0')

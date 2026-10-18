@@ -491,6 +491,7 @@ main:focus { outline: none; }
 .plan-price .amount { font-family: var(--font-serif); font-size: clamp(2rem, 3.4vw, 2.7rem); font-weight: 500; letter-spacing: -0.02em; }
 .plan-price .cur { font-size: var(--fs-sm); color: var(--ink-2); }
 .plan-price .per { font-size: var(--fs-xs); color: var(--muted); }
+.plan-agreed { font-family: var(--font-serif); font-size: clamp(1.5rem, 2.6vw, 2rem); font-weight: 500; letter-spacing: -0.02em; line-height: 1.2; }
 .plan-launch { display: inline-block; width: fit-content; padding: 5px 10px; border-radius: var(--r-chip); background: var(--accent-soft); color: var(--accent-ink); font-size: var(--fs-xs); font-weight: 600; }
 .plan ul { list-style: none; display: grid; gap: 10px; }
 .plan ul li { display: flex; align-items: flex-start; gap: 9px; font-size: var(--fs-sm); color: var(--ink-2); }

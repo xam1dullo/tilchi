@@ -26,7 +26,7 @@ export function Reveal({
         duration: 0.7,
         delay,
         ease: 'tilchi',
-        scrollTrigger: { trigger: el, start: 'top 88%' },
+        scrollTrigger: { trigger: el, start: 'top 88%', toggleActions: 'play none none reverse' },
       })
     })
 

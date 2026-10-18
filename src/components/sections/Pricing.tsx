@@ -1,10 +1,8 @@
 'use client'
 
-import { useRef } from 'react'
 import { Reveal } from '@/components/gsap/Reveal'
 import { SplitHeading } from '@/components/gsap/SplitHeading'
-import { useGsap } from '@/lib/gsap'
-import { fmtPrice, prices, site } from '@/lib/site'
+import { site } from '@/lib/site'
 
 const check = (
   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -13,39 +11,15 @@ const check = (
 )
 
 export function Pricing() {
-  const ref = useRef<HTMLElement>(null)
-
-  useGsap(({ gsap }) => {
-    const mm = gsap.matchMedia()
-    ref.current?.querySelectorAll<HTMLElement>('.amount[data-price]').forEach((el) => {
-      const target = Number(el.dataset.price)
-      const state = { v: 0 }
-      mm.add('(prefers-reduced-motion: no-preference)', () => {
-        gsap.to(state, {
-          v: target,
-          duration: 1.4,
-          ease: 'power2.out',
-          scrollTrigger: { trigger: el, start: 'top 88%' },
-          onUpdate: () => {
-            el.textContent = fmtPrice(Math.round(state.v))
-          },
-        })
-      })
-    })
-    return () => mm.revert()
-  }, [])
-
   return (
-    <section className="section" id="pricing" ref={ref}>
+    <section className="section" id="pricing">
       <div className="container">
         <div className="sec-intro">
           <p className="eyebrow">Narxlar</p>
           <SplitHeading className="h2">
             Ikki tarif. <em>Yashirin to'lov yo'q.</em>
           </SplitHeading>
-          <p className="lede">
-            Birinchi oqim uchun maxsus launch narx — chunki siz bizning birinchi o'quvchilarimiz bo'lasiz.
-          </p>
+          <p className="lede">Narx har bir o'quvchi bilan kelishuv asosida belgilanadi.</p>
         </div>
 
         <div className="pricing">
@@ -54,17 +28,11 @@ export function Pricing() {
               <div className="plan-head">
                 <h3>Guruh</h3>
                 <p className="plan-sub num">
-                  3–5 kishi · haftada {site.lesson.groupPerWeek} dars · {site.lesson.durationMin} daqiqa
+                  {site.cohort.groupMin}–{site.cohort.groupSeats} kishi · haftada {site.lesson.groupPerWeek} dars · {site.lesson.durationMin} daqiqa
                 </p>
               </div>
               <div className="plan-money">
-                <p className="plan-old num">{fmtPrice(prices.group.regular)} so'm</p>
-                <div className="plan-price">
-                  <span className="amount num" data-price={prices.group.launch}>{fmtPrice(prices.group.launch)}</span>
-                  <span className="cur">so'm</span>
-                  <span className="per">/oy</span>
-                </div>
-                <span className="plan-launch">Launch narx — birinchi oqim</span>
+                <p className="plan-agreed">Kelishuv asosida</p>
               </div>
               <ul>
                 <li>{check} Kichik guruh — har kimga e'tibor yetadi</li>
@@ -89,20 +57,12 @@ export function Pricing() {
                 </p>
               </div>
               <div className="plan-money">
-                <p className="plan-old num">{fmtPrice(prices.indiv.regular)} so'm</p>
-                <div className="plan-price">
-                  <span className="amount num" data-price={prices.indiv.launch}>{fmtPrice(prices.indiv.launch)}</span>
-                  <span className="cur">so'm</span>
-                  <span className="per">/oy</span>
-                </div>
-                <span className="plan-launch">Launch narx — birinchi oqim</span>
+                <p className="plan-agreed">Kelishuv asosida</p>
               </div>
               <ul>
                 <li>{check} To'liq shaxsiy o'quv rejasi</li>
                 <li>{check} Jadval to'liq sizga moslanadi</li>
-                <li>
-                  {check} IELTS intensiv: haftada 3 dars — <span className="num">+{fmtPrice(prices.ieltsAddon)} so'm</span>
-                </li>
+                <li>{check} IELTS intensiv: haftada {site.lesson.ieltsPerWeek} dars</li>
               </ul>
               <a href="#booking" className="btn btn-outline">
                 Individual tanlash
