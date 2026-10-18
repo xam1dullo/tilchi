@@ -17,7 +17,7 @@ export function NumCounter({ value, className }: { value: number; className?: st
         n: value,
         duration: 1.2,
         ease: 'tilchi',
-        scrollTrigger: { trigger: el, start: 'top 88%' },
+        scrollTrigger: { trigger: el, start: 'top 88%', toggleActions: 'play none none reverse' },
         onUpdate: () => {
           el.textContent = String(Math.round(obj.n))
         },

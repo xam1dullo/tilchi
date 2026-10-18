@@ -27,7 +27,7 @@ export function SplitHeading({
         stagger: 0.09,
         duration: 0.75,
         ease: 'tilchi',
-        scrollTrigger: { trigger: el, start: 'top 84%' },
+        scrollTrigger: { trigger: el, start: 'top 84%', toggleActions: 'play none none reverse' },
       })
       return () => split.revert()
     })
