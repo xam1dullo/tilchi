@@ -18,3 +18,4 @@ This document defines the core domain concepts, Ubiquitous Language, and archite
 ### 3. Verification and testing surface
 - **Drift-Free Assurance.** Vitest suites cover SEO adaptations and data logic (`src/lib/posts.test.ts`, `src/lib/site.test.ts`, `src/lib/seo.test.ts`). They check draft filtering, date formatting, price formatting, and bot link payload sanitization, so code and data cannot diverge silently.
 - **Build gates.** `scripts/check-js-budget.mjs` enforces a 280 KB gzip JS ceiling and bans animation JS on article pages. `scripts/check-contrast.mjs` checks WCAG AA color pairs. Both run in CI and locally.
+- **Styles.** Design tokens and shared primitives live in `src/app/globals.css` (`:root` is parsed by `check-contrast`). Per-section CSS lives in `src/styles/<section>.css`, `@import`-ed at the top of `globals.css`; Tailwind v4 inlines partials *before* the base rules, so partials use class-led selectors only. The visual spec is `design.md`.

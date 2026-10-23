@@ -1,0 +1,43 @@
+/* pricing — see design.md §06. Class selectors only (inlined before base rules). */
+.plans {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0;
+  border-top: 1px solid var(--line);
+  padding-top: clamp(32px, 4vw, 56px);
+}
+/* subgrid: both plans share 6 rows, so h3 / price / button / note land on the same lines */
+.plan {
+  display: grid;
+  grid-template-rows: subgrid;
+  grid-row: span 6;
+  row-gap: 22px;
+  align-items: start;
+  padding: 0 clamp(24px, 4vw, 56px);
+}
+.plan:first-child { padding-left: 0; }
+.plan + .plan { border-left: 1px solid var(--line); }
+.plan-tagline { min-height: 24px; }
+.plan h3 { font-size: var(--fs-h3); }
+.plan-sub { margin-top: 6px; font-size: var(--fs-sm); color: var(--muted); }
+.plan-agreed {
+  font-family: var(--font-serif);
+  font-size: clamp(1.6rem, 2.6vw, 2.25rem);
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  color: var(--ink);
+}
+.plan ul { list-style: none; display: grid; gap: 10px; }
+.plan li { display: flex; gap: 10px; font-size: var(--fs-sm); color: var(--ink-2); }
+.plan .check { margin-top: 3px; }
+.plan .btn { justify-self: start; }
+.seats-note { font-size: var(--fs-xs); color: var(--muted); }
+
+@media (max-width: 780px) {
+  .plans { grid-template-columns: minmax(0, 1fr); }
+  .plan { display: flex; flex-direction: column; gap: 22px; grid-row: auto; padding: 0; }
+  .plan + .plan { border-left: 0; border-top: 1px solid var(--line); padding-top: 28px; }
+  .plan-tagline:empty { display: none; }
+  .plan .btn { align-self: flex-start; }
+}

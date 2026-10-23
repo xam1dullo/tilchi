@@ -1,0 +1,55 @@
+/* programs — see design.md §06. Class selectors only (inlined before base rules). */
+.prog-row {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1.1fr) minmax(0, 1.3fr) 48px;
+  column-gap: 24px;
+  align-items: start;
+  padding: clamp(22px, 3vw, 36px) 0;
+}
+.prog-index {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 1.25rem;
+  line-height: 1.2;
+  color: var(--accent);
+}
+.prog-head .program-age { font-size: var(--fs-xs); font-weight: 500; line-height: 1.45; color: var(--muted); }
+.prog-head h3 { font-size: var(--fs-h3); margin-top: 6px; }
+.prog-body .program-desc { font-size: var(--fs-sm); color: var(--ink-2); }
+.program-items {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  margin-top: 12px;
+}
+.program-items li {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+  color: var(--muted);
+}
+.program-items li::before { content: ''; width: 4px; height: 4px; margin-top: 0.6em; background: var(--accent); flex: none; }
+.prog-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  justify-self: end;
+  border-radius: var(--r-md);
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+  color: var(--ink);
+  transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease);
+}
+.prog-cta svg { transition: transform var(--dur-fast) var(--ease); }
+.prog-cta:hover { background: var(--ink); color: var(--bg); box-shadow: inset 0 0 0 1px var(--ink); }
+.prog-cta:hover svg { transform: translateX(4px); }
+
+@media (max-width: 780px) {
+  .prog-row { grid-template-columns: 48px minmax(0, 1fr); row-gap: 14px; }
+  .prog-body { grid-column: 2; }
+  .prog-cta { display: none; }
+}
