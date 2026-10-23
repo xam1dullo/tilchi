@@ -1,6 +1,6 @@
 # tilchi
 
-Ingliz tili o'qituvchisi Mukhtasar Karimjonova sayti (tilchi.uz). Next.js 16 static export + velite MDX blog, GitHub Pages'ga deploy.
+Ingliz tili o'qituvchisi Mukhtasar Karimjonova sayti (tilchi.uz). Next.js 16 static export + velite MDX blog, Cloudflare Pages'ga deploy (wrangler).
 
 ## Local
 
@@ -18,6 +18,13 @@ pnpm check:budget  # JS budget gate (out/ mavjud bo'lishi kerak)
 
 ## Deploy va rollback
 
-- Deploy: `main`'ga push — GitHub Pages workflow (`out/` build qilib upload qiladi).
-- Rollback: eski build avtomatik saqlanadi — GitHub Pages environment'idan oldingi deployment'ni tanlang yoki `git revert` + push qiling.
+- Jonli sayt: tilchi.uz DNS Cloudflare'ga qaraydi — Cloudflare Pages loyihasi `tilchi` (`tilchi.pages.dev`). Deploy qo'lda, `main`'dan:
+
+  ```sh
+  pnpm build && wrangler pages deploy out --project-name tilchi --branch main
+  ```
+
+- `.github/workflows/static.yml` GitHub Pages'ga ham deploy qiladi, lekin DNS u yerga yo'naltirilmagan — jonli saytga ta'sir qilmaydi.
+- Rollback: Cloudflare Pages → Deployments → oldingi deployment'ni "Rollback"; yoki `git revert` + qayta deploy.
+- Dizayn spetsifikatsiyasi: `design.md`; bo'lim CSS'lari `src/styles/` (qarang `CONTEXT.md`).
 - Migratsiyadan oldingi bitta-fayl sayt: `45105e5` commit'ida (`index.html`) — favqulodda holat uchun tiklanishi mumkin.
