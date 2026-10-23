@@ -7,20 +7,13 @@ export function TrustBand() {
     <section className="trust" aria-label="Nega ishonish mumkin">
       <div className="container">
         <Reveal>
-          <dl className="trust-inner">
-            {trustItems.map((i) =>
-              i.num ? (
-                <div className="trust-item" key={i.dt}>
-                  <NumCounter value={Number(i.dt)} className="num" />
-                  <dd>{i.dd}</dd>
-                </div>
-              ) : (
-                <div className="trust-item" key={i.dt}>
-                  <dt className={i.num ? 'num' : ''}>{i.dt}</dt>
-                  <dd>{i.dd}</dd>
-                </div>
-              )
-            )}
+          <dl className="trust-row">
+            {trustItems.map((i) => (
+              <div className="trust-item" key={i.dt}>
+                {i.num ? <NumCounter value={Number(i.dt)} className="stat num" /> : <dt className="stat num">{i.dt}</dt>}
+                <dd>{i.dd}</dd>
+              </div>
+            ))}
           </dl>
         </Reveal>
       </div>

@@ -14,19 +14,21 @@ export function Demo() {
           </SplitHeading>
           <p className="lede">Hech qanday sotuv bosimi yo'q. Sizga mos kelmasa — buni ochiq aytamiz.</p>
         </div>
-        <ProgressLine />
-        <div className="demo-grid">
+        <div className="agenda-head num" aria-hidden="true">
+          <span>0 daq.</span>
+          <span>30 daq.</span>
+        </div>
+        <div className="agenda-track">
+          <ProgressLine />
+        </div>
+        <div className="agenda rows">
           {demoSteps.map((i) => (
-            <Reveal key={i.n}>
-              <div className="demo-item">
-                <span className="n" aria-hidden="true">
-                  {i.n}
-                </span>
-                <div>
-                  <h3>{i.title}</h3>
-                  <p>{i.desc}</p>
-                </div>
-              </div>
+            <Reveal key={i.n} className="agenda-item row">
+              <span className="n" aria-hidden="true">
+                {i.n}
+              </span>
+              <h3>{i.title}</h3>
+              <p>{i.desc}</p>
             </Reveal>
           ))}
         </div>

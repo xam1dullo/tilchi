@@ -7,6 +7,7 @@ import { site } from '@/lib/site'
 
 const serif = Fraunces({
   subsets: ['latin'],
+  axes: ['opsz', 'SOFT'],
   variable: '--font-serif',
   display: 'swap',
 })

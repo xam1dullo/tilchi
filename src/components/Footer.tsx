@@ -9,24 +9,37 @@ const tg = (
 
 export function Footer() {
   return (
-    <footer className="footer">
+    <footer className="footer footer-rich">
       <div className="container footer-inner">
-        <Link href="/" className="logo" aria-label="Tilchi" transitionTypes={['nav-lateral']}>
-          <span className="logo-mark" aria-hidden="true" />
-          <span>tilchi</span>
-        </Link>
-        <nav className="footer-legal" aria-label="Havolalar">
-          <a href="/#faq">Savollar</a>
-          <Link href="/blog" transitionTypes={['nav-lateral']}>
-            Blog
+        <div className="footer-top">
+          <Link href="/" className="logo footer-logo" aria-label="Tilchi" transitionTypes={['nav-lateral']}>
+            <span className="logo-mark" aria-hidden="true" />
+            <span>tilchi</span>
           </Link>
-          <a href="/#programs">Darslar</a>
-        </nav>
-        <a {...tgLinkProps()} className="tg-link">
-          {tg}
-          <span>@{site.telegramBot}</span>
-        </a>
-        <p className="footer-note num">© 2026 tilchi.uz</p>
+          <nav className="footer-nav" aria-label="Havolalar">
+            <a href="/#programs">Darslar</a>
+            <Link href="/teacher" transitionTypes={['nav-lateral']}>
+              O'qituvchi
+            </Link>
+            <a href="/#faq">Savollar</a>
+            <Link href="/blog" transitionTypes={['nav-lateral']}>
+              Blog
+            </Link>
+            <a href="https://app.tilchi.uz" target="_blank" rel="noopener noreferrer">
+              Sinfxona<span aria-hidden="true"> ↗</span>
+            </a>
+          </nav>
+        </div>
+        <div className="footer-bottom">
+          <a {...tgLinkProps()} className="tg-link">
+            {tg}
+            <span>@{site.telegramBot}</span>
+          </a>
+          <p className="footer-note num">© 2026 tilchi.uz</p>
+        </div>
+        <p className="footer-giant" aria-hidden="true">
+          tilchi
+        </p>
       </div>
     </footer>
   )

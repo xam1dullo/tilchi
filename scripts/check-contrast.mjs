@@ -46,16 +46,21 @@ function oklchToHex(l, c, h) {
 }
 
 const pairs = [
-  ['btn-primary matn (#fff)', '#FFFFFF', '--accent-solid'],
-  ['accent-soft badge matn (#7A2E1D)', '--accent-ink', '--accent-soft'],
-  ['accent (#C8593E) — bg', '--accent', '--bg'],
-  ['accent step-num — bg-elev', '--accent', '--bg-elev'],
-  ['accent-ink matn — bg', '--accent-ink', '--bg'],
-  ['success icon — bg-elev', '--success', '--bg-elev'],
-  ['ink-2 matn', '--ink-2', '--bg'],
-  ['muted matn', '--muted', '--bg'],
+  ['btn-primary matn (#fff) — accent-solid', '#FFFFFF', '--accent-solid'],
+  ['btn-ink matn (bg) — ink', '--bg', '--ink'],
+  ['accent-ink matn — accent-soft', '--accent-ink', '--accent-soft'],
+  ['ink-2 matn — accent-soft', '--ink-2', '--accent-soft'],
+  ['accent (markers, em) — bg', '--accent', '--bg'],
+  ['accent — bg-alt', '--accent', '--bg-alt'],
+  ['accent — accent-soft', '--accent', '--accent-soft'],
+  ['success check — bg', '--success', '--bg'],
+  ['ink-2 matn — bg', '--ink-2', '--bg'],
+  ['muted matn — bg', '--muted', '--bg'],
+  ['muted matn — bg-alt', '--muted', '--bg-alt'],
   ['muted matn — bg-elev', '--muted', '--bg-elev'],
-  ['tg btn matn (#fff)', '#FFFFFF', '--tg'],
+  ['on-accent matn — accent-2 (booking band)', '--on-accent', '--accent-2'],
+  ['on-accent-muted matn — accent-2', '--on-accent-muted', '--accent-2'],
+  ['accent-soft em — accent-2', '--accent-soft', '--accent-2'],
 ]
 
 const lum = (hex) => {

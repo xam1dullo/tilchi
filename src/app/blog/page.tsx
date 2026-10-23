@@ -25,25 +25,27 @@ export default function BlogPage() {
         </div>
       </section>
 
-      <section className="blog-grid container">
+      <div className="blog-rows rows container">
         {publishedPosts.map((post, i) => (
-          <Reveal key={post.slug} delay={i * 0.06}>
-            <article className="blog-card">
+          <Reveal key={post.slug} delay={i * 0.06} className="row">
+            <article className="blog-row">
               <time dateTime={post.date} className="num">
                 {formatDate(post.date)}
               </time>
-              <ViewTransition name={`title-${post.slug}`} share="text-morph" default="none">
-                <h2>
-                  <Link href={post.href} transitionTypes={['nav-forward']}>
-                    {post.title}
-                  </Link>
-                </h2>
-              </ViewTransition>
-              <p>{post.description}</p>
+              <div>
+                <ViewTransition name={`title-${post.slug}`} share="text-morph" default="none">
+                  <h2>
+                    <Link href={post.href} transitionTypes={['nav-forward']}>
+                      {post.title}
+                    </Link>
+                  </h2>
+                </ViewTransition>
+                <p>{post.description}</p>
+              </div>
             </article>
           </Reveal>
         ))}
-      </section>
+      </div>
       <Footer />
     </PageTransition>
   )

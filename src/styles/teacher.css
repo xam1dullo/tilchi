@@ -1,0 +1,111 @@
+/* teacher — see design.md §06. Class selectors only (inlined before base rules). */
+
+/* --- Hero --- */
+.teacher-hero { padding: clamp(48px, 7vw, 104px) 0 clamp(54px, 6vw, 88px); }
+.teacher-hero-grid {
+  display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+  gap: clamp(32px, 6vw, 88px); align-items: end;
+}
+.teacher-title { font-size: var(--fs-display); margin-top: 20px; }
+.teacher-title em { font-style: italic; color: var(--accent); }
+.teacher-lede { font-size: var(--fs-lead); max-width: 48ch; margin-top: 22px; }
+.teacher-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 18px; margin-top: 32px; }
+.teacher-actions .btn-text { padding: 10px 0; }
+
+.teacher-identity {
+  padding: clamp(26px, 4vw, 40px); border-radius: var(--r-lg);
+  background: var(--accent-soft); color: var(--ink);
+}
+.teacher-avatar {
+  width: 84px; height: 84px; display: flex; align-items: center; justify-content: center;
+  border-radius: var(--r-md); background: var(--accent-solid); color: var(--bg);
+  font-family: var(--font-serif); font-size: 2rem; font-style: italic;
+}
+.teacher-identity .eyebrow { color: var(--accent-ink); margin-top: 24px; }
+.teacher-identity h2 {
+  max-width: 20ch; margin-top: 10px;
+  font-family: var(--font-sans); font-size: 1.125rem; font-weight: 600; letter-spacing: -0.01em; line-height: 1.3;
+}
+.teacher-score-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 28px; }
+.teacher-score-grid div {
+  display: grid; gap: 4px; padding-top: 12px;
+  border-top: 1px solid color-mix(in oklab, var(--accent) 30%, transparent);
+}
+.teacher-score-grid strong {
+  font-family: var(--font-serif); font-size: clamp(1.6rem, 2.4vw, 2rem); font-weight: 400;
+  letter-spacing: -0.03em; line-height: 1; font-variant-numeric: tabular-nums;
+}
+.teacher-score-grid span { color: var(--accent-ink); font-size: var(--fs-xs); }
+
+/* --- Content sections --- */
+.teacher-content { border-top: 1px solid var(--line); }
+.teacher-section-alt { background: var(--bg-alt); }
+.teacher-columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 48px; }
+.teacher-detail-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 40px; }
+
+.teacher-card { height: 100%; border-top: 1px solid var(--line); padding-top: 20px; }
+.teacher-card-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.teacher-card-index { color: var(--muted); font-size: var(--fs-xs); font-variant-numeric: tabular-nums; }
+
+.teacher-timeline { display: grid; gap: 22px; padding-top: 22px; }
+.teacher-timeline-item { display: grid; grid-template-columns: minmax(96px, 0.36fr) minmax(0, 1fr); gap: 18px; }
+.teacher-timeline-period { color: var(--accent-ink); font-size: var(--fs-xs); font-weight: 600; line-height: 1.5; }
+.teacher-timeline-item h3, .teacher-training h3 {
+  font-family: var(--font-sans); font-size: 1rem; font-weight: 600; letter-spacing: 0; line-height: 1.35;
+}
+.teacher-timeline-item p, .teacher-training p { margin-top: 5px; color: var(--muted); font-size: var(--fs-sm); }
+.teacher-detail { display: block; margin-top: 6px; color: var(--muted); font-size: var(--fs-xs); line-height: 1.5; }
+
+.teacher-simple-list, .teacher-language-list { list-style: none; display: grid; gap: 16px; padding-top: 22px; }
+.teacher-simple-list li, .teacher-language-list li { display: grid; gap: 4px; }
+.teacher-simple-list strong, .teacher-language-list strong { font-size: var(--fs-sm); line-height: 1.4; }
+.teacher-simple-list span, .teacher-language-list span { color: var(--muted); font-size: var(--fs-xs); line-height: 1.5; }
+.teacher-interest { margin-top: 22px; padding-top: 16px; border-top: 1px solid var(--line); font-size: var(--fs-sm); }
+.teacher-interest strong { color: var(--ink); }
+.teacher-training { padding-top: 22px; }
+.teacher-training-card .teacher-detail { margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--line); }
+
+/* --- Publications (.rows / .row live on the Reveal wrapper) --- */
+.teacher-publication {
+  display: grid; grid-template-columns: 44px minmax(0, 1fr) 44px; align-items: center; gap: 18px;
+  padding: 18px 0;
+}
+.teacher-publication-number { color: var(--accent-ink); font-size: var(--fs-xs); font-weight: 600; font-variant-numeric: tabular-nums; }
+.teacher-publication h3 { font-family: var(--font-sans); font-size: 1rem; font-weight: 600; letter-spacing: 0; line-height: 1.4; }
+.teacher-publication p { margin-top: 5px; color: var(--muted); font-size: var(--fs-xs); }
+.teacher-publication-link {
+  display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px;
+  border-radius: var(--r-md); color: var(--ink); box-shadow: inset 0 0 0 1px var(--line-strong);
+  transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+}
+.teacher-publication-link:not(.teacher-publication-plain):hover { background: var(--ink); color: var(--bg); }
+.teacher-publication-plain { width: auto; justify-self: end; padding: 0 8px; color: var(--muted); font-size: var(--fs-xs); box-shadow: none; }
+
+/* --- CTA --- */
+/* compound: .section's padding shorthand is declared after this partial */
+.section.teacher-cta-section { padding-top: 0; }
+.teacher-cta {
+  display: flex; align-items: center; justify-content: space-between; gap: 32px;
+  padding: clamp(28px, 4vw, 48px); border-radius: var(--r-lg); background: var(--bg-alt);
+}
+.teacher-cta .h2 { max-width: 18ch; }
+.teacher-cta p:not(.eyebrow) { margin-top: 14px; max-width: 48ch; }
+
+/* --- Responsive --- */
+@media (max-width: 900px) {
+  .teacher-hero-grid { grid-template-columns: 1fr; }
+  .teacher-identity { max-width: 560px; }
+  .teacher-detail-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  /* the Reveal wrapper is the grid item, not the card */
+  .teacher-detail-grid > :has(> .teacher-training-card) { grid-column: 1 / -1; }
+}
+@media (max-width: 680px) {
+  .teacher-columns, .teacher-detail-grid { grid-template-columns: 1fr; }
+  .teacher-detail-grid > :has(> .teacher-training-card) { grid-column: auto; }
+  .teacher-score-grid { grid-template-columns: 1fr; }
+  .teacher-identity { padding: 24px; }
+  .teacher-timeline-item { grid-template-columns: 1fr; gap: 5px; }
+  .teacher-publication { grid-template-columns: 32px minmax(0, 1fr) 44px; gap: 12px; }
+  .teacher-cta { align-items: flex-start; flex-direction: column; }
+  .teacher-cta .btn { width: 100%; }
+}

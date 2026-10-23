@@ -53,15 +53,15 @@ for (const file of readdirSync(DIR).filter((f) => f.endsWith('.mdx'))) {
   const lines = wrap(title, 26).slice(0, 3)
   const ys = 300 - ((lines.length - 1) * (size + 12)) / 2
   const text = lines
-    .map((l, i) => `<text x="96" y="${ys + i * (size + 12)}" font-family="Georgia, serif" font-size="${size}" font-weight="500" letter-spacing="-1" fill="#171512">${esc(l)}</text>`)
+    .map((l, i) => `<text x="96" y="${ys + i * (size + 12)}" font-family="Georgia, serif" font-size="${size}" font-weight="500" letter-spacing="-1" fill="#151A17">${esc(l)}</text>`)
     .join('\n')
   const svg = `<svg width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg">
-  <rect width="${W}" height="${H}" fill="#F5EFE4"/>
-  <rect y="0" width="${W}" height="10" fill="#A8452E"/>
-  <rect x="96" y="96" width="64" height="64" rx="18" fill="#A8452E"/>
-  <text x="128" y="143" font-family="Georgia, serif" font-size="42" font-weight="700" font-style="italic" text-anchor="middle" fill="#F5EFE4">t</text>
-  <text x="176" y="146" font-family="Georgia, serif" font-size="46" font-weight="500" letter-spacing="-1" fill="#171512">tilchi</text>
-  <text x="96" y="600" font-family="Helvetica, Arial, sans-serif" font-size="30" fill="#3D372F">${esc(date)}</text>
+  <rect width="${W}" height="${H}" fill="#FCFCFA"/>
+  <rect y="0" width="${W}" height="10" fill="#175A3B"/>
+  <rect x="96" y="96" width="64" height="64" rx="16" fill="#175A3B"/>
+  <text x="128" y="143" font-family="Georgia, serif" font-size="42" font-weight="700" font-style="italic" text-anchor="middle" fill="#FCFCFA">t</text>
+  <text x="176" y="146" font-family="Georgia, serif" font-size="46" font-weight="500" letter-spacing="-1" fill="#151A17">tilchi</text>
+  <text x="96" y="600" font-family="Helvetica, Arial, sans-serif" font-size="30" fill="#3B423E">${esc(date)}</text>
   ${text}
 </svg>`
   await sharp(Buffer.from(svg)).png().toFile(join(OUT, `${slug}.png`))

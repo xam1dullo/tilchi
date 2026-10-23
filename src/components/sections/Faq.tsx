@@ -6,26 +6,20 @@ export function Faq() {
   return (
     <section className="section faq" id="faq">
       <div className="container">
-        <div className="faq-inner">
-          <div className="faq-intro">
-            <p className="eyebrow">
-              Savol-javob
-            </p>
-            <SplitHeading className="h2" >
-              Ko'p so'raladigan savollar
-            </SplitHeading>
-          </div>
-          <Reveal>
-            <div className="faq-list">
-              {faqs.map((f) => (
-                <details className="faq-item" name="faq" key={f.q}>
-                  <summary>{f.q}</summary>
-                  <div className="faq-body">{f.a}</div>
-                </details>
-              ))}
-            </div>
-          </Reveal>
+        <div className="sec-intro">
+          <p className="eyebrow">Savol-javob</p>
+          <SplitHeading className="h2">Ko'p so'raladigan savollar</SplitHeading>
         </div>
+        <Reveal>
+          <dl className="faq-rows rows">
+            {faqs.map((f) => (
+              <div className="faq-row row" key={f.q}>
+                <dt>{f.q}</dt>
+                <dd>{f.a}</dd>
+              </div>
+            ))}
+          </dl>
+        </Reveal>
       </div>
     </section>
   )

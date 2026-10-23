@@ -14,13 +14,11 @@ export function Method() {
         </div>
         <div className="steps">
           {methodSteps.map((s) => (
-            <Reveal key={s.n}>
-              <div className="step">
-                <div className="step-num num">{s.n}</div>
-                <h3>{s.title}</h3>
-                <p>{s.desc}</p>
-                <div className="step-time num">{s.time}</div>
-              </div>
+            <Reveal key={s.n} className="step">
+              <div className="step-num stat num">{s.n}</div>
+              <h3>{s.title}</h3>
+              <p>{s.desc}</p>
+              <div className="step-time num">— {s.time}</div>
             </Reveal>
           ))}
         </div>

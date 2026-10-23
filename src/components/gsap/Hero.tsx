@@ -9,7 +9,6 @@ import { site, teacher } from '@/lib/site'
 const ROTATING_WORDS = [
   'haqiqiy',
   'chinakam',
-  'professional',
   'malakali',
   'tajribali',
   'mohir',
@@ -19,7 +18,6 @@ const ROTATING_WORDS = [
   'natijali',
   'zamonaviy',
   "ilg'or",
-  'izlanuvchan',
   'sabrli',
   'talabchan',
   'asl',
@@ -29,24 +27,9 @@ const ROTATING_WORDS = [
   'halol',
 ] as const
 
-const badge = (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <path d="M9 11l3 3L22 4" />
-    <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
-  </svg>
-)
-
-const medal = (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <circle cx="12" cy="8" r="6" />
-    <path d="M15.5 13l1.5 8-5-3-5 3 1.5-8" />
-  </svg>
-)
-
-const book = (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
-    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+const arrow = (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+    <path d="M5 12h14M13 6l6 6-6 6" />
   </svg>
 )
 
@@ -69,7 +52,7 @@ export function Hero() {
         tl.from(split.words, { yPercent: 120, opacity: 0, stagger: 0.05, duration: 0.7 }, 0)
       }
       tl.from(el.querySelectorAll('[data-reveal]'), { y: 22, opacity: 0, stagger: 0.09, duration: 0.6 }, 0.25)
-      tl.from(el.querySelector('.hero-card'), { y: 30, opacity: 0, duration: 0.7 }, 0.45)
+      tl.from(el.querySelector('.hero-portrait'), { y: 30, opacity: 0, duration: 0.7 }, 0.45)
 
       const uWord = el.querySelector<HTMLElement>('.hero-title .u')
       if (uWord) {
@@ -79,49 +62,54 @@ export function Hero() {
           1.15,
         )
       }
+      const stroke = el.querySelector('.u-stroke path')
+      if (stroke) tl.to(stroke, { strokeDashoffset: 0, duration: 0.7, ease: 'power2.out' }, 2.3)
+      tl.from(el.querySelectorAll('.float-card'), { opacity: 0, scale: 0.92, stagger: 0.12, duration: 0.6 }, 0.85)
 
-      const card = el.querySelector<HTMLElement>('.hero-card')
+      // Scroll parallax; cards keep their CSS `rotate` since GSAP only writes `transform`.
+      const scrub = () => ({ trigger: el, start: 'top top', end: 'bottom top', scrub: 0.6 })
+      gsap.to(el.querySelector('.hero-glow'), { yPercent: -12, ease: 'none', scrollTrigger: scrub() })
+      gsap.to(el.querySelector('.float-a'), { y: -34, ease: 'none', scrollTrigger: scrub() })
+      gsap.to(el.querySelector('.float-b'), { y: 22, ease: 'none', scrollTrigger: scrub() })
+
+      const portrait = el.querySelector<HTMLElement>('.hero-portrait')
       const titleEl = el.querySelector<HTMLElement>('.hero-title')
-      const copy = el.querySelector<HTMLElement>('.hero-copy')
+      const lead = el.querySelector<HTMLElement>('.hero-lead')
 
       const observer = ScrollTrigger.observe({
         target: window,
         type: 'wheel,touch',
         onChangeY: (self) => {
           const v = gsap.utils.clamp(-1, 1, self.velocityY / 2000)
-          if (card) gsap.to(card, { y: -v * 18, duration: 0.6, ease: 'power2.out', overwrite: 'auto' })
+          if (portrait) gsap.to(portrait, { y: -v * 18, duration: 0.6, ease: 'power2.out', overwrite: 'auto' })
           if (titleEl) gsap.to(titleEl, { y: v * 10, duration: 0.6, ease: 'power2.out', overwrite: 'auto' })
-          if (copy) gsap.to(copy, { y: v * 6, duration: 0.6, ease: 'power2.out', overwrite: 'auto' })
+          if (lead) gsap.to(lead, { y: v * 6, duration: 0.6, ease: 'power2.out', overwrite: 'auto' })
         },
         onStop: () => {
           const settle = { y: 0, duration: 1.2, ease: 'elastic.out(1, 0.5)', overwrite: 'auto' } as const
-          if (card) gsap.to(card, settle)
+          if (portrait) gsap.to(portrait, settle)
           if (titleEl) gsap.to(titleEl, settle)
-          if (copy) gsap.to(copy, settle)
+          if (lead) gsap.to(lead, settle)
         },
       })
-
-      const grid = el.querySelector<HTMLElement>('.hero-grid')
-      if (grid) {
-        gsap
-          .timeline({
-            scrollTrigger: {
-              trigger: el,
-              start: 'top top',
-              end: '+=25%',
-              scrub: true,
-              pin: true,
-              anticipatePin: 1,
-            },
-          })
-          .to(grid, { yPercent: -14, ease: 'none' }, 0)
-          .to(el.querySelector('.hero-eyebrow'), { opacity: 0.15, ease: 'none' }, 0)
-      }
 
       return () => {
         observer.kill()
         split?.revert()
       }
+    })
+
+    // Pin-scrub only on desktop: on phones it just adds a blank gap after the portrait.
+    mm.add('(min-width: 921px) and (prefers-reduced-motion: no-preference)', () => {
+      const el = ref.current
+      const grid = el?.querySelector<HTMLElement>('.hero-grid')
+      if (!el || !grid) return
+      gsap
+        .timeline({
+          scrollTrigger: { trigger: el, start: 'top top', end: '+=15%', scrub: true, pin: true, anticipatePin: 1 },
+        })
+        .to(grid, { yPercent: -14, ease: 'none' }, 0)
+        .to(el.querySelector('.hero-eyebrow'), { opacity: 0.15, ease: 'none' }, 0)
     })
 
     return () => mm.revert()
@@ -135,7 +123,7 @@ export function Hero() {
       const rect = btn.getBoundingClientRect()
       const x = rect.left + rect.width / 2
       const y = rect.top + rect.height / 2
-      const colors = ['#C8593E', '#A8452E', '#F0D9CE', '#F5EFE4', '#171512']
+      const colors = ['#175A3B', '#1E6B47', '#E1EEE4', '#FCFCFA', '#151A17']
       const parts: HTMLElement[] = []
       for (let i = 0; i < 16; i++) {
         const p = document.createElement('span')
@@ -165,97 +153,94 @@ export function Hero() {
 
   return (
     <section className="hero" ref={ref}>
+      <div className="hero-glow" aria-hidden="true" />
+      <div className="hero-ruled" aria-hidden="true" />
+      <div className="hero-margin" aria-hidden="true" />
       <div className="container">
         <div className="hero-grid">
-          <div className="hero-copy">
-            <p className="eyebrow hero-eyebrow" data-reveal>
-              {site.cohort.label}
-            </p>
-            <h1 className="hero-title">
-              <span>Ingliz tilini</span>
-              <span>
-                <em>
-                  <WordRotator words={ROTATING_WORDS} /> o'qituvchi
-                </em>{' '}
-                bilan,
-              </span>
-              <span>
-                <span className="u">to'g'ri</span> o'rganing.
-              </span>
-            </h1>
+          <p className="eyebrow hero-eyebrow" data-reveal>
+            {site.cohort.label}
+          </p>
+          <h1 className="hero-title">
+            <span>Ingliz tilini</span>
+            <span>
+              <em>
+                <WordRotator words={ROTATING_WORDS} /> o'qituvchi
+              </em>{' '}
+              bilan,
+            </span>
+            <span>
+              <span className="u-wrap">
+                <span className="u">to'g'ri</span>
+                <svg className="u-stroke" viewBox="0 0 200 24" preserveAspectRatio="none" aria-hidden="true">
+                  <path d="M3 15 C 45 7, 95 5, 150 10 S 190 16, 197 12" pathLength="1" fill="none" stroke="currentColor" strokeWidth="7" strokeLinecap="round" />
+                </svg>
+              </span>{' '}
+              o'rganing.
+            </span>
+          </h1>
+
+          <div className="hero-lead">
             <p className="hero-sub" data-reveal>
               <strong>{teacher.name}</strong> — IELTS 7.0, C1 darajali o'qituvchi bilan online darslar. Bolalar, IELTS va
               kattalar uchun alohida dastur. <strong>Birinchi dars — bepul.</strong>
             </p>
-            <div className="cred-strip" data-reveal role="list" aria-label="O'qituvchi malakalari">
-              <span className="cred num" role="listitem">
-                {badge} IELTS <span>{teacher.ielts}</span>
-              </span>
-              <span className="cred" role="listitem">
-                {medal} CEFR <span>{teacher.cefr}</span>
-              </span>
-              <span className="cred" role="listitem">
-                {book} Magistr
-              </span>
-            </div>
             <div className="hero-ctas" data-reveal>
               <Magnetic>
                 <a href="#booking" className="btn btn-primary" ref={burstRef} onClick={burst}>
                   Bepul demo darsni band qilish
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-                    <path d="M5 12h14M13 6l6 6-6 6" />
-                  </svg>
+                  {arrow}
                 </a>
               </Magnetic>
               <a href="#programs" className="btn-text">
                 Dasturni ko'rish
               </a>
             </div>
-          </div>
-
-          <div className="hero-card" id="teacher">
-            <span className="hc-badge">Sizning o'qituvchingiz</span>
-            <div className="hc-top">
-              <span className="hc-avatar">
-                <span aria-hidden="true">{teacher.initials}</span>
-              </span>
-              <div>
-                <div className="hc-name">{teacher.name}</div>
-                <div className="hc-role">{teacher.jobTitle}</div>
-              </div>
-            </div>
-            <ul className="hc-facts">
-              <li className="num">
-                {badge} <span>
-                  IELTS <strong>{teacher.ielts}</strong> · CEFR <strong>{teacher.cefr}</strong>
-                </span>
+            <ul className="rows hero-facts" data-reveal aria-label="O'qituvchi malakalari">
+              <li className="row num">
+                IELTS <strong>{teacher.ielts}</strong>
               </li>
-              <li>
-                {book} <span>{teacher.degree}</span>
+              <li className="row">
+                CEFR <strong>{teacher.cefr}</strong>
               </li>
-              <li>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <circle cx="12" cy="12" r="10" />
-                  <path d="M12 6v6l4 2" />
-                </svg>{' '}
-                <span>
-                  <strong>{teacher.experience}</strong> o'qitish tajribasi
-                </span>
-              </li>
-              <li>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
-                  <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
-                </svg>{' '}
-                <span>{teacher.research}</span>
+              <li className="row">{teacher.degree}</li>
+              <li className="row">
+                <strong>{teacher.experience}</strong> o'qitish tajribasi
               </li>
             </ul>
-            <a href="/teacher" className="teacher-preview-link">
+            <a href="/teacher" className="btn-text hero-teacher-link" data-reveal>
               To'liq professional profilni ko'rish
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-                <path d="M5 12h14M13 6l6 6-6 6" />
-              </svg>
+              {arrow}
             </a>
+          </div>
+
+          <div className="hero-figure">
+            <div className="hero-portrait" id="teacher">
+              <span className="tag hero-portrait-tag">Sizning o'qituvchingiz</span>
+              {teacher.photo ? (
+                <img src={teacher.photo} alt={teacher.name} width={800} height={1000} fetchPriority="high" />
+              ) : (
+                <div className="portrait-fallback">
+                  <span className="portrait-initials" aria-hidden="true">
+                    {teacher.initials}
+                  </span>
+                  <div className="portrait-caption">
+                    <strong>{teacher.name}</strong>
+                    <span className="num">
+                      IELTS {teacher.ielts} · {teacher.cefr}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="float-card float-a" aria-hidden="true">
+              <span className="stat num">{teacher.ielts}</span>
+              <span>IELTS Academic</span>
+            </div>
+            <div className="float-card float-b" aria-hidden="true">
+              <span className="stat num">{teacher.cefr}</span>
+              <span>CEFR daraja</span>
+            </div>
           </div>
         </div>
       </div>

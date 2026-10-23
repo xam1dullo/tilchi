@@ -17,9 +17,9 @@ export function TgCard() {
   const href = useMemo(() => botLink(seg, lv), [seg, lv])
 
   return (
-    <div className="tg-card">
-      <p className="tg-card-title">Demo darsga yozilish</p>
-      <p className="tg-card-sub">Tanlovingiz botga avtomatik uzatiladi</p>
+    <div className="tg-panel">
+      <h3 className="tg-panel-title">Demo darsga yozilish</h3>
+      <p className="tg-panel-sub">Tanlovingiz botga avtomatik uzatiladi</p>
 
       <span className="tg-label" id="seg-label">
         Kim uchun?
@@ -46,7 +46,7 @@ export function TgCard() {
       </div>
 
       <Magnetic>
-        <a {...tgLinkProps(href)} className="btn btn-tg">
+        <a {...tgLinkProps(href)} className="btn btn-ink">
           {tg}
           Telegram'da davom etish
         </a>

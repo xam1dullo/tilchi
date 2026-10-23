@@ -207,9 +207,9 @@ export default function TeacherPage() {
               <p className="lede">{teacher.research}. Quyidagi ishlar til, pragmatika va tanqidiy fikrlash kesishmasida yaratilgan.</p>
             </div>
 
-            <div className="teacher-publications">
+            <div className="teacher-publications rows">
               {teacher.publications.map((publication, index) => (
-                <Reveal key={publication.title} delay={index * 0.04}>
+                <Reveal key={publication.title} delay={index * 0.04} className="row">
                   <article className="teacher-publication">
                     <span className="teacher-publication-number num">{String(index + 1).padStart(2, '0')}</span>
                     <div>
