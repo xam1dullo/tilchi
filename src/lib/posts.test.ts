@@ -3,7 +3,13 @@ import { formatDate, getPost, publishedPosts } from './posts'
 
 describe('publishedPosts', () => {
   it('excludes drafts and sorts by date, newest first', () => {
-    expect(publishedPosts.map((p) => p.slug)).toEqual(['5-mistakes', 'ielts-cefr'])
+    expect(publishedPosts.map((p) => p.slug)).toEqual([
+      'teskari-sinf-flipped-classroom-onlayn-talim',
+      'oqituvchilar-uchun-c1-ustama-qollanma',
+      'ielts-xarajatini-qaytarish-tartibi',
+      '5-mistakes',
+      'ielts-cefr',
+    ])
     expect(publishedPosts.every((p) => !p.draft)).toBe(true)
   })
 
