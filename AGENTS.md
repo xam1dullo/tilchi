@@ -43,7 +43,7 @@ Max 5 active implementers or reviewers on one collision domain. Parallel only on
 | `apps/api` | NestJS + Drizzle: `/api`, `/auth`, `/bot`, `/ws/canvas` |
 | `packages/content` | Marketing copy, plain TypeScript |
 | `docker/nginx/nginx.conf` | The only edge. `/rtc` passes through to LiveKit unchanged |
-| `docker/{livekit,coturn}` | No keys or users in these files; they come from compose env |
+| `docker/{livekit,coturn}` | No keys or users in these files; compose requires them from `.env` / `/etc/tilchi.env` |
 | `docs/adr` | Decisions. Amend the ADR in the same PR that changes the behaviour |
 
 ## Commands
@@ -51,7 +51,7 @@ Max 5 active implementers or reviewers on one collision domain. Parallel only on
 ```bash
 pnpm install && pnpm --filter @tilchi/web routes
 pnpm lint && pnpm typecheck && pnpm test && pnpm contrast   # PR gate
-docker compose config --quiet && docker compose up --build  # local stack on :80
+cp .env.example .env && docker compose up --build         # local stack on :80
 ```
 
 `pnpm test` runs a Nest boot test (`apps/api/src/app.test.ts`). Keep it: green unit tests once hid an API that could not start. Inject Nest providers with `@Inject(Class)`; `import type` erases the DI token.
