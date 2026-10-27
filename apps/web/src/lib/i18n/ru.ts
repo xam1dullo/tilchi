@@ -20,4 +20,11 @@ export const ru = {
   logout: 'Выйти',
   heroCta: 'Продолжить в Telegram',
   signInError: 'Вход не завершён. Повторите попытку.',
+  emptyStaffTitle: 'Групп пока нет',
+  emptyStaffBody:
+    'Группы, которые вы ведёте или администрируете, появятся здесь.',
+  seats: 'Места',
+  roleLearner: 'Ученик',
+  roleTeacher: 'Преподаватель',
+  roleAdmin: 'Администратор',
 }

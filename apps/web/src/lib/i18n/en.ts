@@ -19,4 +19,10 @@ export const en = {
   logout: 'Log out',
   heroCta: 'Continue in Telegram',
   signInError: 'Sign-in did not finish. Try again.',
+  emptyStaffTitle: 'No groups yet',
+  emptyStaffBody: 'Groups you teach or manage show up here.',
+  seats: 'Seats',
+  roleLearner: 'Learner',
+  roleTeacher: 'Teacher',
+  roleAdmin: 'Admin',
 }

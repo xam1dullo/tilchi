@@ -1,31 +1,24 @@
-import { botLink, tgLinkProps } from '@tilchi/content'
 import { createFileRoute, useRouteContext } from '@tanstack/react-router'
+import { LoadError, SkeletonRows } from '../../components/async-states'
+import { EmptyGroups, GroupRows } from '../../components/groups-view'
+import { type GroupRow, loadGroups } from '../../lib/groups'
 import { messages } from '../../lib/i18n'
 
 export const Route = createFileRoute('/app/')({
-  component: EmptyState,
+  // Without a session the layout shows the sign-in screen, so there is nothing to ask the API.
+  loader: ({ context }): Promise<GroupRow[]> =>
+    context.session ? loadGroups() : Promise.resolve([]),
+  pendingComponent: SkeletonRows,
+  errorComponent: LoadError,
+  component: GroupsPage,
 })
 
-function EmptyState() {
+function GroupsPage() {
+  const groups = Route.useLoaderData()
+  const { session } = Route.useRouteContext()
   const { locale } = useRouteContext({ from: '__root__' })
   const copy = messages(locale)
-  return (
-    <section className="empty-split">
-      <div>
-        <p className="eyebrow">{copy.groups}</p>
-        <h2>{copy.emptyTitle}</h2>
-      </div>
-      <div className="empty-panel">
-        <p>{copy.emptyBody}</p>
-        <div className="panel-actions">
-          <a className="btn btn-primary" href="/">
-            {copy.catalog}
-          </a>
-          <a className="btn btn-outline" {...tgLinkProps(botLink('', ''))}>
-            {copy.telegramWrite}
-          </a>
-        </div>
-      </div>
-    </section>
-  )
+  if (groups.length > 0) return <GroupRows copy={copy} groups={groups} />
+  const staff = session?.role === 'teacher' || session?.role === 'admin'
+  return <EmptyGroups copy={copy} staff={staff} />
 }

@@ -1,4 +1,5 @@
 import { createFileRoute, useRouteContext } from '@tanstack/react-router'
+import { ForbiddenView } from '../../components/async-states'
 import { messages } from '../../lib/i18n'
 
 export const Route = createFileRoute('/app/forbidden')({
@@ -7,11 +8,5 @@ export const Route = createFileRoute('/app/forbidden')({
 
 function Forbidden() {
   const { locale } = useRouteContext({ from: '__root__' })
-  const copy = messages(locale)
-  return (
-    <section className="forbidden">
-      <h1>{copy.forbiddenTitle}</h1>
-      <p>{copy.forbiddenBody}</p>
-    </section>
-  )
+  return <ForbiddenView copy={messages(locale)} />
 }

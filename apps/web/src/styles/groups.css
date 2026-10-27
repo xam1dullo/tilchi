@@ -1,0 +1,53 @@
+.app-title {
+  margin: 0 0 16px;
+  font-size: var(--fs-h3);
+  line-height: 1.15;
+}
+
+ul.rows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.group-row {
+  display: grid;
+  grid-template-areas: "name teacher seats";
+  grid-template-columns: minmax(0, 1fr) minmax(0, 14rem) 8rem;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 0;
+  font-size: var(--fs-ui);
+}
+
+.group-name {
+  grid-area: name;
+  overflow-wrap: anywhere;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.group-teacher,
+.group-seats {
+  color: var(--muted);
+}
+
+.group-teacher {
+  grid-area: teacher;
+}
+
+.group-seats {
+  grid-area: seats;
+  text-align: end;
+}
+
+@media (max-width: 780px) {
+  .group-row {
+    grid-template-areas:
+      "name seats"
+      "teacher teacher";
+    grid-template-columns: minmax(0, 1fr) auto;
+    row-gap: 4px;
+    padding: 12px 0;
+  }
+}

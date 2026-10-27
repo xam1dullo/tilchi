@@ -1,5 +1,5 @@
 import { createIsomorphicFn } from '@tanstack/react-start'
-import type { AppRole } from './nav'
+import { appRoles, type AppRole } from './nav'
 
 export type SessionUser = {
   userId: string
@@ -7,18 +7,17 @@ export type SessionUser = {
   name?: string | null
 }
 
-function previewRole(): AppRole | null {
-  const role = process.env.TILCHI_PREVIEW_ROLE
-  if (role === 'learner' || role === 'teacher' || role === 'admin') return role
-  return null
+// Local look at the signed-in screens without the API. Never in production.
+export function previewSession(): SessionUser | null {
+  if (process.env.NODE_ENV === 'production') return null
+  const role = appRoles.find((item) => item === process.env.TILCHI_PREVIEW_ROLE)
+  return role ? { userId: 'preview', role, name: 'Preview' } : null
 }
 
 export const loadSession = createIsomorphicFn()
   .server(async (): Promise<SessionUser | null> => {
-    if (process.env.NODE_ENV !== 'production') {
-      const role = previewRole()
-      if (role) return { userId: 'preview', role, name: 'Preview' }
-    }
+    const preview = previewSession()
+    if (preview) return preview
     const base = process.env.API_INTERNAL_URL ?? 'http://127.0.0.1:3001'
     try {
       const { getRequestHeader } = await import('@tanstack/react-start/server')

@@ -4,11 +4,12 @@ import {
   createFileRoute,
   useRouteContext,
 } from '@tanstack/react-router'
+import { LoadError, SkeletonRows } from '../components/async-states'
 import { LocaleSwitch } from '../components/locale-switch'
 import { SignIn } from '../components/sign-in'
 import { messages } from '../lib/i18n'
 import { navForRole } from '../lib/nav'
-import { loadSession, type SessionUser } from '../lib/session'
+import { loadSession } from '../lib/session'
 
 export const Route = createFileRoute('/app')({
   beforeLoad: async () => ({ session: await loadSession() }),
@@ -67,28 +68,3 @@ function AppLayout() {
     </div>
   )
 }
-
-export function SkeletonRows() {
-  return (
-    <div className="rows" aria-hidden="true">
-      <div className="row skeleton" />
-      <div className="row skeleton" />
-      <div className="row skeleton" />
-    </div>
-  )
-}
-
-function LoadError({ reset }: { reset: () => void }) {
-  const { locale } = useRouteContext({ from: '__root__' })
-  const copy = messages(locale)
-  return (
-    <div className="row error-row" role="alert">
-      <p>{copy.error}</p>
-      <button className="btn btn-outline" type="button" onClick={reset}>
-        {copy.retry}
-      </button>
-    </div>
-  )
-}
-
-export type { SessionUser }

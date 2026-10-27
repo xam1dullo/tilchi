@@ -19,4 +19,11 @@ export const uz = {
   logout: 'Chiqish',
   heroCta: "Telegram'da davom etish",
   signInError: "Kirish yakunlanmadi. Qayta urinib ko'ring.",
+  emptyStaffTitle: "Hali guruhlar yo'q",
+  emptyStaffBody:
+    "Siz o'qitadigan yoki boshqaradigan guruhlar shu yerda chiqadi.",
+  seats: "O'rinlar",
+  roleLearner: "O'quvchi",
+  roleTeacher: "O'qituvchi",
+  roleAdmin: 'Admin',
 }
