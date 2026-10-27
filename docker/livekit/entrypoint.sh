@@ -16,4 +16,4 @@ rtc:
 keys:
   ${LIVEKIT_API_KEY}: ${LIVEKIT_API_SECRET}
 EOF
-exec livekit-server --config /tmp/livekit.yaml
+exec /livekit-server --config /tmp/livekit.yaml

@@ -37,6 +37,18 @@ jobs:
           docker compose -f docker-compose.yml config --quiet
           docker compose -f docker-compose.yml -f docker-compose.dev.yml config --quiet
       - name: compose boot smoke
+        env:
+          DATABASE_URL: postgres://tilchi:tilchi@postgres:5432/tilchi
+          REDIS_URL: redis://redis:6379
+          TELEGRAM_BOT_TOKEN: ci-bot-token
+          TELEGRAM_WEBHOOK_SECRET: ci-webhook-secret
+          LIVEKIT_API_KEY: cikey
+          LIVEKIT_API_SECRET: cisecret
+          POSTGRES_USER: tilchi
+          POSTGRES_PASSWORD: tilchi
+          POSTGRES_DB: tilchi
+          TURN_USER: tilchi
+          TURN_PASSWORD: ci-turn
         run: |
           docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
           for i in 1 2 3 4 5 6 7 8 9 10 11 12; do
