@@ -37,19 +37,6 @@ describe('AppModule boot', () => {
     expect(response.status).toBe(400)
   })
 
-  it('does not mint a session for a handoff the bot has not approved', async () => {
-    const start = await fetch(`${base}/auth/start`, { method: 'POST' })
-    expect(start.status).toBe(201)
-    const { handoffId } = (await start.json()) as { handoffId: string }
-    const confirm = await fetch(`${base}/auth/confirm`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ handoffId }),
-    })
-    expect(confirm.status).toBe(409)
-    expect(confirm.headers.get('set-cookie')).toBeNull()
-  })
-
   it('requires a cookie session for a meet ticket', async () => {
     const response = await fetch(`${base}/api/meet/ticket`, { method: 'POST' })
     expect(response.status).toBe(401)

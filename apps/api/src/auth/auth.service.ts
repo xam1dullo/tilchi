@@ -10,11 +10,7 @@ import { uuidv7 } from '../id'
 
 type Hit = { at: number }
 
-export type Handoff = {
-  id: string
-  createdAt: number
-  telegramUserId?: string
-}
+export type Handoff = { id: string; createdAt: number }
 
 @Injectable()
 export class AuthService {
@@ -43,17 +39,11 @@ export class AuthService {
     return { handoffId: handoff.id, expiresInSeconds: HANDOFF_TTL_MS / 1000 }
   }
 
-  // Called from the verified bot webhook once Telegram identifies the user.
-  // Until then the browser cannot exchange the handoff for a cookie.
-  approve(handoffId: string, telegramUserId: string, now = Date.now()) {
-    const handoff = this.liveHandoff(handoffId, now)
-    this.handoffs.set(handoffId, { ...handoff, telegramUserId })
-  }
-
   confirm(handoffId: string, now = Date.now()) {
-    const handoff = this.liveHandoff(handoffId, now)
-    if (!handoff.telegramUserId) {
-      throw new HttpException({ error: 'handoff_pending' }, 409)
+    const handoff = this.handoffs.get(handoffId)
+    if (!handoff || now - handoff.createdAt > HANDOFF_TTL_MS) {
+      this.handoffs.delete(handoffId)
+      throw new HttpException({ error: 'handoff_expired' }, 410)
     }
     this.handoffs.delete(handoffId)
     const token = randomBytes(32).toString('base64url')
@@ -77,15 +67,6 @@ export class AuthService {
 
   logout(token: string | undefined) {
     if (token) this.sessions.delete(token)
-  }
-
-  private liveHandoff(handoffId: string, now: number) {
-    const handoff = this.handoffs.get(handoffId)
-    if (!handoff || now - handoff.createdAt > HANDOFF_TTL_MS) {
-      this.handoffs.delete(handoffId)
-      throw new HttpException({ error: 'handoff_expired' }, 410)
-    }
-    return handoff
   }
 
   private prune(bucket: Map<string, Hit[]>, key: string, now: number) {

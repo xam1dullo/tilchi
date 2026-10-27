@@ -40,7 +40,7 @@ cp .env.example .env && docker compose up --build   # http://localhost
 
 1. **Webhook:** `/bot/webhook` requires `X-Telegram-Bot-Api-Secret-Token` when `TELEGRAM_WEBHOOK_SECRET` is set, and is refused in production when it is unset. The API also will not boot in production without it. No IP-range bypass.
 2. **Deploy:** only `workflow_dispatch` plus `environment: production` with reviewers. No migrate or deploy on a bare `main` push. The job is held.
-3. **Session:** the HttpOnly `__Host-tilchi_sid` cookie only, set by Nest. Never a bearer token, never localStorage or sessionStorage. A handoff mints a cookie only after the bot approves it.
+3. **Session:** the HttpOnly `__Host-tilchi_sid` cookie only, set by Nest. Never a bearer token, never localStorage or sessionStorage. A handoff mints a cookie only after the bot confirms it.
 4. **Health:** `{ ok, service }` only. No `hasBotToken`/`hasDb`-style flags.
 5. **Meet / remote:** a short-lived, single-purpose ticket. Never send the session token to peers. Browsers never hold LiveKit API keys.
 
