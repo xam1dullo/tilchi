@@ -5,10 +5,12 @@ import {
   Headers,
   HttpException,
   Post,
+  Req,
   Res,
 } from '@nestjs/common'
-import type { Response } from 'express'
+import type { Request, Response } from 'express'
 import { AuthService } from './auth.service'
+import { clientIp } from './client-ip'
 import {
   SESSION_COOKIE,
   bearerSessionRejected,
@@ -16,11 +18,6 @@ import {
   cookieHeader,
   readCookie,
 } from './policy'
-
-function clientIp(forwarded: string | undefined) {
-  const first = forwarded?.split(',')[0]?.trim()
-  return first || 'unknown'
-}
 
 function refuseBearer(authorization: string | undefined) {
   if (bearerSessionRejected(authorization)) {
@@ -47,12 +44,13 @@ export class AuthController {
   constructor(private readonly auth: AuthService) {}
 
   @Post('start')
-  start(
-    @Headers('x-forwarded-for') forwarded: string | undefined,
+  async start(
+    @Req() req: Request,
+    @Headers('x-real-ip') realIp: string | undefined,
     @Body() body: unknown,
   ) {
     return this.auth.start({
-      ip: clientIp(forwarded),
+      ip: clientIp({ realIp, requestIp: req.ip }),
       telegramKey: telegramKey(body),
     })
   }

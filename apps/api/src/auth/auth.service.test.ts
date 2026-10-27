@@ -4,18 +4,44 @@ import { UserStore } from '../users/user-store'
 import { AuthService, normalizeHandoffId } from './auth.service'
 
 describe('AuthService deep link', () => {
-  it('binds telegram then confirms into a cookie session', async () => {
-    const auth = AuthService.forTest(createMemoryKv(), new UserStore())
-    const started = auth.start({ ip: '1.1.1.1', telegramKey: '42' })
+  it('refuses an unconfirmed handoff and creates no session', async () => {
+    const kv = createMemoryKv()
+    const auth = AuthService.forTest(kv, new UserStore())
+    const started = await auth.start({ ip: '1.1.1.1', telegramKey: '42' })
     await expect(auth.confirm(started.handoffId)).rejects.toMatchObject({
       response: { error: 'handoff_pending' },
     })
+    expect(await kv.get(`session:cache:x`)).toBeNull()
+    const keys = await Promise.all(
+      ['a', 'b'].map(async () => auth.read('not-a-real-token')),
+    )
+    expect(keys).toEqual([null, null])
+  })
+
+  it('binds telegram then confirms into a hashed cookie session', async () => {
+    const auth = AuthService.forTest(createMemoryKv(), new UserStore())
+    const started = await auth.start({ ip: '1.1.1.1', telegramKey: '42' })
     await auth.bindTelegram(started.handoffId, '42', 'Ada')
     const opened = await auth.confirm(started.handoffId)
-    expect(opened.user.telegramUserId).toBe('42')
+    expect(opened.secretHash).toMatch(/^[a-f0-9]{64}$/)
+    expect(opened.secretHash).not.toBe(opened.token)
     const session = await auth.read(opened.token)
     expect(session?.userId).toBe(opened.user.id)
     expect(session?.role).toBe('learner')
+  })
+
+  it('refuses unconfirmed handoffs in production like an unset webhook', async () => {
+    const prev = process.env.NODE_ENV
+    process.env.NODE_ENV = 'production'
+    try {
+      const auth = AuthService.forTest(createMemoryKv(), new UserStore())
+      const started = await auth.start({ ip: '1.1.1.1', telegramKey: '7' })
+      await expect(auth.confirm(started.handoffId)).rejects.toMatchObject({
+        response: { error: 'handoff_unconfirmed' },
+      })
+    } finally {
+      process.env.NODE_ENV = prev
+    }
   })
 })
 

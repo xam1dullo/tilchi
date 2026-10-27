@@ -1,30 +1,37 @@
 import { HttpException, Injectable } from '@nestjs/common'
 import { createHash, randomBytes } from 'node:crypto'
 import {
+  AUTH_START_IP_LIMIT,
+  AUTH_START_TELEGRAM_LIMIT,
   HANDOFF_TTL_MS,
   RATE_WINDOW_MS,
   SESSION_CACHE_TTL_SECONDS,
   SESSION_TTL_MS,
-  decideAuthStart,
   type Role,
 } from './policy'
 import { uuidv7 } from '../id'
 import { createKvFromEnv, type Kv } from '../redis/kv'
 import { UserStore } from '../users/user-store'
 
-type Hit = { at: number }
-type Handoff = { id: string; createdAt: number; telegramUserId?: string }
+type Handoff = {
+  id: string
+  createdAt: number
+  telegramUserId?: string
+  confirmedAt?: number
+}
+
 type SessionRecord = {
   userId: string
   role: Role
   name: string | null
   expiresAt: number
+  absoluteExpiresAt: number
 }
+
+const SESSION_ABSOLUTE_TTL_MS = 90 * 24 * 60 * 60 * 1000
 
 @Injectable()
 export class AuthService {
-  private readonly ipHits = new Map<string, Hit[]>()
-  private readonly telegramHits = new Map<string, Hit[]>()
   private readonly kv: Kv
   private readonly users: UserStore
 
@@ -41,20 +48,28 @@ export class AuthService {
     return service
   }
 
-  start(input: { ip: string; telegramKey?: string; now?: number }) {
-    const now = input.now ?? Date.now()
-    const ipHits = this.prune(this.ipHits, input.ip, now)
-    const telegramHits = input.telegramKey
-      ? this.prune(this.telegramHits, input.telegramKey, now)
-      : 0
-    const decision = decideAuthStart({ ipHits, telegramHits })
-    if (decision !== 'allow') {
-      throw new HttpException({ error: 'rate_limited', scope: decision }, 429)
+  async start(input: { ip: string; telegramKey?: string }) {
+    const ipHits = await this.kv.incr(
+      `rate:ip:${input.ip}`,
+      RATE_WINDOW_MS / 1000,
+    )
+    if (ipHits > AUTH_START_IP_LIMIT) {
+      throw new HttpException({ error: 'rate_limited', scope: 'ip' }, 429)
     }
-    this.touch(this.ipHits, input.ip, now)
-    if (input.telegramKey) this.touch(this.telegramHits, input.telegramKey, now)
-    const handoff: Handoff = { id: uuidv7(), createdAt: now }
-    void this.kv.set(
+    if (input.telegramKey) {
+      const telegramHits = await this.kv.incr(
+        `rate:tg:${input.telegramKey}`,
+        RATE_WINDOW_MS / 1000,
+      )
+      if (telegramHits > AUTH_START_TELEGRAM_LIMIT) {
+        throw new HttpException(
+          { error: 'rate_limited', scope: 'telegram' },
+          429,
+        )
+      }
+    }
+    const handoff: Handoff = { id: uuidv7(), createdAt: Date.now() }
+    await this.kv.set(
       this.handoffKey(handoff.id),
       JSON.stringify(handoff),
       HANDOFF_TTL_MS / 1000,
@@ -74,6 +89,7 @@ export class AuthService {
     const handoff = await this.readHandoff(handoffId)
     if (!handoff) throw new HttpException({ error: 'handoff_expired' }, 410)
     handoff.telegramUserId = telegramUserId
+    handoff.confirmedAt = Date.now()
     const remaining = Math.max(
       1,
       Math.ceil((HANDOFF_TTL_MS - (Date.now() - handoff.createdAt)) / 1000),
@@ -93,59 +109,66 @@ export class AuthService {
       await this.kv.del(this.handoffKey(handoffId))
       throw new HttpException({ error: 'handoff_expired' }, 410)
     }
-    if (!handoff.telegramUserId) {
+    if (!handoff.telegramUserId || !handoff.confirmedAt) {
+      if ((process.env.NODE_ENV ?? 'development') === 'production') {
+        throw new HttpException({ error: 'handoff_unconfirmed' }, 403)
+      }
       throw new HttpException({ error: 'handoff_pending' }, 409)
     }
     await this.kv.del(this.handoffKey(handoff.id))
     const user = this.users.upsertTelegram(handoff.telegramUserId)
     const token = randomBytes(32).toString('base64url')
+    const secretHash = hash(token)
     const record: SessionRecord = {
       userId: user.id,
       role: user.role,
       name: user.name,
       expiresAt: now + SESSION_TTL_MS,
+      absoluteExpiresAt: now + SESSION_ABSOLUTE_TTL_MS,
     }
     await this.kv.set(
-      this.sessionKey(token),
+      `session:cache:${secretHash}`,
       JSON.stringify(record),
       SESSION_CACHE_TTL_SECONDS,
     )
     await this.kv.set(
-      this.sessionLongKey(token),
+      `session:${secretHash}`,
       JSON.stringify(record),
       SESSION_TTL_MS / 1000,
     )
-    return { token, maxAgeSeconds: SESSION_TTL_MS / 1000, user }
+    return { token, maxAgeSeconds: SESSION_TTL_MS / 1000, user, secretHash }
   }
 
   async read(token: string | undefined, now = Date.now()) {
     if (!token) return null
-    const cached = await this.kv.get(this.sessionKey(token))
-    const raw = cached ?? (await this.kv.get(this.sessionLongKey(token)))
+    const secretHash = hash(token)
+    const cached = await this.kv.get(`session:cache:${secretHash}`)
+    const raw = cached ?? (await this.kv.get(`session:${secretHash}`))
     if (!raw) return null
     const session = JSON.parse(raw) as SessionRecord
-    if (session.expiresAt <= now) {
+    if (session.expiresAt <= now || session.absoluteExpiresAt <= now) {
       await this.logout(token)
       return null
     }
-    session.expiresAt = now + SESSION_TTL_MS
+    session.expiresAt = Math.min(
+      now + SESSION_TTL_MS,
+      session.absoluteExpiresAt,
+    )
+    const ttl = Math.max(1, Math.ceil((session.expiresAt - now) / 1000))
     await this.kv.set(
-      this.sessionKey(token),
+      `session:cache:${secretHash}`,
       JSON.stringify(session),
       SESSION_CACHE_TTL_SECONDS,
     )
-    await this.kv.set(
-      this.sessionLongKey(token),
-      JSON.stringify(session),
-      SESSION_TTL_MS / 1000,
-    )
+    await this.kv.set(`session:${secretHash}`, JSON.stringify(session), ttl)
     return { userId: session.userId, role: session.role, name: session.name }
   }
 
   async logout(token: string | undefined) {
     if (!token) return
-    await this.kv.del(this.sessionKey(token))
-    await this.kv.del(this.sessionLongKey(token))
+    const secretHash = hash(token)
+    await this.kv.del(`session:cache:${secretHash}`)
+    await this.kv.del(`session:${secretHash}`)
   }
 
   userStore() {
@@ -161,28 +184,6 @@ export class AuthService {
 
   private handoffKey(id: string) {
     return `handoff:${normalizeHandoffId(id)}`
-  }
-
-  private sessionKey(token: string) {
-    return `session:cache:${hash(token)}`
-  }
-
-  private sessionLongKey(token: string) {
-    return `session:${hash(token)}`
-  }
-
-  private prune(bucket: Map<string, Hit[]>, key: string, now: number) {
-    const fresh = (bucket.get(key) ?? []).filter(
-      (hit) => now - hit.at < RATE_WINDOW_MS,
-    )
-    bucket.set(key, fresh)
-    return fresh.length
-  }
-
-  private touch(bucket: Map<string, Hit[]>, key: string, now: number) {
-    const fresh = bucket.get(key) ?? []
-    fresh.push({ at: now })
-    bucket.set(key, fresh)
   }
 }
 

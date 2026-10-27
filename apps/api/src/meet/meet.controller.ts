@@ -12,16 +12,11 @@ import {
   bearerSessionRejected,
   readCookie,
 } from '../auth/policy'
-import { LessonsService } from '../lessons/lessons.service'
-import { mintLivekitToken } from './livekit'
 import { issueMeetTicket } from './ticket'
 
 @Controller('api/meet')
 export class MeetController {
-  constructor(
-    private readonly auth: AuthService,
-    private readonly lessons: LessonsService,
-  ) {}
+  constructor(private readonly auth: AuthService) {}
 
   @Post('ticket')
   async ticket(
@@ -41,28 +36,15 @@ export class MeetController {
     @Headers('cookie') cookie: string | undefined,
     @Headers('authorization') authorization: string | undefined,
   ) {
-    const session = await this.requireSession(cookie, authorization)
-    const lesson = this.lessons.get(lessonId)
-    if (!lesson) throw new HttpException({ error: 'not_found' }, 404)
-    if (lesson.status !== 'live')
-      throw new HttpException({ error: 'meeting_closed' }, 409)
-    const meeting = this.lessons.meetingForLesson(lessonId)
-    if (!meeting) throw new HttpException({ error: 'meeting_missing' }, 409)
-    const cookieToken = readCookie(cookie, SESSION_COOKIE) ?? ''
-    const minted = await mintLivekitToken({
-      apiKey: process.env.LIVEKIT_API_KEY ?? '',
-      apiSecret: process.env.LIVEKIT_API_SECRET ?? '',
-      claims: {
-        room: meeting.livekitRoom,
-        identity: session.userId,
-        name: session.name ?? session.userId,
-        canPublish: session.role === 'teacher' || session.role === 'admin',
+    await this.requireSession(cookie, authorization)
+    void lessonId
+    throw new HttpException(
+      {
+        error: 'meet_ticket_not_ready',
+        note: 'LiveKit mint waits on a signed, room-scoped, single-use ticket',
       },
-    })
-    if (minted.token.includes(cookieToken) && cookieToken.length > 8) {
-      throw new HttpException({ error: 'session_leak' }, 500)
-    }
-    return minted
+      501,
+    )
   }
 
   private async requireSession(

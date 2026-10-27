@@ -10,4 +10,10 @@ describe('createMemoryKv', () => {
     now = 6_000
     expect(await kv.get('a')).toBeNull()
   })
+
+  it('increments inside a ttl window', async () => {
+    const kv = createMemoryKv()
+    expect(await kv.incr('rate:ip:1', 60)).toBe(1)
+    expect(await kv.incr('rate:ip:1', 60)).toBe(2)
+  })
 })

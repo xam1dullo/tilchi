@@ -1,3 +1,6 @@
+# Production-shaped stack. Secrets must be set (no silent defaults).
+# Local: docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+
 services:
   nginx:
     image: nginx:1.27-alpine
@@ -8,6 +11,7 @@ services:
     depends_on:
       - start
       - nest
+      - livekit
 
   start:
     build:
@@ -28,12 +32,15 @@ services:
       NODE_ENV: production
       TZ: Asia/Tashkent
       PORT: "3001"
-      DATABASE_URL: ${DATABASE_URL:-postgres://tilchi:tilchi@postgres:5432/tilchi}
-      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
-      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
-      TELEGRAM_WEBHOOK_SECRET: ${TELEGRAM_WEBHOOK_SECRET:-}
-      LIVEKIT_API_KEY: ${LIVEKIT_API_KEY:-devkey}
-      LIVEKIT_API_SECRET: ${LIVEKIT_API_SECRET:-devsecret}
+      DATABASE_URL: ${DATABASE_URL:?set DATABASE_URL}
+      REDIS_URL: ${REDIS_URL:?set REDIS_URL}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:?set TELEGRAM_BOT_TOKEN}
+      TELEGRAM_WEBHOOK_SECRET: ${TELEGRAM_WEBHOOK_SECRET:?set TELEGRAM_WEBHOOK_SECRET}
+      LIVEKIT_API_KEY: ${LIVEKIT_API_KEY:?set LIVEKIT_API_KEY}
+      LIVEKIT_API_SECRET: ${LIVEKIT_API_SECRET:?set LIVEKIT_API_SECRET}
+      TELEGRAM_BOT_USERNAME: ${TELEGRAM_BOT_USERNAME:-tilchiuz_bot}
+      TELEGRAM_TEACHER_ALLOWLIST: ${TELEGRAM_TEACHER_ALLOWLIST:-}
+      TELEGRAM_ADMIN_ALLOWLIST: ${TELEGRAM_ADMIN_ALLOWLIST:-}
     expose:
       - "3001"
     depends_on:
@@ -45,14 +52,14 @@ services:
   postgres:
     image: postgres:17-alpine
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-tilchi}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-tilchi}
-      POSTGRES_DB: ${POSTGRES_DB:-tilchi}
+      POSTGRES_USER: ${POSTGRES_USER:?set POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:?set POSTGRES_DB}
       TZ: Asia/Tashkent
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-tilchi}"]
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER"]
       interval: 5s
       timeout: 3s
       retries: 10
@@ -67,19 +74,28 @@ services:
 
   livekit:
     image: livekit/livekit-server:v1.8.4
-    command: --config /etc/livekit.yaml
+    entrypoint: ["/bin/sh", "/entrypoint.sh"]
+    environment:
+      LIVEKIT_API_KEY: ${LIVEKIT_API_KEY:?set LIVEKIT_API_KEY}
+      LIVEKIT_API_SECRET: ${LIVEKIT_API_SECRET:?set LIVEKIT_API_SECRET}
     volumes:
-      - ./docker/livekit/livekit.yaml:/etc/livekit.yaml:ro
+      - ./docker/livekit/entrypoint.sh:/entrypoint.sh:ro
+    expose:
+      - "7880"
+      - "7881"
     ports:
-      - "7880:7880"
       - "7881:7881"
       - "50000-50020:50000-50020/udp"
 
   coturn:
     image: coturn/coturn:4.6.2
-    command: ["-c", "/etc/turnserver.conf"]
+    entrypoint: ["/bin/sh", "/entrypoint.sh"]
+    environment:
+      TURN_USER: ${TURN_USER:?set TURN_USER}
+      TURN_PASSWORD: ${TURN_PASSWORD:?set TURN_PASSWORD}
+      TURN_REALM: ${TURN_REALM:-tilchi.uz}
     volumes:
-      - ./docker/coturn/turnserver.conf:/etc/turnserver.conf:ro
+      - ./docker/coturn/entrypoint.sh:/entrypoint.sh:ro
     ports:
       - "3478:3478/udp"
       - "3478:3478/tcp"

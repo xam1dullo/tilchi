@@ -4,6 +4,7 @@ export type Kv = {
   get(key: string): Promise<string | null>
   set(key: string, value: string, ttlSeconds: number): Promise<void>
   del(key: string): Promise<void>
+  incr(key: string, ttlSeconds: number): Promise<number>
 }
 
 type MemoryEntry = { value: string; expiresAt: number }
@@ -26,6 +27,12 @@ export function createMemoryKv(now = () => Date.now()): Kv {
     async del(key) {
       store.delete(key)
     },
+    async incr(key, ttlSeconds) {
+      const current = Number((await this.get(key)) ?? '0')
+      const next = current + 1
+      await this.set(key, String(next), ttlSeconds)
+      return next
+    },
   }
 }
 
@@ -43,6 +50,12 @@ export function createRedisKv(url: string): Kv {
     async del(key) {
       await ensure(client)
       await client.del(key)
+    },
+    async incr(key, ttlSeconds) {
+      await ensure(client)
+      const next = await client.incr(key)
+      if (next === 1) await client.expire(key, ttlSeconds)
+      return next
     },
   }
 }

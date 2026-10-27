@@ -6,16 +6,18 @@ English lessons for groups in Uzbekistan. This repository is the Phase 1 monorep
 
 ```bash
 cp .env.example .env
-docker compose up --build
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
 ```
 
-Open http://localhost. nginx sends `/` and `/app` to Start, and `/api`, `/auth`, and `/bot` to Nest. Postgres, Redis, LiveKit, and coturn come up with the same file.
+Open http://localhost. nginx sends `/` and `/app` to Start, and `/api`, `/auth`, and `/bot` to Nest. Postgres, Redis, LiveKit, and coturn come up with the same files.
+
+`docker-compose.yml` is the production shape: secrets use `${VAR:?required}` and LiveKit signaling (`7880`) stays on the compose network (nginx proxies `/rtc/`). `docker-compose.dev.yml` supplies local defaults only.
 
 `TELEGRAM_BOT_TOKEN` in `.env.example` is an empty placeholder. Do not commit a real token. Production reads `/etc/tilchi.env` on the VPS.
 
-The session cookie is `__Host-tilchi_sid`. Browsers only store that name over HTTPS, so local HTTP will not keep a login. `GET /api/health` returns `{ "ok": true, "service": "tilchi-api" }`.
+The session cookie is `__Host-tilchi_sid`. Confirm waits for the Telegram bot to bind a handoff; an unconfirmed handoff cannot create a session. Browsers only store the host cookie over HTTPS, so local HTTP will not keep a login. `GET /api/health` returns `{ "ok": true, "service": "tilchi-api" }`.
 
-To preview the signed-in empty state locally, set `TILCHI_PREVIEW_ROLE=learner` on the Start process. That variable is ignored when `NODE_ENV=production`.
+To preview the signed-in empty state locally, set `TILCHI_PREVIEW_ROLE=learner` on the Start process (via the dev compose override). That variable is ignored when `NODE_ENV=production`.
 
 ## Checks
 
@@ -26,7 +28,7 @@ pnpm lint
 pnpm typecheck
 pnpm test
 pnpm contrast
-docker compose config
+docker compose -f docker-compose.yml -f docker-compose.dev.yml config
 ```
 
 ## Deploy

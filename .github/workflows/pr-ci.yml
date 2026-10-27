@@ -7,11 +7,11 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
         with:
           version: 11.17.0
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22
           cache: pnpm
@@ -21,4 +21,32 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm contrast
-      - run: docker compose config --quiet
+      - name: compose config (prod shape requires secrets)
+        run: |
+          export DATABASE_URL=postgres://tilchi:tilchi@postgres:5432/tilchi
+          export REDIS_URL=redis://redis:6379
+          export TELEGRAM_BOT_TOKEN=ci-bot-token
+          export TELEGRAM_WEBHOOK_SECRET=ci-webhook-secret
+          export LIVEKIT_API_KEY=cikey
+          export LIVEKIT_API_SECRET=cisecret
+          export POSTGRES_USER=tilchi
+          export POSTGRES_PASSWORD=tilchi
+          export POSTGRES_DB=tilchi
+          export TURN_USER=tilchi
+          export TURN_PASSWORD=ci-turn
+          docker compose -f docker-compose.yml config --quiet
+          docker compose -f docker-compose.yml -f docker-compose.dev.yml config --quiet
+      - name: compose boot smoke
+        run: |
+          docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
+          for i in 1 2 3 4 5 6 7 8 9 10 11 12; do
+            if curl -fsS http://127.0.0.1/api/health | grep -q '"ok":true'; then
+              curl -fsS http://127.0.0.1/api/health
+              docker compose -f docker-compose.yml -f docker-compose.dev.yml down -v
+              exit 0
+            fi
+            sleep 5
+          done
+          docker compose -f docker-compose.yml -f docker-compose.dev.yml logs
+          docker compose -f docker-compose.yml -f docker-compose.dev.yml down -v
+          exit 1
