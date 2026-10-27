@@ -4,11 +4,13 @@ import {
   Get,
   Headers,
   HttpException,
+  Inject,
   Post,
+  Req,
   Res,
 } from '@nestjs/common'
-import type { Response } from 'express'
-import type { AuthService } from './auth.service'
+import type { Request, Response } from 'express'
+import { AuthService } from './auth.service'
 import {
   SESSION_COOKIE,
   bearerSessionRejected,
@@ -16,11 +18,6 @@ import {
   cookieHeader,
   readCookie,
 } from './policy'
-
-function clientIp(forwarded: string | undefined) {
-  const first = forwarded?.split(',')[0]?.trim()
-  return first || 'unknown'
-}
 
 function refuseBearer(authorization: string | undefined) {
   if (bearerSessionRejected(authorization)) {
@@ -44,15 +41,14 @@ function handoffId(body: unknown) {
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly auth: AuthService) {}
+  constructor(@Inject(AuthService) private readonly auth: AuthService) {}
 
+  // req.ip honours `trust proxy` (one hop: nginx), so a client-sent
+  // X-Forwarded-For prefix cannot pick its own rate-limit bucket.
   @Post('start')
-  start(
-    @Headers('x-forwarded-for') forwarded: string | undefined,
-    @Body() body: unknown,
-  ) {
+  start(@Req() req: Request, @Body() body: unknown) {
     return this.auth.start({
-      ip: clientIp(forwarded),
+      ip: req.ip ?? 'unknown',
       telegramKey: telegramKey(body),
     })
   }

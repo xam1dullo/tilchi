@@ -2,10 +2,11 @@ import {
   Controller,
   Headers,
   HttpException,
+  Inject,
   Post,
   UnauthorizedException,
 } from '@nestjs/common'
-import type { AuthService } from '../auth/auth.service'
+import { AuthService } from '../auth/auth.service'
 import {
   SESSION_COOKIE,
   bearerSessionRejected,
@@ -15,7 +16,7 @@ import { issueMeetTicket } from './ticket'
 
 @Controller('api/meet')
 export class MeetController {
-  constructor(private readonly auth: AuthService) {}
+  constructor(@Inject(AuthService) private readonly auth: AuthService) {}
 
   @Post('ticket')
   ticket(
