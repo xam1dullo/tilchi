@@ -2,6 +2,7 @@
 
 Date: 2026-10-27
 Status: accepted
+Source: reconstructed from BUILD-BRIEF-v1. The Mac originals in `tilchi-app` are not ported yet; reconcile when they are.
 
 ## Context
 
