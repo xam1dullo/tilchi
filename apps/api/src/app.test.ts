@@ -186,32 +186,29 @@ describe('telegram login over http', () => {
 })
 
 describe('telegram webhook without a secret', () => {
-  it('is refused when production or an unnamed environment has none, and open on a dev machine', async () => {
-    for (const NODE_ENV of ['production', 'staging', undefined]) {
-      const refused = await bootTestApp({
-        NODE_ENV,
-        TELEGRAM_WEBHOOK_SECRET: undefined,
-      })
-      try {
-        const reply = await client(refused.base)('POST', '/bot/webhook', {
-          body: {},
-        })
-        expect(reply.status).toBe(503)
-        expect(reply.json).toEqual({ error: 'webhook_disabled' })
-      } finally {
-        await refused.close()
-      }
-    }
-    const dev = await bootTestApp({
-      NODE_ENV: 'development',
+  const post = async (env: Record<string, string | undefined>) => {
+    const app = await bootTestApp({
       TELEGRAM_WEBHOOK_SECRET: undefined,
+      ...env,
     })
     try {
-      const reply = await client(dev.base)('POST', '/bot/webhook', { body: {} })
-      expect(reply.status).toBe(200)
+      return await client(app.base)('POST', '/bot/webhook', { body: {} })
     } finally {
-      await dev.close()
+      await app.close()
     }
+  }
+
+  it.each([['production'], ['staging'], [undefined]])(
+    'is refused when NODE_ENV is %s',
+    async (NODE_ENV) => {
+      const reply = await post({ NODE_ENV })
+      expect(reply.status).toBe(503)
+      expect(reply.json).toEqual({ error: 'webhook_disabled' })
+    },
+  )
+
+  it('is open on a developer machine', async () => {
+    expect((await post({ NODE_ENV: 'development' })).status).toBe(200)
   })
 })
 
