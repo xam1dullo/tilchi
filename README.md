@@ -32,7 +32,7 @@ curl -X POST http://localhost/bot/webhook -H 'content-type: application/json' \
 
 The page signs in on its next poll, about two seconds later, and shows the user's groups, or the empty classroom when there are none. Everyone is a learner unless their Telegram id is in `TELEGRAM_TEACHER_ALLOWLIST` or `TELEGRAM_ADMIN_ALLOWLIST` (comma-separated ids); a change applies at the next sign-in.
 
-The webhook is open only when `NODE_ENV` is `development` or `test` and `TELEGRAM_WEBHOOK_SECRET` is empty. Once the secret is set, send it as the `x-telegram-bot-api-secret-token` header. Any other environment refuses the webhook until the secret is set.
+The webhook is open only when `NODE_ENV` is `development` or `test` and `TELEGRAM_WEBHOOK_SECRET` is empty. Once the secret is set, send it as the `x-telegram-bot-api-secret-token` header. Any other environment refuses the webhook until a secret of at least 32 characters is set (`openssl rand -hex 32` makes one), and the API logs why at start.
 
 ## Database
 

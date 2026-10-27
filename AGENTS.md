@@ -27,7 +27,7 @@ Max 5 active implementers or reviewers on one collision domain. Parallel only on
 
 ## Security must-not-repeat
 
-1. Webhook: require the secret header when `TELEGRAM_WEBHOOK_SECRET` is set. Refuse the webhook in production when it is unset. No IP-range bypass.
+1. Webhook: require the secret header when `TELEGRAM_WEBHOOK_SECRET` is set. Refuse the webhook in production when it is unset or shorter than 32 characters. No IP-range bypass.
 2. Deploy: GitHub `environment: production` plus reviewers. No ungated migrate and deploy on a bare `main` push.
 3. Session: HttpOnly `__Host-tilchi_sid` only. Never put a bearer token in localStorage.
 4. Health: no secret presence flags (`hasBotToken`, `hasDb`, and the like).

@@ -18,7 +18,7 @@ Handoff: `POST /auth/start` returns a public `handoffId` for the bot deep link a
 
 `/auth/start` allows 5 requests per minute per IP and 3 per minute per Telegram key. The Telegram key is a verified Telegram user id (Mini App initData) and is never read from the request body: a client-chosen key would let anyone lock a victim out. The IP is Express `req.ip` with `trust proxy` 1. nginx is the edge (Cloudflare is DNS-only), so it overwrites `X-Forwarded-For` with `$remote_addr`; a client-sent header never reaches the limiter.
 
-`/bot/webhook` checks `X-Telegram-Bot-Api-Secret-Token` against `TELEGRAM_WEBHOOK_SECRET` with a constant-time compare. If that secret is unset, production refuses the webhook. There is no IP-range bypass.
+`/bot/webhook` checks `X-Telegram-Bot-Api-Secret-Token` against `TELEGRAM_WEBHOOK_SECRET` with a constant-time compare. If that secret is unset, production refuses the webhook. Outside development and test the secret must also be at least 32 characters, because a confirm can sign in as any Telegram user and a short secret is no better than none; the refusal is a bare 503, so the API logs the reason at start. There is no IP-range bypass.
 
 ## Consequences
 
