@@ -1,4 +1,4 @@
-import { useEffect, useReducer } from 'react'
+import { type Ref, useEffect, useReducer, useRef } from 'react'
 import {
   type SignInState,
   canStart,
@@ -33,10 +33,12 @@ export function SignInView({
   state,
   copy,
   onStart,
+  linkRef,
 }: {
   state: SignInState
   copy: Copy
   onStart: () => void
+  linkRef?: Ref<HTMLAnchorElement>
 }) {
   const note = noteFor(state, copy)
   const retry = state.phase === 'expired' || state.phase === 'failed'
@@ -49,6 +51,7 @@ export function SignInView({
           href={state.deepLink}
           target="_blank"
           rel="noopener"
+          ref={linkRef}
         >
           <TelegramGlyph />
           {copy.signInButton}
@@ -85,6 +88,13 @@ export function SignInView({
 // whether the bot confirmed.
 export function SignIn({ locale }: { locale: Locale }) {
   const [state, dispatch] = useReducer(reduce, idle)
+  const linkRef = useRef<HTMLAnchorElement>(null)
+
+  // The button that was pressed turns into this link, which would drop keyboard
+  // focus onto the page body.
+  useEffect(() => {
+    if (state.phase === 'waiting') linkRef.current?.focus()
+  }, [state.phase])
 
   useEffect(() => {
     if (state.phase !== 'waiting') return
@@ -118,6 +128,7 @@ export function SignIn({ locale }: { locale: Locale }) {
     <SignInView
       state={state}
       copy={messages(locale)}
+      linkRef={linkRef}
       onStart={() => {
         void begin()
       }}

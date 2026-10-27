@@ -1,3 +1,10 @@
+import {
+  Children,
+  type ReactElement,
+  type ReactNode,
+  createRef,
+  isValidElement,
+} from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import type { SignInState } from '../lib/handoff'
@@ -6,6 +13,17 @@ import { escapeHtml as esc } from '../testing/html'
 import { SignInView } from './sign-in'
 
 const link = 'https://t.me/tilchiuz_bot?start=login_abc'
+
+type Anchor = ReactElement<{ ref?: unknown; children?: ReactNode }>
+
+// Static markup carries no refs, so look for the link in the element tree.
+function anchors(node: ReactNode): Anchor[] {
+  if (!isValidElement<Anchor['props']>(node)) return []
+  return [
+    ...(node.type === 'a' ? [node as Anchor] : []),
+    ...Children.toArray(node.props.children).flatMap(anchors),
+  ]
+}
 
 function render(state: SignInState, locale: keyof typeof copy = 'uz') {
   return renderToStaticMarkup(
@@ -37,6 +55,19 @@ describe('SignInView', () => {
     expect(html).toContain('target="_blank"')
     expect(html).toContain('rel="noopener"')
     expect(html).toContain(esc(copy.uz.waiting))
+  })
+
+  it('hands the link to its owner so focus can follow the button it replaced', () => {
+    const linkRef = createRef<HTMLAnchorElement>()
+    const tree = SignInView({
+      state: { phase: 'waiting', deepLink: link },
+      copy: copy.uz,
+      onStart: () => {},
+      linkRef,
+    })
+    const found = anchors(tree)
+    expect(found).toHaveLength(1)
+    expect(found[0].props.ref).toBe(linkRef)
   })
 
   it('says the link expired and offers a new attempt', () => {
