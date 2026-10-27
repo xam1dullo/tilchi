@@ -58,32 +58,35 @@ export class AuthController {
   }
 
   @Post('confirm')
-  confirm(@Body() body: unknown, @Res({ passthrough: true }) res: Response) {
-    const opened = this.auth.confirm(handoffId(body))
+  async confirm(
+    @Body() body: unknown,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const opened = await this.auth.confirm(handoffId(body))
     res.setHeader(
       'Set-Cookie',
       cookieHeader(opened.token, opened.maxAgeSeconds),
     )
-    return { ok: true }
+    return { ok: true, user: { id: opened.user.id, role: opened.user.role } }
   }
 
   @Get('session')
-  session(
+  async session(
     @Headers('cookie') cookie: string | undefined,
     @Headers('authorization') authorization: string | undefined,
   ) {
     refuseBearer(authorization)
-    const session = this.auth.read(readCookie(cookie, SESSION_COOKIE))
+    const session = await this.auth.read(readCookie(cookie, SESSION_COOKIE))
     if (!session) return { user: null }
     return { user: session }
   }
 
   @Post('logout')
-  logout(
+  async logout(
     @Headers('cookie') cookie: string | undefined,
     @Res({ passthrough: true }) res: Response,
   ) {
-    this.auth.logout(readCookie(cookie, SESSION_COOKIE))
+    await this.auth.logout(readCookie(cookie, SESSION_COOKIE))
     res.setHeader('Set-Cookie', clearCookieHeader())
     return { ok: true }
   }
