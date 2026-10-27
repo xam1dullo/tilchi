@@ -47,4 +47,20 @@ describe('AuthService handoff', () => {
     expect(auth.claim(`${handoffId}.wrong`, 2).status).toBe('expired')
     expect(auth.claim(undefined, 2).status).toBe('expired')
   })
+
+  it('keeps the first telegram user who confirmed a handoff', () => {
+    const auth = new AuthService()
+    const { handoffId, claim } = started(auth, 0)
+    expect(auth.confirm(handoffId, 'tg-owner', 1)).toBe(true)
+    expect(auth.confirm(handoffId, 'tg-other', 2)).toBe(false)
+    const opened = auth.claim(claim, 3)
+    if (opened.status !== 'confirmed') throw new Error(opened.status)
+    const owner = started(auth, 4)
+    auth.confirm(owner.handoffId, 'tg-owner', 5)
+    const again = auth.claim(owner.claim, 6)
+    if (again.status !== 'confirmed') throw new Error(again.status)
+    expect(auth.read(opened.token, 7)?.userId).toBe(
+      auth.read(again.token, 7)?.userId,
+    )
+  })
 })

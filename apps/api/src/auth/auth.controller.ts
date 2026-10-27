@@ -1,5 +1,4 @@
 import {
-  Body,
   Controller,
   Get,
   Headers,
@@ -26,29 +25,14 @@ function refuseBearer(authorization: string | undefined) {
   }
 }
 
-function telegramKey(body: unknown) {
-  if (!body || typeof body !== 'object') return undefined
-  const value = (body as { telegramKey?: unknown }).telegramKey
-  if (typeof value !== 'string') return undefined
-  const trimmed = value.trim()
-  return trimmed.length > 0 ? trimmed.slice(0, 64) : undefined
-}
-
 @Controller('auth')
 export class AuthController {
   constructor(@Inject(AuthService) private readonly auth: AuthService) {}
 
   // req.ip honours `trust proxy` 1: nginx's $remote_addr, never a client-sent X-Forwarded-For.
   @Post('start')
-  start(
-    @Req() req: Request,
-    @Body() body: unknown,
-    @Res({ passthrough: true }) res: Response,
-  ) {
-    const started = this.auth.start({
-      ip: req.ip ?? 'unknown',
-      telegramKey: telegramKey(body),
-    })
+  start(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
+    const started = this.auth.start({ ip: req.ip ?? 'unknown' })
     res.setHeader(
       'Set-Cookie',
       cookieHeader(started.claim, started.expiresInSeconds, HANDOFF_COOKIE),

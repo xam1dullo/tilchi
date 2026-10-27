@@ -93,6 +93,19 @@ describe('meet token', () => {
 })
 
 describe('auth start rate limit', () => {
+  it('ignores a client-chosen telegram key', async () => {
+    const statuses: number[] = []
+    for (let i = 0; i < 4; i++) {
+      const response = await fetch(`${base}/auth/start`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ telegramKey: 'victim' }),
+      })
+      statuses.push(response.status)
+    }
+    expect(statuses).toEqual([201, 201, 201, 201])
+  })
+
   it('keys on the connection, not a client-sent X-Forwarded-For', async () => {
     const statuses: number[] = []
     for (let i = 0; i < 6; i++) {

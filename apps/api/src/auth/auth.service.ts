@@ -35,6 +35,7 @@ export class AuthService {
     { userId: string; expiresAt: number }
   >()
 
+  // telegramKey must be a verified Telegram user id (Mini App initData), never request body input.
   start(input: { ip: string; telegramKey?: string; now?: number }) {
     const now = input.now ?? Date.now()
     const ipHits = this.prune(this.ipHits, input.ip, now)
@@ -61,9 +62,10 @@ export class AuthService {
   }
 
   // Bot-only: called after the Telegram user taps confirm. Never routed over HTTP.
+  // First confirm wins, so a forwarded deep link cannot swap the account.
   confirm(handoffId: string, telegramUserId: string, now = Date.now()) {
     const handoff = this.live(handoffId, now)
-    if (!handoff) return false
+    if (!handoff || handoff.userId) return false
     handoff.userId = this.userFor(telegramUserId)
     return true
   }
