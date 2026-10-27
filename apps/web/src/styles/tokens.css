@@ -1,0 +1,70 @@
+/* Flat :root. scripts/check-contrast.mjs parses this block. */
+:root {
+  --bg: #fcfcfa;
+  --bg-elev: #ffffff;
+  --bg-alt: #f1f3ee;
+  --surface: #ffffff;
+  --ink: #151a17;
+  --ink-2: #3b423e;
+  --muted: #666e68;
+  --line: #e1e5e0;
+  --line-strong: #c4cbc5;
+  --accent: #1e6b47;
+  --accent-solid: #175a3b;
+  --accent-2: #0f4a2f;
+  --accent-soft: #e1eee4;
+  --accent-ink: #0c3f27;
+  --success: #1e6b47;
+  --tg: #2aabee;
+  --focus: #175a3b;
+  --on-accent: #f3f8f4;
+  --on-accent-muted: #c9dccf;
+
+  --fs-display: clamp(3rem, 7.4vw + 0.6rem, 6.8rem);
+  --fs-h2: clamp(2rem, 3.4vw + 0.6rem, 3.5rem);
+  --fs-h3: clamp(1.35rem, 1.4vw + 0.8rem, 1.75rem);
+  --fs-lead: clamp(1.125rem, 0.5vw + 0.95rem, 1.3125rem);
+  --fs-body: 1.0625rem;
+  --fs-sm: 0.9375rem;
+  --fs-xs: 0.8125rem;
+  --fs-label: 0.75rem;
+  --fs-stat: clamp(2.25rem, 3vw, 3rem);
+  --fs-ui: 0.875rem;
+
+  --r-sm: 6px;
+  --r-md: 12px;
+  --r-lg: 20px;
+  --r-xl: 28px;
+  --r-full: 999px;
+
+  --sh-panel: 0 24px 48px -28px rgba(21, 26, 23, 0.25);
+  --sh-focus: 0 0 0 3px rgba(23, 90, 59, 0.35);
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-fast: 160ms;
+  --dur-med: 240ms;
+  --dur-slow: 600ms;
+  --container: 1200px;
+  --gutter: clamp(16px, 4vw, 40px);
+
+  --row-h: 44px;
+  --sidebar-w: 248px;
+  --topbar-h: 56px;
+  --sec-pad-app: 24px;
+
+  --warn: #8a5a00;
+  --warn-soft: #fbf1dc;
+  --danger: #a3261f;
+  --danger-soft: #f8e3e1;
+  --live: #a3261f;
+  --meet-bg: #151a17;
+
+  --z-grain: 1;
+  --z-sticky: 90;
+  --z-nav: 100;
+  --z-sheet: 110;
+  --z-toast: 150;
+  --z-skip: 200;
+
+  --font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Fraunces Variable", "Geist Variable", Georgia, serif;
+}
