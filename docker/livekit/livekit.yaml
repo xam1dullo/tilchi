@@ -1,3 +1,4 @@
+# API keys come from LIVEKIT_KEYS in docker-compose.yml, never from this file.
 port: 7880
 bind_addresses:
   - ""
@@ -6,5 +7,3 @@ rtc:
   port_range_start: 50000
   port_range_end: 50020
   use_external_ip: false
-keys:
-  devkey: devsecret
