@@ -14,7 +14,7 @@ export class BotController {
     @Headers('x-telegram-bot-api-secret-token') header: string | undefined,
   ) {
     const decision = decideWebhook({
-      nodeEnv: process.env.NODE_ENV ?? 'development',
+      nodeEnv: process.env.NODE_ENV ?? '',
       secret: process.env.TELEGRAM_WEBHOOK_SECRET,
       header,
     })

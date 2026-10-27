@@ -15,14 +15,20 @@ describe('decideWebhook', () => {
     ).toBe('refuse_unset')
   })
 
-  it('allows an unset secret outside production', () => {
-    expect(
-      decideWebhook({
-        nodeEnv: 'development',
-        secret: undefined,
-        header: undefined,
-      }),
-    ).toBe('allow')
+  it('allows an unset secret on a developer machine and in tests', () => {
+    for (const nodeEnv of ['development', 'test']) {
+      expect(
+        decideWebhook({ nodeEnv, secret: undefined, header: undefined }),
+      ).toBe('allow')
+    }
+  })
+
+  it('treats any other environment like production', () => {
+    for (const nodeEnv of ['staging', 'preview', '']) {
+      expect(
+        decideWebhook({ nodeEnv, secret: undefined, header: undefined }),
+      ).toBe('refuse_unset')
+    }
   })
 
   it('requires the telegram header to match and ignores nothing else', () => {
