@@ -2,11 +2,13 @@ import { describe, expect, it } from 'vitest'
 import {
   AUTH_START_IP_LIMIT,
   AUTH_START_TELEGRAM_LIMIT,
+  HANDOFF_COOKIE,
   SESSION_COOKIE,
   bearerSessionRejected,
   cookieHeader,
   decideAuthStart,
   isRole,
+  readCookie,
 } from './policy'
 
 describe('decideAuthStart', () => {
@@ -59,5 +61,24 @@ describe('isRole', () => {
     expect(isRole('teacher')).toBe(true)
     expect(isRole('admin')).toBe(true)
     expect(isRole('parent')).toBe(false)
+  })
+})
+
+describe('readCookie', () => {
+  it('returns nothing for a malformed value instead of throwing', () => {
+    expect(readCookie(`${SESSION_COOKIE}=%E0%A4%A`, SESSION_COOKIE)).toBe(
+      undefined,
+    )
+    expect(readCookie(`a=1; ${SESSION_COOKIE}=x%20y`, SESSION_COOKIE)).toBe(
+      'x y',
+    )
+  })
+})
+
+describe('handoff cookie', () => {
+  it('uses its own host-prefixed name with the same attributes', () => {
+    const header = cookieHeader('id.secret', 300, HANDOFF_COOKIE)
+    expect(header.startsWith('__Host-tilchi_handoff=')).toBe(true)
+    expect(header).toContain('HttpOnly; Secure; SameSite=Lax; Path=/')
   })
 })

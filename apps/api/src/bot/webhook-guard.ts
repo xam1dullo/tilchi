@@ -1,4 +1,4 @@
-import { timingSafeEqual } from 'node:crypto'
+import { safeEqual } from '../auth/policy'
 
 export type WebhookDecision = 'allow' | 'refuse_unset' | 'bad_header'
 
@@ -11,11 +11,4 @@ export function decideWebhook(input: {
   if (!secret) return input.nodeEnv === 'production' ? 'refuse_unset' : 'allow'
   if (!safeEqual(input.header ?? '', secret)) return 'bad_header'
   return 'allow'
-}
-
-function safeEqual(left: string, right: string) {
-  const a = Buffer.from(left)
-  const b = Buffer.from(right)
-  if (a.length !== b.length) return false
-  return timingSafeEqual(a, b)
 }

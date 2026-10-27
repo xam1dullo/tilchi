@@ -4,23 +4,21 @@ import {
   Get,
   Headers,
   HttpException,
+  Inject,
   Post,
+  Req,
   Res,
 } from '@nestjs/common'
-import type { Response } from 'express'
-import type { AuthService } from './auth.service'
+import type { Request, Response } from 'express'
+import { AuthService } from './auth.service'
 import {
+  HANDOFF_COOKIE,
   SESSION_COOKIE,
   bearerSessionRejected,
   clearCookieHeader,
   cookieHeader,
   readCookie,
 } from './policy'
-
-function clientIp(forwarded: string | undefined) {
-  const first = forwarded?.split(',')[0]?.trim()
-  return first || 'unknown'
-}
 
 function refuseBearer(authorization: string | undefined) {
   if (bearerSessionRejected(authorization)) {
@@ -36,35 +34,49 @@ function telegramKey(body: unknown) {
   return trimmed.length > 0 ? trimmed.slice(0, 64) : undefined
 }
 
-function handoffId(body: unknown) {
-  if (!body || typeof body !== 'object') return ''
-  const value = (body as { handoffId?: unknown }).handoffId
-  return typeof value === 'string' ? value : ''
-}
-
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly auth: AuthService) {}
+  constructor(@Inject(AuthService) private readonly auth: AuthService) {}
 
+  // req.ip honours `trust proxy` 1: nginx's $remote_addr, never a client-sent X-Forwarded-For.
   @Post('start')
   start(
-    @Headers('x-forwarded-for') forwarded: string | undefined,
+    @Req() req: Request,
     @Body() body: unknown,
+    @Res({ passthrough: true }) res: Response,
   ) {
-    return this.auth.start({
-      ip: clientIp(forwarded),
+    const started = this.auth.start({
+      ip: req.ip ?? 'unknown',
       telegramKey: telegramKey(body),
     })
-  }
-
-  @Post('confirm')
-  confirm(@Body() body: unknown, @Res({ passthrough: true }) res: Response) {
-    const opened = this.auth.confirm(handoffId(body))
     res.setHeader(
       'Set-Cookie',
-      cookieHeader(opened.token, opened.maxAgeSeconds),
+      cookieHeader(started.claim, started.expiresInSeconds, HANDOFF_COOKIE),
     )
-    return { ok: true }
+    return {
+      handoffId: started.handoffId,
+      expiresInSeconds: started.expiresInSeconds,
+    }
+  }
+
+  @Post('claim')
+  claim(
+    @Headers('cookie') cookie: string | undefined,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = this.auth.claim(readCookie(cookie, HANDOFF_COOKIE))
+    if (result.status === 'expired') {
+      throw new HttpException({ error: 'handoff_expired' }, 410)
+    }
+    if (result.status === 'waiting') {
+      res.status(202)
+      return { status: 'waiting' }
+    }
+    res.setHeader('Set-Cookie', [
+      cookieHeader(result.token, result.maxAgeSeconds),
+      clearCookieHeader(HANDOFF_COOKIE),
+    ])
+    return { status: 'confirmed' }
   }
 
   @Get('session')
@@ -73,9 +85,7 @@ export class AuthController {
     @Headers('authorization') authorization: string | undefined,
   ) {
     refuseBearer(authorization)
-    const session = this.auth.read(readCookie(cookie, SESSION_COOKIE))
-    if (!session) return { user: null }
-    return { user: session }
+    return { user: this.auth.read(readCookie(cookie, SESSION_COOKIE)) }
   }
 
   @Post('logout')

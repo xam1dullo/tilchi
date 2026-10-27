@@ -1,22 +1,35 @@
 import { HttpException, Injectable } from '@nestjs/common'
 import { randomBytes } from 'node:crypto'
+import { uuidv7 } from '../id'
 import {
   HANDOFF_TTL_MS,
   RATE_WINDOW_MS,
   SESSION_TTL_MS,
   decideAuthStart,
+  safeEqual,
 } from './policy'
-import { uuidv7 } from '../id'
 
 type Hit = { at: number }
 
-export type Handoff = { id: string; createdAt: number }
+type Handoff = {
+  id: string
+  secret: string
+  createdAt: number
+  userId?: string
+}
 
+export type ClaimResult =
+  | { status: 'waiting' }
+  | { status: 'expired' }
+  | { status: 'confirmed'; token: string; maxAgeSeconds: number }
+
+// ponytail: in-memory stores, single process; Postgres + Redis replace them (ADR 0002)
 @Injectable()
 export class AuthService {
   private readonly ipHits = new Map<string, Hit[]>()
   private readonly telegramHits = new Map<string, Hit[]>()
   private readonly handoffs = new Map<string, Handoff>()
+  private readonly usersByTelegram = new Map<string, string>()
   private readonly sessions = new Map<
     string,
     { userId: string; expiresAt: number }
@@ -34,31 +47,48 @@ export class AuthService {
     }
     this.touch(this.ipHits, input.ip, now)
     if (input.telegramKey) this.touch(this.telegramHits, input.telegramKey, now)
-    const handoff: Handoff = { id: uuidv7(), createdAt: now }
+    const handoff: Handoff = {
+      id: uuidv7(now),
+      secret: randomBytes(32).toString('base64url'),
+      createdAt: now,
+    }
     this.handoffs.set(handoff.id, handoff)
-    return { handoffId: handoff.id, expiresInSeconds: HANDOFF_TTL_MS / 1000 }
+    return {
+      handoffId: handoff.id,
+      claim: `${handoff.id}.${handoff.secret}`,
+      expiresInSeconds: HANDOFF_TTL_MS / 1000,
+    }
   }
 
-  confirm(handoffId: string, now = Date.now()) {
-    const handoff = this.handoffs.get(handoffId)
-    if (!handoff || now - handoff.createdAt > HANDOFF_TTL_MS) {
-      this.handoffs.delete(handoffId)
-      throw new HttpException({ error: 'handoff_expired' }, 410)
+  // Bot-only: called after the Telegram user taps confirm. Never routed over HTTP.
+  confirm(handoffId: string, telegramUserId: string, now = Date.now()) {
+    const handoff = this.live(handoffId, now)
+    if (!handoff) return false
+    handoff.userId = this.userFor(telegramUserId)
+    return true
+  }
+
+  claim(claim: string | undefined, now = Date.now()): ClaimResult {
+    const [id = '', secret = ''] = (claim ?? '').split('.')
+    const handoff = this.live(id, now)
+    if (!handoff || !safeEqual(secret, handoff.secret)) {
+      return { status: 'expired' }
     }
-    this.handoffs.delete(handoffId)
+    if (!handoff.userId) return { status: 'waiting' }
+    this.handoffs.delete(id)
     const token = randomBytes(32).toString('base64url')
     this.sessions.set(token, {
-      userId: uuidv7(),
+      userId: handoff.userId,
       expiresAt: now + SESSION_TTL_MS,
     })
-    return { token, maxAgeSeconds: SESSION_TTL_MS / 1000 }
+    return { status: 'confirmed', token, maxAgeSeconds: SESSION_TTL_MS / 1000 }
   }
 
   read(token: string | undefined, now = Date.now()) {
     if (!token) return null
     const session = this.sessions.get(token)
     if (!session || session.expiresAt <= now) {
-      if (token) this.sessions.delete(token)
+      this.sessions.delete(token)
       return null
     }
     session.expiresAt = now + SESSION_TTL_MS
@@ -67,6 +97,21 @@ export class AuthService {
 
   logout(token: string | undefined) {
     if (token) this.sessions.delete(token)
+  }
+
+  private live(id: string, now: number) {
+    const handoff = this.handoffs.get(id)
+    if (handoff && now - handoff.createdAt <= HANDOFF_TTL_MS) return handoff
+    this.handoffs.delete(id)
+    return undefined
+  }
+
+  private userFor(telegramUserId: string) {
+    const known = this.usersByTelegram.get(telegramUserId)
+    if (known) return known
+    const userId = uuidv7()
+    this.usersByTelegram.set(telegramUserId, userId)
+    return userId
   }
 
   private prune(bucket: Map<string, Hit[]>, key: string, now: number) {
