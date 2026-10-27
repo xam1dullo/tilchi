@@ -1,4 +1,5 @@
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { Logger } from '@nestjs/common'
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import {
   type Reply,
   WEBHOOK_SECRET,
@@ -209,6 +210,49 @@ describe('telegram webhook without a secret', () => {
 
   it('is open on a developer machine', async () => {
     expect((await post({ NODE_ENV: 'development' })).status).toBe(200)
+  })
+})
+
+describe('telegram webhook with a short secret', () => {
+  const post = async (secret: string, NODE_ENV: string) => {
+    const app = await bootTestApp({
+      NODE_ENV,
+      TELEGRAM_WEBHOOK_SECRET: secret,
+    })
+    try {
+      return await client(app.base)('POST', '/bot/webhook', {
+        body: {},
+        headers: { 'x-telegram-bot-api-secret-token': secret },
+      })
+    } finally {
+      await app.close()
+    }
+  }
+
+  it('is refused in production even when the header matches', async () => {
+    const reply = await post('k'.repeat(31), 'production')
+    expect(reply.status).toBe(503)
+    expect(reply.json).toEqual({ error: 'webhook_disabled' })
+  })
+
+  it('works in production once the secret is long enough', async () => {
+    expect((await post('k'.repeat(32), 'production')).status).toBe(200)
+  })
+
+  it('is accepted on a developer machine', async () => {
+    expect((await post('s3cret', 'development')).status).toBe(200)
+  })
+
+  it('says why in the log when the server starts', async () => {
+    const warn = vi.spyOn(Logger.prototype, 'warn')
+    try {
+      await post('k'.repeat(31), 'production')
+      expect(warn).toHaveBeenCalledWith(
+        expect.stringContaining('TELEGRAM_WEBHOOK_SECRET is shorter than 32'),
+      )
+    } finally {
+      warn.mockRestore()
+    }
   })
 })
 

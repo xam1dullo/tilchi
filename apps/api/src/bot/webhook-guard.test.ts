@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { decideWebhook } from './webhook-guard'
+import {
+  WEBHOOK_SECRET_MIN_LENGTH,
+  decideWebhook,
+  webhookProblem,
+} from './webhook-guard'
+
+const STRONG = 'k'.repeat(WEBHOOK_SECRET_MIN_LENGTH)
+const SHORT = 'k'.repeat(WEBHOOK_SECRET_MIN_LENGTH - 1)
 
 describe('decideWebhook', () => {
   it('refuses an unset secret in production', () => {
@@ -35,23 +42,74 @@ describe('decideWebhook', () => {
     expect(
       decideWebhook({
         nodeEnv: 'production',
-        secret: 's3cret',
-        header: 's3cret',
+        secret: STRONG,
+        header: STRONG,
       }),
     ).toBe('allow')
     expect(
       decideWebhook({
         nodeEnv: 'production',
-        secret: 's3cret',
+        secret: STRONG,
         header: 'nope',
       }),
     ).toBe('bad_header')
     expect(
       decideWebhook({
         nodeEnv: 'production',
-        secret: 's3cret',
+        secret: STRONG,
         header: undefined,
       }),
     ).toBe('bad_header')
+  })
+
+  it('refuses a short secret outside a developer machine, even with the right header', () => {
+    for (const nodeEnv of ['production', 'staging', '']) {
+      expect(decideWebhook({ nodeEnv, secret: SHORT, header: SHORT })).toBe(
+        'refuse_weak',
+      )
+    }
+  })
+
+  it('counts the secret as the server reads it, without surrounding spaces', () => {
+    const padded = `  ${SHORT}  `
+    expect(
+      decideWebhook({
+        nodeEnv: 'production',
+        secret: padded,
+        header: SHORT,
+      }),
+    ).toBe('refuse_weak')
+  })
+
+  it('lets a developer machine and tests use any secret', () => {
+    for (const nodeEnv of ['development', 'test']) {
+      expect(
+        decideWebhook({ nodeEnv, secret: 's3cret', header: 's3cret' }),
+      ).toBe('allow')
+      expect(decideWebhook({ nodeEnv, secret: 's3cret', header: 'nope' })).toBe(
+        'bad_header',
+      )
+    }
+  })
+})
+
+describe('webhookProblem', () => {
+  it('names what is wrong, so a refusal is not silent', () => {
+    expect(
+      webhookProblem({ nodeEnv: 'production', secret: undefined }),
+    ).toMatch(/not set/)
+    expect(webhookProblem({ nodeEnv: 'production', secret: SHORT })).toMatch(
+      new RegExp(`${WEBHOOK_SECRET_MIN_LENGTH} characters`),
+    )
+  })
+
+  it('stays quiet when the webhook works', () => {
+    expect(webhookProblem({ nodeEnv: 'production', secret: STRONG })).toBeNull()
+    expect(
+      webhookProblem({ nodeEnv: 'development', secret: undefined }),
+    ).toBeNull()
+    expect(
+      webhookProblem({ nodeEnv: 'development', secret: 's3cret' }),
+    ).toBeNull()
   })
 })
