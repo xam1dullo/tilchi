@@ -8,13 +8,14 @@ import { createTestDb } from '../db/testing'
 
 export const TEST_ADMIN = '1000'
 export const TEST_TEACHER = '2000'
+export const TEST_TEACHER_2 = '2001'
 export const WEBHOOK_SECRET = 'test-webhook-secret'
 
 const TEST_ENV = {
   NODE_ENV: 'test',
   TELEGRAM_WEBHOOK_SECRET: WEBHOOK_SECRET,
   TILCHI_ADMIN_TELEGRAM_IDS: TEST_ADMIN,
-  TILCHI_TEACHER_TELEGRAM_IDS: TEST_TEACHER,
+  TILCHI_TEACHER_TELEGRAM_IDS: `${TEST_TEACHER},${TEST_TEACHER_2}`,
 }
 
 // The real Nest app on an in-process Postgres built from the committed
@@ -55,8 +56,8 @@ export async function bootTestApp(
 let sequence = 0
 
 // Signs a Telegram account in through the real handoff (start, confirm, claim)
-// and returns the session cookie pair. Each call uses its own address so a
-// test is never stopped by the /auth/start rate limit.
+// and returns the session cookie pair with the user's id. Each call uses its
+// own address so a test is never stopped by the /auth/start rate limit.
 export async function signInAs(
   app: INestApplication,
   telegramId: string,
@@ -69,7 +70,9 @@ export async function signInAs(
   }
   const opened = auth.claim(claim)
   if (opened.status !== 'confirmed') throw new Error(opened.status)
-  return `__Host-tilchi_sid=${opened.token}`
+  const user = auth.read(opened.token)
+  if (!user) throw new Error('session vanished')
+  return { cookie: `__Host-tilchi_sid=${opened.token}`, userId: user.userId }
 }
 
 // biome-ignore lint/suspicious/noExplicitAny: test helper; responses are untyped JSON
