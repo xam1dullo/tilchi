@@ -31,8 +31,8 @@ describe('parseTelegramIds', () => {
 
 describe('RoleAllowlist', () => {
   const allowlist = RoleAllowlist.fromEnv({
-    TILCHI_ADMIN_TELEGRAM_IDS: '1,2',
-    TILCHI_TEACHER_TELEGRAM_IDS: '2,3',
+    TELEGRAM_ADMIN_ALLOWLIST: '1,2',
+    TELEGRAM_TEACHER_ALLOWLIST: '2,3',
   })
 
   it('maps allow-listed accounts and defaults everyone else to learner', () => {
@@ -53,13 +53,13 @@ describe('RoleAllowlist', () => {
   it('reports a malformed entry instead of granting anything for it', () => {
     const warnings: string[] = []
     const typo = RoleAllowlist.fromEnv(
-      { TILCHI_ADMIN_TELEGRAM_IDS: '12x', TILCHI_TEACHER_TELEGRAM_IDS: '7' },
+      { TELEGRAM_ADMIN_ALLOWLIST: '12x', TELEGRAM_TEACHER_ALLOWLIST: '7' },
       (message) => warnings.push(message),
     )
     expect(typo.roleFor('12')).toBe('learner')
     expect(typo.roleFor('7')).toBe('teacher')
     expect(warnings).toEqual([
-      'TILCHI_ADMIN_TELEGRAM_IDS: ignored 1 invalid entries',
+      'TELEGRAM_ADMIN_ALLOWLIST: ignored 1 invalid entries',
     ])
   })
 })

@@ -28,7 +28,7 @@ export class RoleAllowlist {
     warn: (message: string) => void = () => undefined,
   ) {
     const lists = (['ADMIN', 'TEACHER'] as const).map((kind) => {
-      const name = `TILCHI_${kind}_TELEGRAM_IDS`
+      const name = `TELEGRAM_${kind}_ALLOWLIST`
       const parsed = parseTelegramIds(env[name])
       if (parsed.ignored > 0) {
         warn(`${name}: ignored ${parsed.ignored} invalid entries`)
