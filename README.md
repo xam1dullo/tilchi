@@ -31,6 +31,8 @@ pnpm contrast
 docker compose -f docker-compose.yml -f docker-compose.dev.yml config
 ```
 
+`pnpm test` also runs the Redis checks (the compare-and-set Lua) when `TEST_REDIS_URL` points at a Redis 6.0+ server, for example `TEST_REDIS_URL=redis://127.0.0.1:6379 pnpm --filter @tilchi/api test`. Without it they are skipped.
+
 ## Deploy
 
 Images build on `main` and push to GHCR tagged with the git SHA. Nothing migrates or deploys on that push. The deploy job is `workflow_dispatch` only, requires the GitHub `production` environment, and currently refuses to SSH.

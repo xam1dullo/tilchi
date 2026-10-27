@@ -23,15 +23,17 @@ The bot binds and confirms. `/start <id>` binds the handoff to the first Telegra
 
 A successful claim consumes the handoff with one atomic take (Redis `GETDEL`), so parallel claims cannot both open a session. Roles come from `TELEGRAM_TEACHER_ALLOWLIST` and `TELEGRAM_ADMIN_ALLOWLIST` on every login.
 
+Bind and confirm change a handoff only with a compare-and-set against the exact value they read (one Lua script on Redis, `SET ... KEEPTTL`, so Redis 6.0 or newer; the expiry is never extended). A write that arrives after the claim took the handoff finds nothing to swap, so a late `/start` or a repeated confirm tap cannot bring a used handoff back or open a second session. Two racing binds cannot overwrite each other: the loser re-reads, sees the first user, and is refused. After 5 lost swaps the request is refused, never written anyway.
+
 In production `POST /auth/confirm` returns `503 telegram_confirm_unavailable` while `TELEGRAM_WEBHOOK_SECRET` is unset, because the bot path cannot be trusted without it. `/bot/webhook` refuses in the same case.
 
-`POST /auth/miniapp` opens the same session from Mini App `initData`. It checks the HMAC keyed by `TELEGRAM_BOT_TOKEN`, rejects an `auth_date` older than 1 hour or in the future, and fails closed when the bot token is unset.
+`POST /auth/miniapp` opens the same session from Mini App `initData`. It checks the HMAC keyed by `TELEGRAM_BOT_TOKEN` (data-check keys sorted by UTF-16 code unit, as Telegram does, not by locale), rejects an `auth_date` older than 5 minutes or more than a minute in the future, and fails closed when the bot token is unset. Telegram stamps `auth_date` when the Mini App opens and the page posts it at once, so the short window costs a real launch nothing and gives a captured payload little time. A payload stolen inside its 5 minutes can still be replayed; making it single-use (hash plus TTL) would close that if it matters.
 
 Known residual risk: an attacker can start a handoff and send its deep link to a victim. If the victim confirms, the attacker's browser gets the victim's session. The bot message shows the requester's IP and browser and says to refuse a request the user did not start. A short match code shown in the browser and typed into the bot would close this. It is not built yet.
 
 The browser receives only the `__Host-tilchi_sid` cookie: HttpOnly, Secure, SameSite=Lax, Path=/. Redis (and later Postgres) store the SHA-256 of the cookie value (`secretHash`), never the raw token. The API rejects an `Authorization: Bearer` session. The web app does not write the session to localStorage or sessionStorage.
 
-`/auth/start` allows 5 requests per minute per IP and 3 per minute per Telegram key. The IP comes from nginx `X-Real-IP` / Express `req.ip` (trust proxy 1), not from a client-controlled `X-Forwarded-For` list. Counters live in Redis with TTL.
+`/auth/start` allows 5 requests per minute per IP and 3 per minute per Telegram key. `/auth/miniapp` allows 5 per minute per IP on its own counter, counted before the payload is checked. The IP comes from nginx `X-Real-IP` / Express `req.ip` (trust proxy 1), not from a client-controlled `X-Forwarded-For` list. Counters live in Redis with TTL.
 
 `/bot/webhook` checks `X-Telegram-Bot-Api-Secret-Token` against `TELEGRAM_WEBHOOK_SECRET` with a constant-time compare. If that secret is unset, production refuses the webhook. There is no IP-range bypass.
 
