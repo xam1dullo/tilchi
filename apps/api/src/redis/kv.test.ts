@@ -36,3 +36,54 @@ describe('createMemoryKv', () => {
     expect(await kv.take('a')).toBeNull()
   })
 })
+
+describe('createMemoryKv cas', () => {
+  it('swaps only while the stored value is still the expected one', async () => {
+    const kv = createMemoryKv()
+    await kv.set('k', 'one', 60)
+    expect(await kv.cas('k', 'one', 'two')).toBe(true)
+    expect(await kv.get('k')).toBe('two')
+    expect(await kv.cas('k', 'one', 'three')).toBe(false)
+    expect(await kv.get('k')).toBe('two')
+  })
+
+  it('never creates a missing key or brings back a taken one', async () => {
+    const kv = createMemoryKv()
+    expect(await kv.cas('absent', 'x', 'y')).toBe(false)
+    expect(await kv.get('absent')).toBeNull()
+
+    await kv.set('k', 'one', 60)
+    await kv.take('k')
+    expect(await kv.cas('k', 'one', 'two')).toBe(false)
+    expect(await kv.get('k')).toBeNull()
+  })
+
+  it('does not swap an expired key', async () => {
+    let now = 1_000
+    const kv = createMemoryKv(() => now)
+    await kv.set('k', 'one', 5)
+    now = 6_000
+    expect(await kv.cas('k', 'one', 'two')).toBe(false)
+    expect(await kv.get('k')).toBeNull()
+  })
+
+  it('keeps the original expiry instead of extending it', async () => {
+    let now = 1_000
+    const kv = createMemoryKv(() => now)
+    await kv.set('k', 'one', 10)
+    now = 6_000
+    expect(await kv.cas('k', 'one', 'two')).toBe(true)
+    now = 11_001
+    expect(await kv.get('k')).toBeNull()
+  })
+
+  it('lets exactly one of two racing swaps win', async () => {
+    const kv = createMemoryKv()
+    await kv.set('k', 'one', 60)
+    const wins = await Promise.all([
+      kv.cas('k', 'one', 'a'),
+      kv.cas('k', 'one', 'b'),
+    ])
+    expect(wins.filter(Boolean)).toHaveLength(1)
+  })
+})

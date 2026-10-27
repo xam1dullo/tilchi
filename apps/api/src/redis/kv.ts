@@ -6,6 +6,12 @@ export type Kv = {
   del(key: string): Promise<void>
   /** Read and delete in one step. Only one caller ever gets the value. */
   take(key: string): Promise<string | null>
+  /**
+   * Replace the value only while it still equals `expected`, keeping the
+   * expiry. Never creates a key, and never brings back one that was taken or
+   * has expired, so a stale read-modify-write cannot undo a `take`.
+   */
+  cas(key: string, expected: string, next: string): Promise<boolean>
   incr(key: string, ttlSeconds: number): Promise<number>
 }
 
@@ -35,6 +41,17 @@ export function createMemoryKv(now = () => Date.now()): Kv {
       if (!entry || entry.expiresAt <= now()) return null
       return entry.value
     },
+    async cas(key, expected, next) {
+      const entry = store.get(key)
+      if (!entry) return false
+      if (entry.expiresAt <= now()) {
+        store.delete(key)
+        return false
+      }
+      if (entry.value !== expected) return false
+      store.set(key, { value: next, expiresAt: entry.expiresAt })
+      return true
+    },
     async incr(key, ttlSeconds) {
       const current = Number((await this.get(key)) ?? '0')
       const next = current + 1
@@ -44,9 +61,23 @@ export function createMemoryKv(now = () => Date.now()): Kv {
   }
 }
 
-export function createRedisKv(url: string): Kv {
+/** KEEPTTL needs Redis 6.0 or newer. One script, so the check and write are atomic. */
+const CAS_SCRIPT = `
+if redis.call('GET', KEYS[1]) == ARGV[1] then
+  redis.call('SET', KEYS[1], ARGV[2], 'KEEPTTL')
+  return 1
+end
+return 0
+`
+
+export type RedisKv = Kv & { close(): Promise<void> }
+
+export function createRedisKv(url: string): RedisKv {
   const client = new Redis(url, { maxRetriesPerRequest: 1, lazyConnect: true })
   return {
+    async close() {
+      if (client.status !== 'wait') await client.quit()
+    },
     async get(key) {
       await ensure(client)
       return client.get(key)
@@ -62,6 +93,10 @@ export function createRedisKv(url: string): Kv {
     async take(key) {
       await ensure(client)
       return client.getdel(key)
+    },
+    async cas(key, expected, next) {
+      await ensure(client)
+      return (await client.eval(CAS_SCRIPT, 1, key, expected, next)) === 1
     },
     async incr(key, ttlSeconds) {
       await ensure(client)
