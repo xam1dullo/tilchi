@@ -39,8 +39,9 @@ Max 5 active implementers or reviewers on one collision domain. Parallel only on
 
 | Path | What |
 |------|------|
-| `apps/web` | TanStack Start: `/`, `/app`, `/ai/*` (later `/slide`, `/canvas`, `/app/meet`) |
-| `apps/api` | NestJS + Drizzle: `/api`, `/auth`, `/bot`, `/ws/canvas` |
+| `apps/web` | TanStack Start: `/`, `/app` (Telegram sign-in, then the group list or the empty state), `/ai/*` (later `/slide`, `/canvas`, `/app/meet`) |
+| `apps/api` | NestJS + Drizzle. Modules `auth`, `bot`, `users`, `groups`, `lessons`, `meet` serve `/api`, `/auth`, `/bot` (`/ws/canvas` later) |
+| `apps/api/drizzle` | Committed SQL migrations. The API container applies them at start (ADR 0010) |
 | `packages/content` | Marketing copy, plain TypeScript |
 | `docker/nginx/nginx.conf` | The only edge. `/rtc` passes through to LiveKit unchanged |
 | `docker/{livekit,coturn}` | No keys or users in these files; compose requires them from `.env` / `/etc/tilchi.env` |
@@ -55,6 +56,8 @@ cp .env.example .env && docker compose up --build         # local stack on :80
 ```
 
 `pnpm test` runs a Nest boot test (`apps/api/src/app.test.ts`). Keep it: green unit tests once hid an API that could not start. Inject Nest providers with `@Inject(Class)`; `import type` erases the DI token.
+
+API tests need no database. `apps/api/src/testing/harness.ts` boots the real app on PGlite built from `apps/api/drizzle`. After editing `apps/api/src/db/schema.ts`, run `pnpm --filter @tilchi/api db:generate` and commit the SQL it writes.
 
 ub-mode gates on changed code (tools in `~/Developer/tools/unclebob/`, output in `.metrics/`): `crapper` CRAP < 10, `dryer` no pair ≥ 0.8, `mutator` no survivors.
 

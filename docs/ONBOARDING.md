@@ -4,8 +4,8 @@ Tilchi is one pnpm repo. `BUILD-BRIEF-v1.md` is the product contract. `AGENTS.md
 
 ## Tree
 
-- `apps/web` TanStack Start. `/` is the thin Kunduzgi hero. `/app` is the empty classroom, uz/ru/en. Tokens are `apps/web/src/styles/tokens.css`.
-- `apps/api` NestJS and Drizzle. Health, Telegram handoff and cookie session stub, webhook guard, LiveKit token mint. Schema covers User, Session, Group, Lesson, Meeting. The live session store is still memory.
+- `apps/web` TanStack Start. `/` is the thin Kunduzgi hero. `/app` signs the user in through Telegram, then lists their groups, or shows the empty classroom when there are none; uz/ru/en. Tokens are `apps/web/src/styles/tokens.css`.
+- `apps/api` NestJS and Drizzle. Modules: `auth` (Telegram handoff, `__Host-tilchi_sid` session), `bot` (webhook guard and the confirm prompt), `users` (Postgres, roles from env allow-lists), `groups` (up to 12 learners), `lessons`, `meet` (120 s LiveKit token for a live lesson). `apps/api/drizzle` holds the migrations. Sessions and handoffs are still memory.
 - `packages/content` is pure TypeScript copy. No React.
 - `docker-compose.yml` runs nginx, Start, Nest, Postgres, Redis, LiveKit, and coturn.
 
