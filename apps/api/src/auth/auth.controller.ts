@@ -9,6 +9,7 @@ import {
   Res,
 } from '@nestjs/common'
 import type { Request, Response } from 'express'
+import { botUsername, loginDeepLink } from '../bot/login-link'
 import { AuthService } from './auth.service'
 import {
   HANDOFF_COOKIE,
@@ -27,18 +28,25 @@ function refuseBearer(authorization: string | undefined) {
 
 @Controller('auth')
 export class AuthController {
-  constructor(@Inject(AuthService) private readonly auth: AuthService) {}
+  constructor(@Inject(AuthService) private readonly auth: AuthService) {
+    // A bad TELEGRAM_BOT_USERNAME stops the boot instead of the first sign-in.
+    botUsername(process.env)
+  }
 
   // req.ip honours `trust proxy` 1: nginx's $remote_addr, never a client-sent X-Forwarded-For.
   @Post('start')
   start(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
-    const started = this.auth.start({ ip: req.ip ?? 'unknown' })
+    const started = this.auth.start({
+      ip: req.ip ?? 'unknown',
+      userAgent: req.get('user-agent'),
+    })
     res.setHeader(
       'Set-Cookie',
       cookieHeader(started.claim, started.expiresInSeconds, HANDOFF_COOKIE),
     )
     return {
       handoffId: started.handoffId,
+      deepLink: loginDeepLink(started.handoffId),
       expiresInSeconds: started.expiresInSeconds,
     }
   }
