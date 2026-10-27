@@ -2,11 +2,16 @@ import { describe, expect, it } from 'vitest'
 import {
   AUTH_START_IP_LIMIT,
   AUTH_START_TELEGRAM_LIMIT,
+  HANDOFF_COOKIE,
   SESSION_COOKIE,
   bearerSessionRejected,
+  clearHandoffCookieHeader,
+  confirmAvailable,
   cookieHeader,
   decideAuthStart,
+  handoffCookieHeader,
   isRole,
+  readCookie,
 } from './policy'
 
 describe('decideAuthStart', () => {
@@ -59,5 +64,45 @@ describe('isRole', () => {
     expect(isRole('teacher')).toBe(true)
     expect(isRole('admin')).toBe(true)
     expect(isRole('parent')).toBe(false)
+  })
+})
+
+describe('handoff cookie', () => {
+  it('is host-prefixed, HttpOnly, Secure, Lax, and never carries a Domain', () => {
+    const header = handoffCookieHeader('secret', 300)
+    expect(header.startsWith(`${HANDOFF_COOKIE}=secret`)).toBe(true)
+    for (const part of [
+      'HttpOnly',
+      'Secure',
+      'SameSite=Lax',
+      'Path=/',
+      'Max-Age=300',
+    ]) {
+      expect(header).toContain(part)
+    }
+    expect(header).not.toContain('Domain=')
+    expect(clearHandoffCookieHeader()).toContain('Max-Age=0')
+  })
+})
+
+describe('readCookie', () => {
+  it('reads a named cookie and survives malformed encoding', () => {
+    expect(readCookie('a=1; __Host-tilchi_sid=abc', SESSION_COOKIE)).toBe('abc')
+    expect(
+      readCookie(`${SESSION_COOKIE}=%E0%A4%A`, SESSION_COOKIE),
+    ).toBeUndefined()
+    expect(readCookie(undefined, SESSION_COOKIE)).toBeUndefined()
+  })
+})
+
+describe('confirmAvailable', () => {
+  it('refuses production until the webhook secret makes the bot path usable', () => {
+    const prod = { nodeEnv: 'production' }
+    expect(confirmAvailable({ ...prod, webhookSecret: undefined })).toBe(false)
+    expect(confirmAvailable({ ...prod, webhookSecret: '  ' })).toBe(false)
+    expect(confirmAvailable({ ...prod, webhookSecret: 's' })).toBe(true)
+    expect(
+      confirmAvailable({ nodeEnv: 'development', webhookSecret: undefined }),
+    ).toBe(true)
   })
 })

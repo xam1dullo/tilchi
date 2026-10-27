@@ -12,10 +12,15 @@ import type { Request, Response } from 'express'
 import { AuthService } from './auth.service'
 import { clientIp } from './client-ip'
 import {
+  HANDOFF_COOKIE,
+  HANDOFF_TTL_MS,
   SESSION_COOKIE,
   bearerSessionRejected,
   clearCookieHeader,
+  clearHandoffCookieHeader,
+  confirmAvailable,
   cookieHeader,
+  handoffCookieHeader,
   readCookie,
 } from './policy'
 
@@ -33,9 +38,9 @@ function telegramKey(body: unknown) {
   return trimmed.length > 0 ? trimmed.slice(0, 64) : undefined
 }
 
-function handoffId(body: unknown) {
+function field(body: unknown, name: string) {
   if (!body || typeof body !== 'object') return ''
-  const value = (body as { handoffId?: unknown }).handoffId
+  const value = (body as Record<string, unknown>)[name]
   return typeof value === 'string' ? value : ''
 }
 
@@ -46,25 +51,49 @@ export class AuthController {
   @Post('start')
   async start(
     @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
     @Headers('x-real-ip') realIp: string | undefined,
+    @Headers('user-agent') userAgent: string | undefined,
     @Body() body: unknown,
   ) {
-    return this.auth.start({
-      ip: clientIp({ realIp, requestIp: req.ip }),
+    const ip = clientIp({ realIp, requestIp: req.ip })
+    const started = await this.auth.start({
+      ip,
+      context: `${ip} / ${(userAgent ?? 'unknown').slice(0, 80)}`,
       telegramKey: telegramKey(body),
     })
+    res.setHeader(
+      'Set-Cookie',
+      handoffCookieHeader(started.bindingSecret, HANDOFF_TTL_MS / 1000),
+    )
+    return {
+      handoffId: started.handoffId,
+      deepLink: started.deepLink,
+      expiresInSeconds: started.expiresInSeconds,
+    }
   }
 
   @Post('confirm')
   async confirm(
+    @Headers('cookie') cookie: string | undefined,
     @Body() body: unknown,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const opened = await this.auth.confirm(handoffId(body))
-    res.setHeader(
-      'Set-Cookie',
-      cookieHeader(opened.token, opened.maxAgeSeconds),
+    const available = confirmAvailable({
+      nodeEnv: process.env.NODE_ENV ?? 'development',
+      webhookSecret: process.env.TELEGRAM_WEBHOOK_SECRET,
+    })
+    if (!available) {
+      throw new HttpException({ error: 'telegram_confirm_unavailable' }, 503)
+    }
+    const opened = await this.auth.confirm(
+      field(body, 'handoffId'),
+      readCookie(cookie, HANDOFF_COOKIE),
     )
+    res.setHeader('Set-Cookie', [
+      cookieHeader(opened.token, opened.maxAgeSeconds),
+      clearHandoffCookieHeader(),
+    ])
     return { ok: true, user: { id: opened.user.id, role: opened.user.role } }
   }
 
