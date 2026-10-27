@@ -8,7 +8,7 @@ import { LoadError, SkeletonRows } from '../components/async-states'
 import { LocaleSwitch } from '../components/locale-switch'
 import { SignIn } from '../components/sign-in'
 import { messages } from '../lib/i18n'
-import { navForRole } from '../lib/nav'
+import { navForRole, roleLabel } from '../lib/nav'
 import { loadSession } from '../lib/session'
 
 export const Route = createFileRoute('/app')({
@@ -32,7 +32,7 @@ function AppLayout() {
         </Link>
         <LocaleSwitch locale={locale} />
         <div className="user-menu">
-          <span>{session.role}</span>
+          <span>{roleLabel(copy, session.role)}</span>
           <button
             type="button"
             onClick={() => {
@@ -51,7 +51,7 @@ function AppLayout() {
       <nav className="app-nav" aria-label={copy.groups}>
         {items.map((item) => (
           <Link key={item.id} to={item.to} activeOptions={{ exact: true }}>
-            {copy.groups}
+            {copy[item.id]}
           </Link>
         ))}
       </nav>
@@ -61,7 +61,7 @@ function AppLayout() {
       <nav className="app-sheet" aria-label={copy.groups}>
         {items.map((item) => (
           <Link key={item.id} to={item.to}>
-            {copy.groups}
+            {copy[item.id]}
           </Link>
         ))}
       </nav>
