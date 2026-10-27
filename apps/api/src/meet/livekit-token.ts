@@ -4,7 +4,6 @@ export const MEET_TOKEN_TTL_SECONDS = 120
 export const LIVEKIT_DEV_KEY = 'devkey'
 export const LIVEKIT_DEV_SECRET = 'devsecret-local-only-not-for-the-vps'
 const MIN_SECRET_LENGTH = 32
-const ROOM = /^[A-Za-z0-9_-]{1,64}$/
 
 export type LiveKitCredentials = { apiKey: string; apiSecret: string }
 
@@ -19,12 +18,6 @@ export function livekitCredentials(
   return { apiKey, apiSecret }
 }
 
-export function parseRoom(body: unknown) {
-  if (!body || typeof body !== 'object') return undefined
-  const room = (body as { room?: unknown }).room
-  return typeof room === 'string' && ROOM.test(room) ? room : undefined
-}
-
 function part(value: object) {
   return Buffer.from(JSON.stringify(value)).toString('base64url')
 }
@@ -34,6 +27,8 @@ export function mintLiveKitToken(input: {
   credentials: LiveKitCredentials
   identity: string
   room: string
+  name?: string | null
+  roomAdmin?: boolean
   now?: number
 }) {
   const now = Math.floor((input.now ?? Date.now()) / 1000)
@@ -42,11 +37,13 @@ export function mintLiveKitToken(input: {
     sub: input.identity,
     nbf: now,
     exp: now + MEET_TOKEN_TTL_SECONDS,
+    ...(input.name ? { name: input.name } : {}),
     video: {
       room: input.room,
       roomJoin: true,
       canPublish: true,
       canSubscribe: true,
+      ...(input.roomAdmin ? { roomAdmin: true } : {}),
     },
   })}`
   const signature = createHmac('sha256', input.credentials.apiSecret)

@@ -10,10 +10,14 @@ export const TEST_ADMIN = '1000'
 export const TEST_TEACHER = '2000'
 export const TEST_TEACHER_2 = '2001'
 export const WEBHOOK_SECRET = 'test-webhook-secret'
+export const LIVEKIT_TEST_KEY = 'test-livekit-key'
+export const LIVEKIT_TEST_SECRET = 'test-livekit-secret-0123456789-abcdefghij'
 
 const TEST_ENV = {
   NODE_ENV: 'test',
   TELEGRAM_WEBHOOK_SECRET: WEBHOOK_SECRET,
+  LIVEKIT_API_KEY: LIVEKIT_TEST_KEY,
+  LIVEKIT_API_SECRET: LIVEKIT_TEST_SECRET,
   TILCHI_ADMIN_TELEGRAM_IDS: TEST_ADMIN,
   TILCHI_TEACHER_TELEGRAM_IDS: `${TEST_TEACHER},${TEST_TEACHER_2}`,
 }
