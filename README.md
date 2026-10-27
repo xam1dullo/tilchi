@@ -9,7 +9,7 @@ cp .env.example .env
 docker compose up --build
 ```
 
-Open http://localhost. nginx sends `/` and `/app` to Start, and `/api`, `/auth`, and `/bot` to Nest. Postgres, Redis, LiveKit, and coturn come up with the same file.
+Open http://localhost. nginx sends `/` and `/app` to Start, `/api`, `/auth`, `/bot`, and `/ws/canvas` to Nest, and `/rtc` to LiveKit. Postgres, Redis, LiveKit, and coturn come up with the same file. The path contract lives in `docker/nginx/locations.conf`.
 
 `TELEGRAM_BOT_TOKEN` in `.env.example` is an empty placeholder. Do not commit a real token. Production reads `/etc/tilchi.env` on the VPS.
 
@@ -31,4 +31,6 @@ docker compose config
 
 ## Deploy
 
-Images build on `main` and push to GHCR tagged with the git SHA. Nothing migrates or deploys on that push. The deploy job is `workflow_dispatch` only, requires the GitHub `production` environment, and currently refuses to SSH.
+Images build on `main` and push to GHCR, tagged with the git SHA. Nothing migrates or deploys on that push. The deploy job is `workflow_dispatch` only, requires the GitHub `production` environment, and is held: it exits before any SSH.
+
+On the VPS, `scripts/vps-deploy.sh <sha>` pulls the images, migrates, and runs `docker compose up -d` with `docker-compose.prod.yml` and `/etc/tilchi.env`. Rollback is the same command with the previous SHA. See `docs/adr/0010-docker-vps.md`.
