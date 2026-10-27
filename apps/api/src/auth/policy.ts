@@ -2,6 +2,8 @@ export const SESSION_COOKIE = '__Host-tilchi_sid'
 export const HANDOFF_COOKIE = '__Host-tilchi_hs'
 export const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000
 export const HANDOFF_TTL_MS = 5 * 60 * 1000
+/** How often a bind or confirm tap re-reads and retries a handoff it lost a race on. */
+export const HANDOFF_WRITE_ATTEMPTS = 5
 export const SESSION_CACHE_TTL_SECONDS = 5 * 60
 export const AUTH_START_IP_LIMIT = 5
 export const AUTH_START_TELEGRAM_LIMIT = 3

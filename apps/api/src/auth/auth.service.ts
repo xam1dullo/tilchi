@@ -11,6 +11,7 @@ import {
   AUTH_START_IP_LIMIT,
   AUTH_START_TELEGRAM_LIMIT,
   HANDOFF_TTL_MS,
+  HANDOFF_WRITE_ATTEMPTS,
   RATE_WINDOW_MS,
   SESSION_CACHE_TTL_SECONDS,
   SESSION_TTL_MS,
@@ -100,13 +101,10 @@ export class AuthService {
     name?: string | null,
     now = Date.now(),
   ) {
-    const handoff = await this.readHandoff(handoffId)
-    const next = handoff
-      ? bindTelegramUser(handoff, { telegramUserId, name: name ?? null }, now)
-      : null
-    if (!next) return null
-    await this.writeHandoff(next, now)
-    return { context: next.context }
+    const next = await this.updateHandoff(handoffId, (handoff) =>
+      bindTelegramUser(handoff, { telegramUserId, name: name ?? null }, now),
+    )
+    return next ? { context: next.context } : null
   }
 
   /** Bot saw the confirm tap. Only the bound Telegram user may confirm. */
@@ -115,13 +113,10 @@ export class AuthService {
     telegramUserId: string,
     now = Date.now(),
   ) {
-    const handoff = await this.readHandoff(handoffId)
-    const next = handoff
-      ? confirmByTelegramUser(handoff, telegramUserId, now)
-      : null
-    if (!next) return false
-    await this.writeHandoff(next, now)
-    return true
+    const next = await this.updateHandoff(handoffId, (handoff) =>
+      confirmByTelegramUser(handoff, telegramUserId, now),
+    )
+    return next !== null
   }
 
   /**
@@ -233,16 +228,27 @@ export class AuthService {
     return JSON.parse(raw) as Handoff
   }
 
-  private async writeHandoff(handoff: Handoff, now: number) {
-    const remaining = Math.max(
-      1,
-      Math.ceil((HANDOFF_TTL_MS - (now - handoff.createdAt)) / 1000),
-    )
-    await this.kv.set(
-      this.handoffKey(handoff.id),
-      JSON.stringify(handoff),
-      remaining,
-    )
+  /**
+   * Change a handoff without being able to undo anyone else's write. The swap
+   * only lands while the record is still the one the change was computed from.
+   * If it moved, the change is recomputed from the new record; if it is gone
+   * (consumed by `confirm`, or expired) nothing is written, so a late bind or
+   * confirm tap cannot bring a consumed handoff back. Running out of attempts
+   * refuses the request instead of writing anyway.
+   */
+  private async updateHandoff(
+    id: string,
+    change: (handoff: Handoff) => Handoff | null,
+  ) {
+    const key = this.handoffKey(id)
+    for (let attempt = 0; attempt < HANDOFF_WRITE_ATTEMPTS; attempt += 1) {
+      const raw = await this.kv.get(key)
+      if (!raw) return null
+      const next = change(JSON.parse(raw) as Handoff)
+      if (!next) return null
+      if (await this.kv.cas(key, raw, JSON.stringify(next))) return next
+    }
+    return null
   }
 
   private handoffKey(id: string) {

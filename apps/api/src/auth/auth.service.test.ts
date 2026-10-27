@@ -1,10 +1,42 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { createMemoryKv } from '../redis/kv'
+import { createMemoryKv, type Kv } from '../redis/kv'
 import { UserStore } from '../users/user-store'
 import { AuthService, normalizeHandoffId } from './auth.service'
-import { HANDOFF_TTL_MS } from './policy'
+import { HANDOFF_TTL_MS, HANDOFF_WRITE_ATTEMPTS } from './policy'
 
 const make = () => AuthService.forTest(createMemoryKv(), new UserStore())
+
+/**
+ * A Kv that hands the next handoff read its value, then runs the `meanwhile`
+ * request before the reader continues. That is the window a late bind or confirm tap
+ * sits in while another request finishes: it holds a snapshot that is already
+ * stale by the time it writes.
+ */
+function racing() {
+  const base = createMemoryKv()
+  let pending: (() => Promise<void>) | null = null
+  const kv: Kv = {
+    ...base,
+    async get(key) {
+      const value = await base.get(key)
+      if (pending && key.startsWith('handoff:')) {
+        const run = pending
+        pending = null
+        await run()
+      }
+      return value
+    },
+  }
+  return {
+    kv,
+    auth: AuthService.forTest(kv, new UserStore()),
+    meanwhile(run: () => Promise<unknown>) {
+      pending = async () => {
+        await run()
+      }
+    },
+  }
+}
 
 async function begin(auth: AuthService) {
   const started = await auth.start({ ip: '1.1.1.1', context: 'ctx' })
@@ -128,6 +160,86 @@ describe('AuthService handoff', () => {
     await expect(
       auth.start({ ip: '9.9.9.9', context: 'c' }),
     ).rejects.toMatchObject({ status: 429 })
+  })
+})
+
+describe('AuthService handoff races', () => {
+  it('does not bring a consumed handoff back from a late confirm tap', async () => {
+    const { auth, meanwhile } = racing()
+    const { id, secret } = await begin(auth)
+    await auth.bindTelegram(id, '42', 'Ada')
+
+    let first: Awaited<ReturnType<AuthService['confirm']>> | undefined
+    meanwhile(async () => {
+      await auth.confirmTelegram(id, '42')
+      first = await auth.confirm(id, secret)
+    })
+    expect(await auth.confirmTelegram(id, '42')).toBe(false)
+
+    expect(first?.user.telegramUserId).toBe('42')
+    expect(await outcome(auth.confirm(id, secret))).toBe(410)
+  })
+
+  it('does not bring a consumed handoff back from a late bind by someone else', async () => {
+    const { auth, meanwhile } = racing()
+    const { id, secret } = await begin(auth)
+
+    meanwhile(async () => {
+      await auth.bindTelegram(id, '42', 'Ada')
+      await auth.confirmTelegram(id, '42')
+      await auth.confirm(id, secret)
+    })
+    expect(await auth.bindTelegram(id, '666', 'Mallory')).toBeNull()
+
+    expect(await auth.confirmTelegram(id, '666')).toBe(false)
+    expect(await outcome(auth.confirm(id, secret))).toBe(410)
+  })
+
+  it('keeps the first bound user when a second bind raced the first', async () => {
+    const { auth, meanwhile } = racing()
+    const { id, secret } = await begin(auth)
+
+    meanwhile(() => auth.bindTelegram(id, '1', 'Alice'))
+    expect(await auth.bindTelegram(id, '666', 'Mallory')).toBeNull()
+
+    expect(await auth.confirmTelegram(id, '666')).toBe(false)
+    expect(await auth.confirmTelegram(id, '1')).toBe(true)
+    expect((await auth.confirm(id, secret)).user.telegramUserId).toBe('1')
+  })
+
+  it('applies a confirm tap on top of a newer write instead of clobbering it', async () => {
+    const { auth, meanwhile } = racing()
+    const { id, secret } = await begin(auth)
+    await auth.bindTelegram(id, '42', 'Ada')
+
+    meanwhile(() => auth.bindTelegram(id, '42', 'Ada Lovelace'))
+    expect(await auth.confirmTelegram(id, '42')).toBe(true)
+
+    const opened = await auth.confirm(id, secret)
+    expect(opened.user.name).toBe('Ada Lovelace')
+  })
+
+  it('fails closed when every write attempt loses the race', async () => {
+    const base = createMemoryKv()
+    let attempts = 0
+    const auth = AuthService.forTest(
+      {
+        ...base,
+        async cas() {
+          attempts += 1
+          return false
+        },
+      },
+      new UserStore(),
+    )
+    const { id, secret } = await begin(auth)
+
+    expect(await auth.bindTelegram(id, '42', 'Ada')).toBeNull()
+    expect(attempts).toBe(HANDOFF_WRITE_ATTEMPTS)
+    expect(await auth.confirmTelegram(id, '42')).toBe(false)
+    await expect(auth.confirm(id, secret)).rejects.toMatchObject({
+      status: 409,
+    })
   })
 })
 
