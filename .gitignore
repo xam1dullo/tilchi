@@ -12,7 +12,6 @@ out/
 .velite/
 public/static/
 coverage/
-apps/api/drizzle/
 
 # ub-mode gate output
 .metrics/
