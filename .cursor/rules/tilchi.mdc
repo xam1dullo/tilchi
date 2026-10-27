@@ -11,4 +11,4 @@ ub-mode: one decision in one place, parse at the boundary, tests describe what a
 
 ECC: descriptive names, immutable defaults, KISS, DRY, YAGNI.
 
-Session cookie is `__Host-tilchi_sid` only. No localStorage session. No bearer session. Webhook secret or refuse in production. Health has no secret flags. Meet tickets do not carry the session. Deploy stays gated by the production environment.
+Session cookie is `__Host-tilchi_sid` only. No localStorage session. No bearer session. Webhook secret or refuse in production. Health has no secret flags. LiveKit tokens are minted by Nest and do not carry the session. Deploy stays gated by the production environment.
