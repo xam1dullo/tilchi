@@ -7,6 +7,8 @@ export const HANDOFF_WRITE_ATTEMPTS = 5
 export const SESSION_CACHE_TTL_SECONDS = 5 * 60
 export const AUTH_START_IP_LIMIT = 5
 export const AUTH_START_TELEGRAM_LIMIT = 3
+/** Per ip and window, counted before the payload is checked, like /auth/start. */
+export const AUTH_MINIAPP_IP_LIMIT = 5
 export const RATE_WINDOW_MS = 60_000
 
 export const roles = ['learner', 'teacher', 'admin'] as const

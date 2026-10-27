@@ -8,6 +8,7 @@ import {
   newHandoff,
 } from './handoff'
 import {
+  AUTH_MINIAPP_IP_LIMIT,
   AUTH_START_IP_LIMIT,
   AUTH_START_TELEGRAM_LIMIT,
   HANDOFF_TTL_MS,
@@ -51,24 +52,13 @@ export class AuthService {
   }
 
   async start(input: { ip: string; context: string; telegramKey?: string }) {
-    const ipHits = await this.kv.incr(
-      `rate:ip:${input.ip}`,
-      RATE_WINDOW_MS / 1000,
-    )
-    if (ipHits > AUTH_START_IP_LIMIT) {
-      throw new HttpException({ error: 'rate_limited', scope: 'ip' }, 429)
-    }
+    await this.hit(`rate:ip:${input.ip}`, AUTH_START_IP_LIMIT, 'ip')
     if (input.telegramKey) {
-      const telegramHits = await this.kv.incr(
+      await this.hit(
         `rate:tg:${input.telegramKey}`,
-        RATE_WINDOW_MS / 1000,
+        AUTH_START_TELEGRAM_LIMIT,
+        'telegram',
       )
-      if (telegramHits > AUTH_START_TELEGRAM_LIMIT) {
-        throw new HttpException(
-          { error: 'rate_limited', scope: 'telegram' },
-          429,
-        )
-      }
     }
     const bindingSecret = randomBytes(32).toString('base64url')
     const handoff = newHandoff({
@@ -148,10 +138,15 @@ export class AuthService {
     return this.openSession(user, now)
   }
 
-  /** Mini App initData: the same session, proven by the bot token HMAC. */
-  async miniApp(initData: string, now = Date.now()) {
+  /**
+   * Mini App initData: the same session, proven by the bot token HMAC. Every
+   * attempt counts against the ip first, so a flood of payloads, forged or
+   * replayed, is cut off before any verification or session write.
+   */
+  async miniApp(input: { initData: string; ip: string }, now = Date.now()) {
+    await this.hit(`rate:miniapp:ip:${input.ip}`, AUTH_MINIAPP_IP_LIMIT, 'ip')
     const verified = verifyInitData(
-      initData,
+      input.initData,
       process.env.TELEGRAM_BOT_TOKEN ?? '',
       Math.floor(now / 1000),
     )
@@ -161,6 +156,13 @@ export class AuthService {
       verified.name,
     )
     return this.openSession(user, now)
+  }
+
+  private async hit(key: string, limit: number, scope: 'ip' | 'telegram') {
+    const hits = await this.kv.incr(key, RATE_WINDOW_MS / 1000)
+    if (hits > limit) {
+      throw new HttpException({ error: 'rate_limited', scope }, 429)
+    }
   }
 
   private async openSession(user: User, now: number) {

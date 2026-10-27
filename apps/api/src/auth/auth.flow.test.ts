@@ -360,7 +360,7 @@ describe('POST /auth/confirm requires Telegram confirmation', () => {
 describe('Mini App initData', () => {
   const sign = (fields: Record<string, string>, token = BOT_TOKEN) => {
     const check = Object.entries(fields)
-      .sort(([a], [b]) => a.localeCompare(b))
+      .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
       .map(([k, v]) => `${k}=${v}`)
       .join('\n')
     const secret = createHmac('sha256', 'WebAppData').update(token).digest()
@@ -384,24 +384,65 @@ describe('Mini App initData', () => {
   })
 
   it('rejects forged, foreign-token, stale, and token-less payloads', async () => {
-    const stale = String(Math.floor(Date.now() / 1000) - 7200)
+    const ago = (seconds: number) =>
+      String(Math.floor(Date.now() / 1000) - seconds)
     const bodies = [
       { initData: sign({ auth_date: nowSec(), user }).replace('Mini', 'Evil') },
       { initData: sign({ auth_date: nowSec(), user }, 'OTHER_TOKEN') },
-      { initData: sign({ auth_date: stale, user }) },
+      { initData: sign({ auth_date: ago(7200), user }) },
+      { initData: sign({ auth_date: ago(10 * 60 + 5), user }) },
       { initData: '' },
       {},
     ]
-    for (const body of bodies) {
-      const reply = await send('/auth/miniapp', { body })
+    for (const [i, body] of bodies.entries()) {
+      const reply = await send('/auth/miniapp', {
+        body,
+        headers: { 'x-real-ip': `10.8.0.${i + 1}` },
+      })
       expect(reply.status).toBe(401)
       expect(reply.setCookie).toEqual([])
     }
     vi.stubEnv('TELEGRAM_BOT_TOKEN', '')
     const noToken = await send('/auth/miniapp', {
       body: { initData: sign({ auth_date: nowSec(), user }) },
+      headers: { 'x-real-ip': '10.8.0.99' },
     })
     expect(noToken.status).toBe(401)
+  })
+
+  it('is rate limited per ip before the payload is even checked', async () => {
+    const headers = { 'x-real-ip': '10.8.8.8' }
+    const garbage = { initData: 'hash=00' }
+    const codes: number[] = []
+    for (let i = 0; i < 6; i += 1) {
+      codes.push(
+        (await send('/auth/miniapp', { body: garbage, headers })).status,
+      )
+    }
+    expect(codes).toEqual([401, 401, 401, 401, 401, 429])
+
+    const valid = await send('/auth/miniapp', {
+      body: { initData: sign({ auth_date: nowSec(), user }) },
+      headers,
+    })
+    expect(valid.status).toBe(429)
+    expect(valid.setCookie).toEqual([])
+  })
+
+  it('keeps its own counter, apart from /auth/start and from other ips', async () => {
+    const mini = { 'x-real-ip': '10.8.9.9' }
+    for (let i = 0; i < 6; i += 1) {
+      await send('/auth/miniapp', {
+        body: { initData: 'hash=00' },
+        headers: mini,
+      })
+    }
+    expect((await send('/auth/start', { headers: mini })).status).toBe(201)
+    const elsewhere = await send('/auth/miniapp', {
+      body: { initData: sign({ auth_date: nowSec(), user }) },
+      headers: { 'x-real-ip': '10.8.9.10' },
+    })
+    expect(elsewhere.status).toBe(201)
   })
 })
 

@@ -99,10 +99,15 @@ export class AuthController {
 
   @Post('miniapp')
   async miniapp(
+    @Req() req: Request,
+    @Headers('x-real-ip') realIp: string | undefined,
     @Body() body: unknown,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const opened = await this.auth.miniApp(field(body, 'initData'))
+    const opened = await this.auth.miniApp({
+      initData: field(body, 'initData'),
+      ip: clientIp({ realIp, requestIp: req.ip }),
+    })
     res.setHeader(
       'Set-Cookie',
       cookieHeader(opened.token, opened.maxAgeSeconds),
