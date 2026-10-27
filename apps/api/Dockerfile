@@ -14,6 +14,8 @@ WORKDIR /app
 ENV NODE_ENV=production
 COPY --from=build /out /app
 COPY --from=build /repo/apps/api/dist ./dist
+COPY --from=build /repo/apps/api/drizzle ./drizzle
 EXPOSE 3001
 USER node
-CMD ["node", "dist/main.js"]
+# Apply the committed migrations first; a failed migration stops the container.
+CMD ["sh", "-c", "node dist/db/migrate.js && exec node dist/main.js"]
