@@ -1,4 +1,8 @@
-import { useRouteContext, useRouter } from '@tanstack/react-router'
+import {
+  type ErrorComponentProps,
+  useRouteContext,
+  useRouter,
+} from '@tanstack/react-router'
 import { isForbidden } from '../lib/http-failure'
 import { type Copy, messages } from '../lib/i18n'
 
@@ -43,7 +47,7 @@ export function LoadErrorView({
 
 // The boundary's own reset only clears the error on screen and the router hands
 // back the same failed match, so a retry has to ask the router to load again.
-export function LoadError({ error }: { error: Error }) {
+export function LoadError({ error }: ErrorComponentProps) {
   const { locale } = useRouteContext({ from: '__root__' })
   const router = useRouter()
   return (

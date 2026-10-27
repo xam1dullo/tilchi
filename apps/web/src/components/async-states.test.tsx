@@ -39,6 +39,23 @@ describe('LoadErrorView', () => {
     }
   })
 
+  it('treats anything thrown that is not an Error as an ordinary failure', () => {
+    // The router types the error as unknown: a loader may throw a string or an object.
+    for (const error of [
+      'api_403',
+      { message: 'api_403' },
+      null,
+      undefined,
+      42,
+    ]) {
+      const html = renderToStaticMarkup(
+        <LoadErrorView copy={copy.en} error={error} retry={() => {}} />,
+      )
+      expect(html).toContain('role="alert"')
+      expect(html).not.toContain('class="forbidden"')
+    }
+  })
+
   it('retries when the button is pressed', () => {
     const retry = vi.fn()
     const found = buttons(
