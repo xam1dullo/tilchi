@@ -18,4 +18,5 @@ export const en = {
   locale: 'Language',
   logout: 'Log out',
   heroCta: 'Continue in Telegram',
+  signInError: 'Sign-in did not finish. Try again.',
 }

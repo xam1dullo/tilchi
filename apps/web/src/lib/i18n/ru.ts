@@ -19,4 +19,5 @@ export const ru = {
   locale: 'Язык',
   logout: 'Выйти',
   heroCta: 'Продолжить в Telegram',
+  signInError: 'Вход не завершён. Повторите попытку.',
 }

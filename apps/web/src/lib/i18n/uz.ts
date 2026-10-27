@@ -18,4 +18,5 @@ export const uz = {
   locale: 'Til',
   logout: 'Chiqish',
   heroCta: "Telegram'da davom etish",
+  signInError: "Kirish yakunlanmadi. Qayta urinib ko'ring.",
 }

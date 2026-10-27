@@ -1,27 +1,16 @@
 import {
   Link,
+  Outlet,
   createFileRoute,
-  useNavigate,
   useRouteContext,
 } from '@tanstack/react-router'
-import { Outlet } from '@tanstack/react-router'
-import { botLink, tgLinkProps } from '@tilchi/content'
 import { LocaleSwitch } from '../components/locale-switch'
-import { TelegramGlyph } from '../components/telegram-glyph'
+import { SignIn } from '../components/sign-in'
 import { messages } from '../lib/i18n'
-import type { Locale } from '../lib/locale'
 import { navForRole } from '../lib/nav'
 import { loadSession, type SessionUser } from '../lib/session'
 
-const handoffs = ['waiting', 'expired', 'confirmed'] as const
-type Handoff = (typeof handoffs)[number]
-
 export const Route = createFileRoute('/app')({
-  validateSearch: (search: Record<string, unknown>) => {
-    const value = search.handoff
-    const handoff = handoffs.find((item) => item === value)
-    return { handoff }
-  },
   beforeLoad: async () => ({ session: await loadSession() }),
   pendingComponent: SkeletonRows,
   errorComponent: LoadError,
@@ -31,8 +20,7 @@ export const Route = createFileRoute('/app')({
 function AppLayout() {
   const { session } = Route.useRouteContext()
   const { locale } = useRouteContext({ from: '__root__' })
-  const { handoff } = Route.useSearch()
-  if (!session) return <SignIn locale={locale} handoff={handoff} />
+  if (!session) return <SignIn locale={locale} />
   const copy = messages(locale)
   const items = navForRole(session.role)
   return (
@@ -61,12 +49,7 @@ function AppLayout() {
       </header>
       <nav className="app-nav" aria-label={copy.groups}>
         {items.map((item) => (
-          <Link
-            key={item.id}
-            to={item.to}
-            search={{ handoff: undefined }}
-            activeOptions={{ exact: true }}
-          >
+          <Link key={item.id} to={item.to} activeOptions={{ exact: true }}>
             {copy.groups}
           </Link>
         ))}
@@ -76,55 +59,12 @@ function AppLayout() {
       </div>
       <nav className="app-sheet" aria-label={copy.groups}>
         {items.map((item) => (
-          <Link key={item.id} to={item.to} search={{ handoff: undefined }}>
+          <Link key={item.id} to={item.to}>
             {copy.groups}
           </Link>
         ))}
       </nav>
     </div>
-  )
-}
-
-function SignIn({
-  locale,
-  handoff,
-}: {
-  locale: Locale
-  handoff: Handoff | undefined
-}) {
-  const copy = messages(locale)
-  const navigate = useNavigate()
-  const note =
-    handoff === 'waiting'
-      ? copy.waiting
-      : handoff === 'expired'
-        ? copy.expired
-        : handoff === 'confirmed'
-          ? copy.confirmed
-          : null
-  return (
-    <section className="sign-in">
-      <h1>{copy.signInTitle}</h1>
-      <a className="btn btn-ink" {...tgLinkProps(botLink('', ''))}>
-        <TelegramGlyph />
-        {copy.signInButton}
-      </a>
-      <p className="hint">{copy.signInHint}</p>
-      {note ? <p className="handoff">{note}</p> : null}
-      {handoff === 'expired' ? (
-        <p>
-          <button
-            className="btn btn-outline"
-            type="button"
-            onClick={() => {
-              void navigate({ to: '/app', search: { handoff: undefined } })
-            }}
-          >
-            {copy.retry}
-          </button>
-        </p>
-      ) : null}
-    </section>
   )
 }
 
