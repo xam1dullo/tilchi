@@ -3,6 +3,13 @@ name: pr-ci
 on:
   pull_request:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-ci-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 jobs:
   check:
     runs-on: ubuntu-latest
@@ -22,3 +29,18 @@ jobs:
       - run: pnpm test
       - run: pnpm contrast
       - run: docker compose config --quiet
+      - name: prod overlay config (dummy values, not secrets)
+        run: |
+          {
+            echo TILCHI_SHA=0000000000000000000000000000000000000000
+            echo TILCHI_DOMAIN=example.invalid
+            echo LIVEKIT_NODE_IP=203.0.113.10
+            for name in DATABASE_URL REDIS_URL REDIS_PASSWORD TELEGRAM_BOT_TOKEN \
+              TELEGRAM_WEBHOOK_SECRET LIVEKIT_API_KEY LIVEKIT_API_SECRET \
+              POSTGRES_USER POSTGRES_PASSWORD POSTGRES_DB TURN_USER TURN_PASSWORD; do
+              echo "$name=ci-dummy"
+            done
+          } > "$RUNNER_TEMP/prod.env"
+          docker compose -f docker-compose.yml -f docker-compose.prod.yml \
+            --env-file "$RUNNER_TEMP/prod.env" config --quiet
+      - run: sh -n scripts/vps-deploy.sh
