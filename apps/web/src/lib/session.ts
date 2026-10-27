@@ -1,4 +1,5 @@
 import { createIsomorphicFn } from '@tanstack/react-start'
+import { apiFailure } from './http-failure'
 import { appRoles, type AppRole } from './nav'
 
 export type SessionUser = {
@@ -14,30 +15,30 @@ export function previewSession(): SessionUser | null {
   return role ? { userId: 'preview', role, name: 'Preview' } : null
 }
 
+// The API answers { user: null } when nobody is signed in. Any other answer
+// means it could not say, and that must not look like a sign-out: the user's
+// cookie is still good and a retry will find them again.
+export async function readSession(
+  response: Response,
+): Promise<SessionUser | null> {
+  if (!response.ok) throw apiFailure(response.status)
+  const body = (await response.json()) as { user?: SessionUser | null }
+  return body.user ?? null
+}
+
 export const loadSession = createIsomorphicFn()
   .server(async (): Promise<SessionUser | null> => {
     const preview = previewSession()
     if (preview) return preview
     const base = process.env.API_INTERNAL_URL ?? 'http://127.0.0.1:3001'
-    try {
-      const { getRequestHeader } = await import('@tanstack/react-start/server')
-      const response = await fetch(`${base}/auth/session`, {
+    const { getRequestHeader } = await import('@tanstack/react-start/server')
+    return readSession(
+      await fetch(`${base}/auth/session`, {
         headers: { cookie: getRequestHeader('cookie') ?? '' },
-      })
-      if (!response.ok) return null
-      const body = (await response.json()) as { user: SessionUser | null }
-      return body.user ?? null
-    } catch {
-      return null
-    }
+      }),
+    )
   })
-  .client(async (): Promise<SessionUser | null> => {
-    try {
-      const response = await fetch('/auth/session', { credentials: 'include' })
-      if (!response.ok) return null
-      const body = (await response.json()) as { user: SessionUser | null }
-      return body.user ?? null
-    } catch {
-      return null
-    }
-  })
+  .client(
+    async (): Promise<SessionUser | null> =>
+      readSession(await fetch('/auth/session', { credentials: 'include' })),
+  )
