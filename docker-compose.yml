@@ -1,41 +1,71 @@
+# Local stack: `cp .env.example .env && docker compose up --build`.
+# Production adds docker-compose.prod.yml (ghcr images by git SHA, TLS,
+# required secrets). See docs/adr/0010-docker-vps.md.
+
+x-restart: &restart
+  restart: unless-stopped
+
 services:
   nginx:
+    <<: *restart
     image: nginx:1.27-alpine
     ports:
       - "80:80"
     volumes:
       - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./docker/nginx/locations.conf:/etc/nginx/tilchi/locations.conf:ro
+      - ./docker/nginx/dev.conf.template:/etc/nginx/templates/default.conf.template:ro
     depends_on:
-      - start
-      - nest
+      start:
+        condition: service_started
+      nest:
+        condition: service_healthy
+      livekit:
+        condition: service_started
 
   start:
+    <<: *restart
     build:
       context: .
       dockerfile: apps/web/Dockerfile
     environment:
       NODE_ENV: production
-      API_INTERNAL_URL: http://nest:3001
+      TZ: Asia/Tashkent
       PORT: "3000"
+      API_INTERNAL_URL: http://nest:3001
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
     expose:
       - "3000"
 
   nest:
+    <<: *restart
     build:
       context: .
       dockerfile: apps/api/Dockerfile
     environment:
-      NODE_ENV: production
+      NODE_ENV: ${NODE_ENV:-development}
       TZ: Asia/Tashkent
       PORT: "3001"
       DATABASE_URL: ${DATABASE_URL:-postgres://tilchi:tilchi@postgres:5432/tilchi}
       REDIS_URL: ${REDIS_URL:-redis://redis:6379}
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
       TELEGRAM_WEBHOOK_SECRET: ${TELEGRAM_WEBHOOK_SECRET:-}
+      LIVEKIT_URL: http://livekit:7880
+      LIVEKIT_PUBLIC_URL: ${LIVEKIT_PUBLIC_URL:-ws://localhost/rtc}
       LIVEKIT_API_KEY: ${LIVEKIT_API_KEY:-devkey}
       LIVEKIT_API_SECRET: ${LIVEKIT_API_SECRET:-devsecret}
     expose:
       - "3001"
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3001/health').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))"
+      interval: 5s
+      timeout: 3s
+      retries: 10
     depends_on:
       postgres:
         condition: service_healthy
@@ -43,6 +73,7 @@ services:
         condition: service_healthy
 
   postgres:
+    <<: *restart
     image: postgres:17-alpine
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-tilchi}
@@ -52,12 +83,13 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-tilchi}"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER}"]
       interval: 5s
       timeout: 3s
       retries: 10
 
   redis:
+    <<: *restart
     image: redis:7.4-alpine
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
@@ -66,23 +98,33 @@ services:
       retries: 10
 
   livekit:
+    <<: *restart
     image: livekit/livekit-server:v1.8.4
     command: --config /etc/livekit.yaml
+    environment:
+      LIVEKIT_KEYS: "${LIVEKIT_API_KEY:-devkey}: ${LIVEKIT_API_SECRET:-devsecret}"
     volumes:
       - ./docker/livekit/livekit.yaml:/etc/livekit.yaml:ro
+    expose:
+      - "7880"
     ports:
-      - "7880:7880"
-      - "7881:7881"
-      - "50000-50020:50000-50020/udp"
+      - "7881:7881/tcp"
+      - "7882:7882/udp"
 
   coturn:
+    <<: *restart
     image: coturn/coturn:4.6.2
-    command: ["-c", "/etc/turnserver.conf"]
+    command:
+      - -c
+      - /etc/turnserver.conf
+      - --user=${TURN_USER:-tilchi}:${TURN_PASSWORD:-dev-turn-password}
+      - --realm=${TILCHI_DOMAIN:-localhost}
     volumes:
       - ./docker/coturn/turnserver.conf:/etc/turnserver.conf:ro
     ports:
       - "3478:3478/udp"
       - "3478:3478/tcp"
+      - "49160-49200:49160-49200/udp"
 
 volumes:
   pgdata:
