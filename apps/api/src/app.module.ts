@@ -5,6 +5,7 @@ import type { Db } from './db/client'
 import { DbModule } from './db/db.module'
 import { GroupsModule } from './groups/groups.module'
 import { HealthController } from './health/health.controller'
+import { LessonsModule } from './lessons/lessons.module'
 import { MeetModule } from './meet/meet.module'
 import { UsersModule } from './users/users.module'
 
@@ -22,6 +23,7 @@ export class AppModule {
         AuthModule,
         BotModule,
         GroupsModule,
+        LessonsModule,
         MeetModule,
       ],
     }
