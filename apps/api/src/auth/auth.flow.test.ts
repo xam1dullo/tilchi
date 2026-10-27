@@ -1,4 +1,5 @@
 import 'reflect-metadata'
+import { createHmac } from 'node:crypto'
 import type { INestApplication } from '@nestjs/common'
 import { Test } from '@nestjs/testing'
 import {
@@ -353,6 +354,54 @@ describe('POST /auth/confirm requires Telegram confirmation', () => {
     const asked = await tgStart(111, 'Alice', handoffId)
     expect(asked.body.text).toContain('10.2.0.1 / TestBrowser/1.0')
     expect(asked.body.text).not.toContain('6.6.6.6')
+  })
+})
+
+describe('Mini App initData', () => {
+  const sign = (fields: Record<string, string>, token = BOT_TOKEN) => {
+    const check = Object.entries(fields)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([k, v]) => `${k}=${v}`)
+      .join('\n')
+    const secret = createHmac('sha256', 'WebAppData').update(token).digest()
+    const hash = createHmac('sha256', secret).update(check).digest('hex')
+    return new URLSearchParams({ ...fields, hash }).toString()
+  }
+  const user = JSON.stringify({ id: 42, first_name: 'Mini' })
+  const nowSec = () => String(Math.floor(Date.now() / 1000))
+
+  it('opens the same session for a verified payload', async () => {
+    const opened = await send('/auth/miniapp', {
+      body: { initData: sign({ auth_date: nowSec(), user }) },
+    })
+    expect(opened.status).toBe(201)
+    expect(
+      await whoami(cookiePair(opened.setCookie, SESSION_COOKIE)),
+    ).toMatchObject({
+      name: 'Mini',
+      role: 'learner',
+    })
+  })
+
+  it('rejects forged, foreign-token, stale, and token-less payloads', async () => {
+    const stale = String(Math.floor(Date.now() / 1000) - 7200)
+    const bodies = [
+      { initData: sign({ auth_date: nowSec(), user }).replace('Mini', 'Evil') },
+      { initData: sign({ auth_date: nowSec(), user }, 'OTHER_TOKEN') },
+      { initData: sign({ auth_date: stale, user }) },
+      { initData: '' },
+      {},
+    ]
+    for (const body of bodies) {
+      const reply = await send('/auth/miniapp', { body })
+      expect(reply.status).toBe(401)
+      expect(reply.setCookie).toEqual([])
+    }
+    vi.stubEnv('TELEGRAM_BOT_TOKEN', '')
+    const noToken = await send('/auth/miniapp', {
+      body: { initData: sign({ auth_date: nowSec(), user }) },
+    })
+    expect(noToken.status).toBe(401)
   })
 })
 

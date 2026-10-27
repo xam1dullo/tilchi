@@ -18,6 +18,7 @@ import {
 } from './policy'
 import { uuidv7 } from '../id'
 import { createKvFromEnv, type Kv } from '../redis/kv'
+import { verifyInitData } from './init-data'
 import { type User, UserStore } from '../users/user-store'
 
 type SessionRecord = {
@@ -149,6 +150,21 @@ export class AuthService {
       throw new HttpException({ error: 'handoff_expired' }, 410)
     }
     const user = this.users.upsertTelegram(claim.telegramUserId, claim.name)
+    return this.openSession(user, now)
+  }
+
+  /** Mini App initData: the same session, proven by the bot token HMAC. */
+  async miniApp(initData: string, now = Date.now()) {
+    const verified = verifyInitData(
+      initData,
+      process.env.TELEGRAM_BOT_TOKEN ?? '',
+      Math.floor(now / 1000),
+    )
+    if (!verified) throw new HttpException({ error: 'invalid_init_data' }, 401)
+    const user = this.users.upsertTelegram(
+      verified.telegramUserId,
+      verified.name,
+    )
     return this.openSession(user, now)
   }
 

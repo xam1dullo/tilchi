@@ -97,6 +97,19 @@ export class AuthController {
     return { ok: true, user: { id: opened.user.id, role: opened.user.role } }
   }
 
+  @Post('miniapp')
+  async miniapp(
+    @Body() body: unknown,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const opened = await this.auth.miniApp(field(body, 'initData'))
+    res.setHeader(
+      'Set-Cookie',
+      cookieHeader(opened.token, opened.maxAgeSeconds),
+    )
+    return { ok: true, user: { id: opened.user.id, role: opened.user.role } }
+  }
+
   @Get('session')
   async session(
     @Headers('cookie') cookie: string | undefined,
