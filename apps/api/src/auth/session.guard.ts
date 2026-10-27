@@ -4,10 +4,10 @@ import {
   HttpException,
   Inject,
   Injectable,
-  UnauthorizedException,
   createParamDecorator,
 } from '@nestjs/common'
 import type { Request } from 'express'
+import { apiError } from '../http/result'
 import { AuthService, type SessionUser } from './auth.service'
 import { SESSION_COOKIE, bearerSessionRejected, readCookie } from './policy'
 
@@ -27,7 +27,7 @@ export class SessionGuard implements CanActivate {
     const user = this.auth.read(
       readCookie(request.headers.cookie, SESSION_COOKIE),
     )
-    if (!user) throw new UnauthorizedException()
+    if (!user) throw apiError(401, 'unauthorized')
     request.user = user
     return true
   }

@@ -52,7 +52,9 @@ const add = (groupId: string, who: Person, userId: string) =>
 
 describe('sign-in is required', () => {
   it('answers 401 without a session and 400 for a bearer token', async () => {
-    expect((await call('GET', '/api/groups')).status).toBe(401)
+    const anonymous = await call('GET', '/api/groups')
+    expect(anonymous.status).toBe(401)
+    expect(anonymous.json).toEqual({ error: 'unauthorized' })
     expect(
       (await call('POST', '/api/groups', { body: { name: 'x' } })).status,
     ).toBe(401)

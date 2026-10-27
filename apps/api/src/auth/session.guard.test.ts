@@ -47,7 +47,10 @@ describe('SessionGuard', () => {
     for (const headers of attempts) {
       const { context } = contextFor(headers)
       expect(() => new SessionGuard(auth).canActivate(context)).toThrowError(
-        expect.objectContaining({ status: 401 }),
+        expect.objectContaining({
+          status: 401,
+          response: { error: 'unauthorized' },
+        }),
       )
     }
   })
