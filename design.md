@@ -1,3 +1,5 @@
+> Phase 1 note (2026-10-27). The live `/` route is a thin Kunduzgi hero plus the Telegram CTA. Do not render a cohort label. Full S-01 sections stay in this spec for a later port. `/app/meet` may use ink-dark tiles later. Phase 1 does not build that route. App tokens live in `apps/web/src/styles/tokens.css`.
+
 # tilchi.uz — design specification
 
 Version 3.0 · 2026-10-23 · direction **"Kunduzgi studiya"** (daylight studio)

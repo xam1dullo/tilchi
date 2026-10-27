@@ -1,0 +1,22 @@
+export const ru = {
+  skip: 'К содержанию',
+  groups: 'Группы',
+  emptyTitle: 'У вас пока нет группы',
+  emptyBody:
+    'Когда преподаватель добавит вас в группу, занятия появятся здесь.',
+  catalog: 'Смотреть курсы',
+  telegramWrite: 'Написать в Telegram',
+  signInTitle: 'Войти через Telegram',
+  signInButton: 'Продолжить в Telegram',
+  signInHint: 'Откроется приложение Telegram',
+  waiting: 'Ждём подтверждение. Ссылка действует 5 минут.',
+  expired: 'Срок ссылки истёк. Начните вход снова.',
+  confirmed: 'Вход подтверждён.',
+  retry: 'Повторить',
+  error: 'Не удалось загрузить данные.',
+  forbiddenTitle: 'Эта страница закрыта',
+  forbiddenBody: 'У вашей роли нет доступа.',
+  locale: 'Язык',
+  logout: 'Выйти',
+  heroCta: 'Продолжить в Telegram',
+}

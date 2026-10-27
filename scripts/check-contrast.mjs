@@ -1,72 +1,24 @@
 import { readFileSync } from 'node:fs'
 
-const css = readFileSync('src/app/globals.css', 'utf8')
-
+const css = readFileSync('apps/web/src/styles/tokens.css', 'utf8')
 const rootBlock = css.match(/:root\s*\{([\s\S]*?)\}/)
 if (!rootBlock) {
-  console.error('FAIL: :root block not found in src/app/globals.css')
+  console.error('FAIL: :root block not found in apps/web/src/styles/tokens.css')
   process.exit(1)
 }
 
 const tokens = {}
-for (const m of rootBlock[1].matchAll(/(--[\w-]+):\s*([^;]+);/g)) {
-  tokens[m[1].trim()] = m[2].trim()
+for (const match of rootBlock[1].matchAll(/(--[\w-]+):\s*([^;]+);/g)) {
+  tokens[match[1].trim()] = match[2].trim()
 }
-
-const resolve = (v) => {
-  v = v.trim()
-  if (v.startsWith('#')) return v
-  const m = v.match(/^oklch\(([\d.]+)\s+([\d.]+)\s+([\d.]+)\)$/)
-  if (m) return oklchToHex(parseFloat(m[1]), parseFloat(m[2]), parseFloat(m[3]))
-  const varM = v.match(/^var\((--[\w-]+)\)$/)
-  if (varM) return resolve(tokens[varM[1]])
-  throw new Error(`cannot parse color: ${v}`)
-}
-
-function oklchToHex(l, c, h) {
-  const hr = (h * Math.PI) / 180
-  const a = c * Math.cos(hr)
-  const b = c * Math.sin(hr)
-  const l_ = l + 0.3963377774 * a + 0.2158037573 * b
-  const m_ = l - 0.1055613458 * a - 0.0638541728 * b
-  const s_ = l - 0.0894841775 * a - 1.291485548 * b
-  const cube = (x) => x * x * x
-  const [l3, m3, s3] = [cube(l_), cube(m_), cube(s_)]
-  const rgb = [
-    4.0767416621 * l3 - 3.3077115913 * m3 + 0.2309699292 * s3,
-    -1.2684380046 * l3 + 2.6097574011 * m3 - 0.3413193965 * s3,
-    -0.0041960863 * l3 - 0.7034186147 * m3 + 1.707614701 * s3,
-  ]
-  const toCss = (v) => {
-    v = Math.min(1, Math.max(0, v))
-    const c8 = v <= 0.0031308 ? 12.92 * v : 1.055 * Math.pow(v, 1 / 2.4) - 0.055
-    return Math.round(c8 * 255).toString(16).padStart(2, '0')
-  }
-  return `#${rgb.map(toCss).join('').toUpperCase()}`
-}
-
-const pairs = [
-  ['btn-primary matn (#fff) — accent-solid', '#FFFFFF', '--accent-solid'],
-  ['btn-ink matn (bg) — ink', '--bg', '--ink'],
-  ['accent-ink matn — accent-soft', '--accent-ink', '--accent-soft'],
-  ['ink-2 matn — accent-soft', '--ink-2', '--accent-soft'],
-  ['accent (markers, em) — bg', '--accent', '--bg'],
-  ['accent — bg-alt', '--accent', '--bg-alt'],
-  ['accent — accent-soft', '--accent', '--accent-soft'],
-  ['success check — bg', '--success', '--bg'],
-  ['ink-2 matn — bg', '--ink-2', '--bg'],
-  ['muted matn — bg', '--muted', '--bg'],
-  ['muted matn — bg-alt', '--muted', '--bg-alt'],
-  ['muted matn — bg-elev', '--muted', '--bg-elev'],
-  ['on-accent matn — accent-2 (booking band)', '--on-accent', '--accent-2'],
-  ['on-accent-muted matn — accent-2', '--on-accent-muted', '--accent-2'],
-  ['accent-soft em — accent-2', '--accent-soft', '--accent-2'],
-]
 
 const lum = (hex) => {
-  const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255).map((c) =>
-    c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4)
-  )
+  const [r, g, b] = [0, 2, 4].map((index) => {
+    const channel = Number.parseInt(hex.slice(index + 1, index + 3), 16) / 255
+    return channel <= 0.03928
+      ? channel / 12.92
+      : ((channel + 0.055) / 1.055) ** 2.4
+  })
   return 0.2126 * r + 0.7152 * g + 0.0722 * b
 }
 
@@ -75,17 +27,37 @@ const ratio = (a, b) => {
   return (l1 + 0.05) / (l2 + 0.05)
 }
 
-let fail = false
+const pairs = [
+  ['white on accent-solid', '#ffffff', '--accent-solid'],
+  ['bg on ink', '--bg', '--ink'],
+  ['accent-ink on accent-soft', '--accent-ink', '--accent-soft'],
+  ['ink-2 on accent-soft', '--ink-2', '--accent-soft'],
+  ['accent on bg', '--accent', '--bg'],
+  ['accent on bg-alt', '--accent', '--bg-alt'],
+  ['muted on bg', '--muted', '--bg'],
+  ['muted on bg-alt', '--muted', '--bg-alt'],
+  ['on-accent on accent-2', '--on-accent', '--accent-2'],
+  ['warn on warn-soft', '--warn', '--warn-soft'],
+  ['warn on bg', '--warn', '--bg'],
+  ['danger on danger-soft', '--danger', '--danger-soft'],
+  ['danger on bg', '--danger', '--bg'],
+  ['live on bg', '--live', '--bg'],
+  ['white on danger', '#ffffff', '--danger'],
+]
+
+let failed = false
 for (const [label, fg, bg] of pairs) {
-  const fgHex = fg.startsWith('#') ? fg : resolve(tokens[fg])
-  const bgHex = bg.startsWith('#') ? bg : resolve(tokens[bg])
-  const r = ratio(fgHex, bgHex)
-  const aa = r >= 4.5 ? 'AA ✓' : r >= 3 ? 'AA-large ✓' : '✗'
-  console.log(`${r.toFixed(2).padStart(5)}  ${aa.padEnd(10)}  ${label}`)
-  if (r < 3) fail = true
+  const fgHex = fg.startsWith('#') ? fg : tokens[fg]
+  const bgHex = bg.startsWith('#') ? bg : tokens[bg]
+  if (!fgHex || !bgHex) {
+    console.error(`FAIL ${label}: missing token`)
+    failed = true
+    continue
+  }
+  const score = ratio(fgHex, bgHex)
+  const ok = score >= 4.5
+  console.log(`${ok ? 'ok' : 'FAIL'} ${score.toFixed(2)} ${label}`)
+  if (!ok) failed = true
 }
-if (fail) {
-  console.error('FAIL: contrast below 3:1 (AA-large)')
-  process.exit(1)
-}
-console.log('contrast OK')
+
+if (failed) process.exit(1)

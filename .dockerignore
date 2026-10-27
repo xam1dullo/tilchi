@@ -1,0 +1,14 @@
+node_modules
+**/node_modules
+**/dist
+.git
+.next
+out
+.velite
+.research
+public/og
+**/*.md
+!apps/**/package.json
+.env
+.env.*
+!.env.example

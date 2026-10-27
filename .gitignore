@@ -1,9 +1,15 @@
 node_modules/
+dist/
+.output/
+.tanstack/
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+.DS_Store
 .next/
 out/
 .velite/
 public/static/
-*.tsbuildinfo
-next-env.d.ts
-.DS_Store
-MA ARTICLES AND THESISES/
+coverage/
+apps/api/drizzle/

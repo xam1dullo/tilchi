@@ -1,30 +1,34 @@
-# tilchi
+# Tilchi
 
-Ingliz tili o'qituvchisi Mukhtasar Karimjonova sayti (tilchi.uz). Next.js 16 static export + velite MDX blog, Cloudflare Pages'ga deploy (wrangler).
+English lessons for groups in Uzbekistan. This repository is the Phase 1 monorepo: TanStack Start, NestJS, and Docker Compose.
 
-## Local
+## Local stack
 
-```sh
-pnpm install
-pnpm dev        # development server
-pnpm build      # velite -> OG images -> static export to out/
-pnpm test       # vitest
-pnpm check:budget  # JS budget gate (out/ mavjud bo'lishi kerak)
+```bash
+cp .env.example .env
+docker compose up --build
 ```
 
-## Yangi blog post
+Open http://localhost. nginx sends `/` and `/app` to Start, and `/api`, `/auth`, and `/bot` to Nest. Postgres, Redis, LiveKit, and coturn come up with the same file.
 
-`content/posts/<slug>.mdx` yarating — frontmatter: `title`, `description`, `date` (YYYY-MM-DD), `draft: true` nashrga qadar. Build paytida `/og/<slug>.png` avtomatik generatsiya qilinadi.
+`TELEGRAM_BOT_TOKEN` in `.env.example` is an empty placeholder. Do not commit a real token. Production reads `/etc/tilchi.env` on the VPS.
 
-## Deploy va rollback
+The session cookie is `__Host-tilchi_sid`. Browsers only store that name over HTTPS, so local HTTP will not keep a login. `GET /api/health` returns `{ "ok": true, "service": "tilchi-api" }`.
 
-- Jonli sayt: tilchi.uz DNS Cloudflare'ga qaraydi — Cloudflare Pages loyihasi `tilchi` (`tilchi.pages.dev`). Deploy qo'lda, `main`'dan:
+To preview the signed-in empty state locally, set `TILCHI_PREVIEW_ROLE=learner` on the Start process. That variable is ignored when `NODE_ENV=production`.
 
-  ```sh
-  pnpm build && wrangler pages deploy out --project-name tilchi --branch main
-  ```
+## Checks
 
-- `.github/workflows/static.yml` GitHub Pages'ga ham deploy qiladi, lekin DNS u yerga yo'naltirilmagan — jonli saytga ta'sir qilmaydi.
-- Rollback: Cloudflare Pages → Deployments → oldingi deployment'ni "Rollback"; yoki `git revert` + qayta deploy.
-- Dizayn spetsifikatsiyasi: `design.md`; bo'lim CSS'lari `src/styles/` (qarang `CONTEXT.md`).
-- Migratsiyadan oldingi bitta-fayl sayt: `45105e5` commit'ida (`index.html`) — favqulodda holat uchun tiklanishi mumkin.
+```bash
+pnpm install
+pnpm --filter @tilchi/web routes
+pnpm lint
+pnpm typecheck
+pnpm test
+pnpm contrast
+docker compose config
+```
+
+## Deploy
+
+Images build on `main` and push to GHCR tagged with the git SHA. Nothing migrates or deploys on that push. The deploy job is `workflow_dispatch` only, requires the GitHub `production` environment, and currently refuses to SSH.

@@ -1,3 +1,14 @@
+packages:
+  - apps/*
+  - packages/*
+
 allowBuilds:
   esbuild: true
-  sharp: true
+
+minimumReleaseAgeExclude:
+  - '@nestjs/common@12.3.2'
+  - '@nestjs/core@12.3.2'
+  - '@nestjs/platform-express@12.3.2'
+
+onlyBuiltDependencies:
+  - esbuild
