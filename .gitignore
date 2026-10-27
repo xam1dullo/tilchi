@@ -12,3 +12,5 @@ out/
 .velite/
 public/static/
 coverage/
+.deployed-sha
+.previous-sha
