@@ -12,4 +12,3 @@ out/
 .velite/
 public/static/
 coverage/
-apps/api/drizzle/
