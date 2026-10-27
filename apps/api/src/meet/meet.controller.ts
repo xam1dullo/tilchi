@@ -5,7 +5,7 @@ import {
   Post,
   UnauthorizedException,
 } from '@nestjs/common'
-import type { AuthService } from '../auth/auth.service'
+import { AuthService } from '../auth/auth.service'
 import {
   SESSION_COOKIE,
   bearerSessionRejected,

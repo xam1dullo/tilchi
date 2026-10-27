@@ -8,7 +8,7 @@ import {
   Res,
 } from '@nestjs/common'
 import type { Response } from 'express'
-import type { AuthService } from './auth.service'
+import { AuthService } from './auth.service'
 import {
   SESSION_COOKIE,
   bearerSessionRejected,
