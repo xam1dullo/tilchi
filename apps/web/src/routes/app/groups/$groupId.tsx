@@ -9,6 +9,7 @@ import { apiFetch } from '../../../lib/api'
 import {
   formatLessonTime,
   lessonActions,
+  tashkentInputToIso,
   type GroupRecord,
   type LessonRecord,
 } from '../../../lib/classroom'
@@ -125,20 +126,20 @@ function ScheduleForm({
       className="classroom-form"
       onSubmit={(event) => {
         event.preventDefault()
+        const iso = tashkentInputToIso(scheduledAt)
+        if (!iso) return
         setBusy(true)
         void apiFetch(`/api/groups/${groupId}/lessons`, {
           method: 'POST',
           previewRole,
-          body: JSON.stringify({
-            scheduledAt: new Date(scheduledAt).toISOString(),
-          }),
+          body: JSON.stringify({ scheduledAt: iso }),
         })
           .then(() => router.invalidate())
           .finally(() => setBusy(false))
       }}
     >
       <label>
-        <span className="sr-only">{copy.time}</span>
+        <span className="sr-only">{copy.time} (Asia/Tashkent)</span>
         <input
           type="datetime-local"
           required

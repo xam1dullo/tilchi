@@ -28,6 +28,12 @@ export type StartResult =
   | { kind: 'not_found' }
   | { kind: 'closed' }
 
+export type ChangeResult =
+  | { kind: 'changed'; lesson: Lesson; previousScheduledAt: string }
+  | { kind: 'unchanged'; lesson: Lesson }
+  | { kind: 'not_found' }
+  | { kind: 'conflict' }
+
 function toLesson(
   row: typeof lessons.$inferSelect,
   meetingId: string | null,
@@ -127,6 +133,56 @@ export class LessonsRepository {
         kind: 'started',
         lesson: toLesson(live, meeting.id),
         meeting: toMeeting(meeting),
+      }
+    })
+  }
+
+  /** Cancels a scheduled lesson. Cancelling a cancelled one changes nothing. */
+  async cancel(id: string, now: Date): Promise<ChangeResult> {
+    return this.change(id, (lesson) =>
+      lesson.status === 'cancelled'
+        ? 'unchanged'
+        : lesson.status === 'scheduled'
+          ? { status: 'cancelled', cancelledAt: now }
+          : null,
+    )
+  }
+
+  /** Moves a lesson that is still scheduled; any other status is a conflict. */
+  async reschedule(id: string, scheduledAt: Date): Promise<ChangeResult> {
+    return this.change(id, (lesson) =>
+      lesson.status === 'scheduled' ? { scheduledAt } : null,
+    )
+  }
+
+  private async change(
+    id: string,
+    plan: (
+      lesson: typeof lessons.$inferSelect,
+    ) => Partial<typeof lessons.$inferInsert> | 'unchanged' | null,
+  ): Promise<ChangeResult> {
+    if (!isUuid(id)) return { kind: 'not_found' }
+    return this.database.db.transaction(async (tx) => {
+      const [lesson] = await tx
+        .select()
+        .from(lessons)
+        .where(eq(lessons.id, id))
+        .for('update')
+      if (!lesson) return { kind: 'not_found' }
+      const patch = plan(lesson)
+      if (patch === null) return { kind: 'conflict' }
+      if (patch === 'unchanged') {
+        return { kind: 'unchanged', lesson: toLesson(lesson, null) }
+      }
+      const [row] = await tx
+        .update(lessons)
+        .set(patch)
+        .where(eq(lessons.id, id))
+        .returning()
+      return {
+        kind: 'changed',
+        lesson: toLesson(row, null),
+        previousScheduledAt: lesson.scheduledAt.toISOString(),
       }
     })
   }
