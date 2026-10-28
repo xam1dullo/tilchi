@@ -13,6 +13,9 @@ import { LessonsController } from './lessons/lessons.controller'
 import { LessonEvents } from './lessons/lesson-events'
 import { LessonsService } from './lessons/lessons.service'
 import { LessonsRepository } from './lessons/lessons.repository'
+import { AttendanceRepository } from './meet/attendance.repository'
+import { LivekitWebhook } from './meet/livekit-webhook'
+import { LivekitWebhookController } from './meet/livekit-webhook.controller'
 import { MeetController } from './meet/meet.controller'
 import { MeetService } from './meet/meet.service'
 import { RoomAdmin } from './meet/room-admin'
@@ -29,6 +32,7 @@ import { UsersRepository } from './users/users.repository'
     GroupsController,
     LessonsController,
     MeetController,
+    LivekitWebhookController,
   ],
   providers: [
     // Postgres is configured by DATABASE_URL; boot fails without it (not in tests).
@@ -43,6 +47,8 @@ import { UsersRepository } from './users/users.repository'
     GroupsService,
     LessonsService,
     MeetService,
+    AttendanceRepository,
+    LivekitWebhook,
     RoomAdmin,
     DemoSeedService,
   ],

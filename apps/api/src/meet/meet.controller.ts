@@ -1,6 +1,7 @@
 import {
   Controller,
   Headers,
+  HttpCode,
   HttpException,
   Param,
   Post,
@@ -54,6 +55,33 @@ export class MeetController {
       actor,
       apiKey: process.env.LIVEKIT_API_KEY ?? '',
       apiSecret: process.env.LIVEKIT_API_SECRET ?? '',
+    })
+  }
+
+  @Post('lessons/:lessonId/participants/:userId/:action')
+  @HttpCode(200)
+  async moderate(
+    @Param('lessonId') lessonId: string,
+    @Param('userId') userId: string,
+    @Param('action') action: string,
+    @Headers('cookie') cookie: string | undefined,
+    @Headers('authorization') authorization: string | undefined,
+    @Headers(PREVIEW_HEADER) previewRole: string | undefined,
+  ) {
+    if (action !== 'mute' && action !== 'remove') {
+      throw new HttpException({ error: 'not_found' }, 404)
+    }
+    const actor = await requireActor({
+      auth: this.auth,
+      cookie,
+      authorization,
+      previewRole,
+    })
+    return this.meet.moderate({
+      lessonId,
+      actor,
+      targetUserId: userId,
+      action,
     })
   }
 
