@@ -13,9 +13,9 @@ Open http://localhost. nginx sends `/` and `/app` to Start, `/api`, `/auth`, `/b
 
 `docker-compose.yml` is the production shape: secrets use `${VAR:?required}` and LiveKit signaling (`7880`) stays on the compose network (nginx proxies `/rtc/`). `docker-compose.dev.yml` supplies local defaults only. Production adds `docker-compose.prod.yml`.
 
-`TELEGRAM_BOT_TOKEN` in `.env.example` is an empty placeholder. Do not commit a real token. Production reads `/etc/tilchi.env` on the VPS.
+`TELEGRAM_BOT_TOKEN` in `.env.example` is a local placeholder, not a real token. Production reads `/etc/tilchi.env` on the VPS.
 
-The session cookie is `__Host-tilchi_sid`. Confirm waits for the Telegram bot to bind a handoff; an unconfirmed handoff cannot create a session. Browsers only store the host cookie over HTTPS, so local HTTP will not keep a login. `GET /api/health` returns `{ "ok": true, "service": "tilchi-api" }`.
+The session cookie is `__Host-tilchi_sid`. A login needs the Telegram bot to bind a handoff and the user to tap confirm, and only the browser that started it can claim it, once. An unconfirmed handoff cannot create a session, and production refuses confirm until `TELEGRAM_WEBHOOK_SECRET` is set. Browsers only store the host cookie over HTTPS, so local HTTP will not keep a login. `GET /api/health` returns `{ "ok": true, "service": "tilchi-api" }`.
 
 To preview the signed-in empty state locally, set `TILCHI_PREVIEW_ROLE=learner` on the Start process (via the dev compose override). That variable is ignored when `NODE_ENV=production`.
 
@@ -30,6 +30,8 @@ pnpm test
 pnpm contrast
 docker compose -f docker-compose.yml -f docker-compose.dev.yml config
 ```
+
+`pnpm test` also runs the Redis checks (the compare-and-set Lua) when `TEST_REDIS_URL` points at a Redis 6.0+ server, for example `TEST_REDIS_URL=redis://127.0.0.1:6379 pnpm --filter @tilchi/api test`. Without it they are skipped.
 
 ## Deploy
 
