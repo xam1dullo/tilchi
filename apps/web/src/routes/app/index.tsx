@@ -55,7 +55,7 @@ function GroupsPage() {
               >
                 <strong>{group.name}</strong>
                 <span>
-                  {copy.members} {group.memberIds.length}/{group.capacity}
+                  {copy.members} {group.learnerCount}/{group.capacity}
                 </span>
               </Link>
             </li>

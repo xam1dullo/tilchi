@@ -1,8 +1,9 @@
 import { Inject, Injectable } from '@nestjs/common'
 import { and, eq, gt, isNull, sql } from 'drizzle-orm'
 import { Database } from '../db/database'
-import { sessions } from '../db/schema'
+import { sessions, users } from '../db/schema'
 import { uuidv7 } from '../id'
+import { DeletedUserError } from './users.repository'
 
 export type LiveSession = {
   userId: string
@@ -14,6 +15,10 @@ export type LiveSession = {
 export class SessionsRepository {
   constructor(@Inject(Database) private readonly database: Database) {}
 
+  /**
+   * Locks the user row and re-checks deleted_at before inserting, so a login
+   * that read the user before `softDelete` cannot open a session after it.
+   */
   async insert(input: {
     userId: string
     tokenHash: string
@@ -21,14 +26,22 @@ export class SessionsRepository {
     idleExpiresAt: Date
     absoluteExpiresAt: Date
   }) {
-    await this.database.db.insert(sessions).values({
-      id: uuidv7(),
-      userId: input.userId,
-      tokenHash: input.tokenHash,
-      createdAt: input.now,
-      lastSeenAt: input.now,
-      expiresAt: input.idleExpiresAt,
-      absoluteExpiresAt: input.absoluteExpiresAt,
+    await this.database.db.transaction(async (tx) => {
+      const [user] = await tx
+        .select({ id: users.id })
+        .from(users)
+        .where(and(eq(users.id, input.userId), isNull(users.deletedAt)))
+        .for('update')
+      if (!user) throw new DeletedUserError()
+      await tx.insert(sessions).values({
+        id: uuidv7(),
+        userId: input.userId,
+        tokenHash: input.tokenHash,
+        createdAt: input.now,
+        lastSeenAt: input.now,
+        expiresAt: input.idleExpiresAt,
+        absoluteExpiresAt: input.absoluteExpiresAt,
+      })
     })
   }
 

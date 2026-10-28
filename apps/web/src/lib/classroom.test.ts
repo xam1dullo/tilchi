@@ -10,8 +10,15 @@ describe('groupsView', () => {
     })
   })
 
+  it('shows a learner their groups from a count, never a member list', () => {
+    const groups = [{ id: 'g1', name: 'A1', capacity: 12, learnerCount: 3 }]
+    const view = groupsView({ role: 'learner', groups })
+    expect(view.groups[0]).not.toHaveProperty('memberIds')
+    expect(view.groups[0].learnerCount).toBe(3)
+  })
+
   it('lets teachers create and lists membership groups', () => {
-    const groups = [{ id: 'g1', name: 'A1', capacity: 12, memberIds: ['t1'] }]
+    const groups = [{ id: 'g1', name: 'A1', capacity: 12, learnerCount: 0 }]
     expect(groupsView({ role: 'teacher', groups })).toEqual({
       empty: false,
       canCreate: true,
