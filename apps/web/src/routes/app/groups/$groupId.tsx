@@ -8,7 +8,6 @@ import { useState } from 'react'
 import { apiFetch } from '../../../lib/api'
 import {
   formatLessonTime,
-  lessonActions,
   tashkentInputToIso,
   type GroupRecord,
   type LessonRecord,
@@ -34,12 +33,10 @@ export const Route = createFileRoute('/app/groups/$groupId')({
 
 function GroupPage() {
   const { locale } = useRouteContext({ from: '__root__' })
-  const { session, previewRole } = useRouteContext({ from: '/app' })
+  const { previewRole } = useRouteContext({ from: '/app' })
   const { group, lessons } = Route.useLoaderData()
   const copy = messages(locale)
-  const role = session?.role ?? 'learner'
   const search = keepAppSearch(previewRole)
-  const manage = lessonActions({ role, status: 'scheduled' })
   return (
     <section className="classroom">
       <p className="eyebrow">
@@ -54,7 +51,7 @@ function GroupPage() {
             {copy.members} {group.learnerCount}/{group.capacity}
           </p>
         </div>
-        {manage.canSchedule ? (
+        {group.can.createLesson ? (
           <ScheduleForm
             groupId={group.id}
             previewRole={previewRole}
@@ -70,7 +67,6 @@ function GroupPage() {
       ) : (
         <ul className="rows classroom-list">
           {lessons.map((lesson) => {
-            const actions = lessonActions({ role, status: lesson.status })
             const status =
               lesson.status === 'live'
                 ? copy.lessonLive
@@ -91,7 +87,6 @@ function GroupPage() {
                 </div>
                 <LessonButtons
                   lesson={lesson}
-                  actions={actions}
                   previewRole={previewRole}
                   search={search}
                   copy={{
@@ -156,13 +151,11 @@ function ScheduleForm({
 
 function LessonButtons({
   lesson,
-  actions,
   previewRole,
   search,
   copy,
 }: {
   lesson: LessonRecord
-  actions: ReturnType<typeof lessonActions>
   previewRole: 'learner' | 'teacher' | 'admin' | null
   search: ReturnType<typeof keepAppSearch>
   copy: { start: string; end: string; join: string }
@@ -177,7 +170,7 @@ function LessonButtons({
   }
   return (
     <div className="lesson-actions">
-      {actions.canStart ? (
+      {lesson.can.start ? (
         <button
           className="btn btn-outline"
           type="button"
@@ -187,7 +180,7 @@ function LessonButtons({
           {copy.start}
         </button>
       ) : null}
-      {actions.canEnd ? (
+      {lesson.can.end ? (
         <button
           className="btn btn-outline"
           type="button"
@@ -197,7 +190,7 @@ function LessonButtons({
           {copy.end}
         </button>
       ) : null}
-      {actions.canJoin ? (
+      {lesson.can.join ? (
         <Link
           className="btn btn-primary"
           to="/app/meet/$lessonId"

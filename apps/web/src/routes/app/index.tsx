@@ -13,23 +13,20 @@ import { keepAppSearch } from '../../lib/preview'
 
 export const Route = createFileRoute('/app/')({
   loader: async ({ context }) => {
-    const body = await apiFetch<{ groups: GroupRecord[] }>('/api/groups', {
-      previewRole: context.previewRole,
-    })
-    return { groups: body.groups }
+    return apiFetch<{ groups: GroupRecord[]; can: { createGroup: boolean } }>(
+      '/api/groups',
+      { previewRole: context.previewRole },
+    )
   },
   component: GroupsPage,
 })
 
 function GroupsPage() {
   const { locale } = useRouteContext({ from: '__root__' })
-  const { session, previewRole } = useRouteContext({ from: '/app' })
-  const { groups } = Route.useLoaderData()
+  const { previewRole } = useRouteContext({ from: '/app' })
+  const { groups, can } = Route.useLoaderData()
   const copy = messages(locale)
-  const view = groupsView({
-    role: session?.role ?? 'learner',
-    groups,
-  })
+  const view = groupsView({ groups, can })
   const search = keepAppSearch(previewRole)
   return (
     <section className="classroom">

@@ -1,13 +1,23 @@
-import type { AppRole } from './nav'
+/** Permissions the API computed for this caller; the web never re-derives them. */
+export type GroupCan = { createLesson: boolean; manageMembers: boolean }
 
 export type GroupRecord = {
   id: string
   name: string
   capacity: number
   learnerCount: number
+  can: GroupCan
 }
 
 export type LessonStatus = 'scheduled' | 'live' | 'ended' | 'cancelled'
+
+export type LessonCan = {
+  start: boolean
+  end: boolean
+  cancel: boolean
+  reschedule: boolean
+  join: boolean
+}
 
 export type LessonRecord = {
   id: string
@@ -15,23 +25,17 @@ export type LessonRecord = {
   scheduledAt: string
   status: LessonStatus
   meetingId: string | null
+  can: LessonCan
 }
 
-export function groupsView(input: { role: AppRole; groups: GroupRecord[] }) {
+export function groupsView(input: {
+  groups: GroupRecord[]
+  can: { createGroup: boolean }
+}) {
   return {
     empty: input.groups.length === 0,
-    canCreate: input.role === 'teacher' || input.role === 'admin',
+    canCreate: input.can.createGroup,
     groups: input.groups,
-  }
-}
-
-export function lessonActions(input: { role: AppRole; status: LessonStatus }) {
-  const manages = input.role === 'teacher' || input.role === 'admin'
-  return {
-    canSchedule: manages,
-    canStart: manages && input.status === 'scheduled',
-    canEnd: manages && input.status === 'live',
-    canJoin: input.status === 'live',
   }
 }
 
