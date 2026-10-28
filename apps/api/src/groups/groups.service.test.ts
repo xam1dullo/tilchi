@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm'
-import { expect, it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import type { Role } from '../auth/policy'
-import { groups as groupsTable } from '../db/schema'
+import { groups as groupsTable, users as usersTable } from '../db/schema'
 import { uuidv7 } from '../id'
 import { describeWithDatabase } from '../test/postgres'
 import { UsersRepository } from '../users/users.repository'
@@ -37,6 +37,7 @@ describeWithDatabase('GroupsService', (current) => {
       id: expect.any(String),
       name: 'A1',
       capacity: 12,
+      kind: 'adult',
       createdBy: teacher,
       memberIds: [teacher],
     })
@@ -158,30 +159,33 @@ describeWithDatabase('GroupsService', (current) => {
     expect(again.memberIds).toEqual([teacher, learner])
   })
 
-  it('stops at the capacity, but never refuses someone already in', async () => {
-    const teacher = await person('teacher')
+  it('holds 12 learners; the teacher and admins do not count', async () => {
+    const [teacher, admin] = await Promise.all([
+      person('teacher'),
+      person('admin'),
+    ])
     const group = await groups().create({
       name: 'A1',
       actorId: teacher,
       role: 'teacher',
     })
     const learners = await Promise.all(
-      Array.from({ length: GROUP_CAPACITY }, () => person('learner')),
+      Array.from({ length: GROUP_CAPACITY + 1 }, () => person('learner')),
     )
-    for (const learner of learners.slice(0, GROUP_CAPACITY - 1)) {
+    for (const learner of learners.slice(0, GROUP_CAPACITY)) {
       await groups().putMember(group.id, learner)
     }
     expect((await groups().get(group.id))?.memberIds).toHaveLength(
-      GROUP_CAPACITY,
+      GROUP_CAPACITY + 1,
     )
-    const last = learners[GROUP_CAPACITY - 1]
-    expect(await outcome(groups().putMember(group.id, last))).toBe(
-      '409 group_full',
-    )
+    expect(
+      await outcome(groups().putMember(group.id, learners[GROUP_CAPACITY])),
+    ).toBe('409 group_full')
     expect(await outcome(groups().putMember(group.id, learners[0]))).toBe('ok')
+    expect(await outcome(groups().putMember(group.id, admin))).toBe('ok')
   })
 
-  it('never lets racing adds go past the capacity', async () => {
+  it('never lets racing adds go past 12 learners', async () => {
     const teacher = await person('teacher')
     const group = await groups().create({
       name: 'A1',
@@ -194,10 +198,68 @@ describeWithDatabase('GroupsService', (current) => {
     const results = await Promise.all(
       learners.map((learner) => outcome(groups().putMember(group.id, learner))),
     )
-    expect(results.filter((r) => r === 'ok')).toHaveLength(GROUP_CAPACITY - 1)
-    expect(results.filter((r) => r === '409 group_full')).toHaveLength(5)
-    expect((await groups().get(group.id))?.memberIds).toHaveLength(
-      GROUP_CAPACITY,
-    )
+    expect(results.filter((r) => r === 'ok')).toHaveLength(GROUP_CAPACITY)
+    expect(results.filter((r) => r === '409 group_full')).toHaveLength(4)
+  })
+
+  describe('kids groups (G7)', () => {
+    const kidsGroup = async () => {
+      const teacher = await person('teacher')
+      const group = await groups().create({
+        name: 'Kids',
+        actorId: teacher,
+        role: 'teacher',
+      })
+      await current()
+        .database.db.update(groupsTable)
+        .set({ kind: 'kids' })
+        .where(eq(groupsTable.id, group.id))
+      return group
+    }
+    const consent = (id: string) =>
+      current()
+        .database.db.update(usersTable)
+        .set({ guardianConsentBy: 'Mother', guardianConsentAt: new Date() })
+        .where(eq(usersTable.id, id))
+
+    it('refuses a learner without recorded guardian consent', async () => {
+      const group = await kidsGroup()
+      const kid = await person('learner')
+      expect(await outcome(groups().putMember(group.id, kid))).toBe(
+        '409 guardian_consent_required',
+      )
+      expect((await groups().get(group.id))?.memberIds).toHaveLength(1)
+    })
+
+    it('adds a learner once consent is recorded', async () => {
+      const group = await kidsGroup()
+      const kid = await person('learner')
+      await consent(kid)
+      expect(await outcome(groups().putMember(group.id, kid))).toBe('ok')
+    })
+
+    it('needs both who and when', async () => {
+      const group = await kidsGroup()
+      const kid = await person('learner')
+      await current()
+        .database.db.update(usersTable)
+        .set({ guardianConsentBy: 'Mother' })
+        .where(eq(usersTable.id, kid))
+      expect(await outcome(groups().putMember(group.id, kid))).toBe(
+        '409 guardian_consent_required',
+      )
+    })
+
+    it('leaves adult groups alone', async () => {
+      const teacher = await person('teacher')
+      const group = await groups().create({
+        name: 'A1',
+        actorId: teacher,
+        role: 'teacher',
+      })
+      expect(
+        await outcome(groups().putMember(group.id, await person('learner'))),
+      ).toBe('ok')
+    })
   })
 })

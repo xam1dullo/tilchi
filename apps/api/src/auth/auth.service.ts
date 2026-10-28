@@ -22,7 +22,11 @@ import { uuidv7 } from '../id'
 import { KV, type Kv } from '../redis/kv'
 import { verifyInitData } from './init-data'
 import { SessionsRepository } from '../users/sessions.repository'
-import { type User, UsersRepository } from '../users/users.repository'
+import {
+  DeletedUserError,
+  type User,
+  UsersRepository,
+} from '../users/users.repository'
 
 /** What the Redis cache holds for five minutes: enough to answer a read. */
 type SessionRecord = {
@@ -126,10 +130,7 @@ export class AuthService {
     if (!(await this.kv.take(this.handoffKey(handoff.id)))) {
       throw new HttpException({ error: 'handoff_expired' }, 410)
     }
-    const user = await this.users.upsertTelegram(
-      claim.telegramUserId,
-      claim.name,
-    )
+    const user = await this.signInTelegram(claim.telegramUserId, claim.name)
     return this.openSession(user, now)
   }
 
@@ -146,11 +147,29 @@ export class AuthService {
       Math.floor(now / 1000),
     )
     if (!verified) throw new HttpException({ error: 'invalid_init_data' }, 401)
-    const user = await this.users.upsertTelegram(
+    const user = await this.signInTelegram(
       verified.telegramUserId,
       verified.name,
     )
     return this.openSession(user, now)
+  }
+
+  private async signInTelegram(telegramUserId: string, name?: string | null) {
+    try {
+      return await this.users.upsertTelegram(telegramUserId, name)
+    } catch (error) {
+      if (error instanceof DeletedUserError) {
+        throw new HttpException({ error: 'account_deleted' }, 403)
+      }
+      throw error
+    }
+  }
+
+  /** Soft-deletes the user, then ends every session they have, on every instance. */
+  async deleteUser(userId: string, now = Date.now()) {
+    await this.users.softDelete(userId, new Date(now))
+    const hashes = await this.sessions.revokeAllForUser(userId, new Date(now))
+    await Promise.all(hashes.map((secretHash) => this.forget(secretHash)))
   }
 
   private async hit(key: string, limit: number, scope: 'ip' | 'telegram') {
@@ -208,6 +227,11 @@ export class AuthService {
       absoluteExpiresAt: live.absoluteExpiresAt.getTime(),
     }
     await this.cacheSession(secretHash, record)
+    // A logout may have landed between the read above and this write.
+    if (await this.kv.get(revokedKey(secretHash))) {
+      await this.kv.del(sessionCacheKey(secretHash))
+      return null
+    }
     return actorOf(record)
   }
 
@@ -216,6 +240,20 @@ export class AuthService {
     if (!token) return
     const secretHash = hash(token)
     await this.sessions.revoke(secretHash, new Date(now))
+    await this.forget(secretHash)
+  }
+
+  /**
+   * Marker first, then the cache: a cold read that is mid-flight re-checks the
+   * marker after it caches, so it can never leave a revoked session cached.
+   * The marker outlives the cache entry it guards.
+   */
+  private async forget(secretHash: string) {
+    await this.kv.set(
+      revokedKey(secretHash),
+      '1',
+      SESSION_CACHE_TTL_SECONDS * 2,
+    )
     await this.kv.del(sessionCacheKey(secretHash))
   }
 
@@ -235,8 +273,11 @@ export class AuthService {
   }
 
   private async cachedSession(secretHash: string, now: number) {
-    const raw = await this.kv.get(sessionCacheKey(secretHash))
-    if (!raw) return null
+    const [raw, revoked] = await Promise.all([
+      this.kv.get(sessionCacheKey(secretHash)),
+      this.kv.get(revokedKey(secretHash)),
+    ])
+    if (!raw || revoked) return null
     const record = JSON.parse(raw) as SessionRecord
     const live = record.expiresAt > now && record.absoluteExpiresAt > now
     return live ? record : null
@@ -290,6 +331,10 @@ function hash(value: string) {
 
 function sessionCacheKey(secretHash: string) {
   return `session:cache:${secretHash}`
+}
+
+function revokedKey(secretHash: string) {
+  return `session:revoked:${secretHash}`
 }
 
 function actorOf(record: SessionRecord) {

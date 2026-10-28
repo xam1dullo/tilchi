@@ -1,11 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { canManageGroup, canSeeGroup } from './access'
+import { canManageGroup, canSeeGroup, groupView } from './access'
 import type { Group } from './groups.service'
 
 const group: Group = {
   id: 'group',
   name: 'A1',
   capacity: 12,
+  kind: 'adult',
   createdBy: 'owner',
   memberIds: ['owner', 'other-teacher', 'learner'],
 }
@@ -37,5 +38,20 @@ describe('group management access', () => {
     expect(
       canManageGroup({ userId: 'learner', role: 'learner', name: null }, group),
     ).toBe(false)
+  })
+})
+
+describe('group view (XAM-792)', () => {
+  const view = (userId: string, role: 'teacher' | 'admin' | 'learner') =>
+    groupView({ userId, role, name: null }, group)
+
+  it('gives member ids to the owning teacher and admins', () => {
+    expect(view('owner', 'teacher')).toHaveProperty('memberIds')
+    expect(view('admin', 'admin')).toHaveProperty('memberIds')
+  })
+
+  it('hides member ids from learners and visiting teachers', () => {
+    expect(view('learner', 'learner')).not.toHaveProperty('memberIds')
+    expect(view('other-teacher', 'teacher')).not.toHaveProperty('memberIds')
   })
 })

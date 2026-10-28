@@ -42,8 +42,12 @@
 
 .locale-switch button,
 .user-menu button {
+  min-width: 44px;
   min-height: 44px;
+  padding: 0 8px;
   border: 0;
+  border-radius: var(--r-sm);
+  transition: transform var(--dur-press) var(--ease);
   background: transparent;
   color: var(--ink-2);
   font: 600 var(--fs-ui) / 1 var(--font-sans);
@@ -69,6 +73,7 @@
 }
 
 .app-nav a {
+  transition: transform var(--dur-press) var(--ease);
   display: flex;
   align-items: center;
   min-height: var(--row-h);
@@ -80,9 +85,11 @@
   font-weight: 600;
 }
 
-.app-nav a[aria-current="page"] {
+.app-nav a[aria-current="page"],
+.app-sheet a[aria-current="page"] {
   color: var(--ink);
   background: var(--bg-alt);
+  box-shadow: inset 3px 0 0 var(--accent);
 }
 
 .app-main {
@@ -123,5 +130,14 @@
     text-decoration: none;
     font-size: var(--fs-ui);
     font-weight: 600;
+    transition: transform var(--dur-press) var(--ease);
+  }
+
+  .app-sheet a[aria-current="page"] {
+    box-shadow: inset 0 3px 0 var(--accent);
+  }
+
+  .user-menu span {
+    display: none;
   }
 }

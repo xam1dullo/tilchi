@@ -75,8 +75,10 @@ export class UsersRepository {
       .onConflictDoUpdate({
         target: users.telegramId,
         set: { role, name: sql`coalesce(${known}, ${users.name})` },
+        setWhere: isNull(users.deletedAt),
       })
       .returning()
+    if (!row) throw new DeletedUserError()
     return toUser(row)
   }
 

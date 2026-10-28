@@ -81,4 +81,14 @@ export class SessionsRepository {
       .set({ revokedAt: now })
       .where(and(eq(sessions.tokenHash, tokenHash), isNull(sessions.revokedAt)))
   }
+
+  /** Revokes every live session of a user; returns their hashes for cache cleanup. */
+  async revokeAllForUser(userId: string, now: Date) {
+    const rows = await this.database.db
+      .update(sessions)
+      .set({ revokedAt: now })
+      .where(and(eq(sessions.userId, userId), isNull(sessions.revokedAt)))
+      .returning({ tokenHash: sessions.tokenHash })
+    return rows.map((row) => row.tokenHash)
+  }
 }

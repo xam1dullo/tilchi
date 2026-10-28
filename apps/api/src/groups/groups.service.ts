@@ -1,17 +1,24 @@
 import { HttpException, Inject, Injectable } from '@nestjs/common'
 import { uuidv7 } from '../id'
 import type { Role } from '../auth/policy'
-import { type GroupRecord, GroupsRepository } from './groups.repository'
+import {
+  type GroupKind,
+  type GroupRecord,
+  GroupsRepository,
+} from './groups.repository'
 
 export type Group = {
   id: string
   name: string
   capacity: number
+  kind: GroupKind
   createdBy: string
   memberIds: string[]
 }
 
-/** Members including the teacher. PRD Q11 (12 learners) lands with 3b-6. */
+export type LearnerGroup = Omit<Group, 'memberIds'>
+
+/** Learners only: the teacher and admins do not count (PRD Q11). */
 export const GROUP_CAPACITY = 12
 
 /** The API still calls the teacher who owns a group its creator. */
@@ -20,6 +27,7 @@ function toGroup(record: GroupRecord): Group {
     id: record.id,
     name: record.name,
     capacity: GROUP_CAPACITY,
+    kind: record.kind,
     createdBy: record.teacherId,
     memberIds: record.memberIds,
   }
@@ -70,6 +78,9 @@ export class GroupsService {
     }
     if (added === 'no_user') {
       throw new HttpException({ error: 'user_not_found' }, 404)
+    }
+    if (added === 'consent_required') {
+      throw new HttpException({ error: 'guardian_consent_required' }, 409)
     }
     if (added === 'full') {
       throw new HttpException({ error: 'group_full' }, 409)

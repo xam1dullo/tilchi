@@ -41,7 +41,7 @@ function AppLayout() {
           <PreviewSwitch role={previewRole ?? session.role} copy={copy} />
         ) : null}
         <div className="user-menu">
-          <span>{session.role}</span>
+          <span>{copy[roleKey[session.role]]}</span>
           <button
             type="button"
             onClick={() => {
@@ -57,7 +57,7 @@ function AppLayout() {
           </button>
         </div>
       </header>
-      <nav className="app-nav" aria-label={copy.groups}>
+      <nav className="app-nav" aria-label={copy.navMain}>
         {items.map((item) => (
           <Link
             key={item.id}
@@ -72,7 +72,7 @@ function AppLayout() {
       <div className="app-main">
         <Outlet />
       </div>
-      <nav className="app-sheet" aria-label={copy.groups}>
+      <nav className="app-sheet" aria-label={copy.navMain}>
         {items.map((item) => (
           <Link key={item.id} to={item.to} search={search}>
             {copy.groups}
@@ -83,9 +83,15 @@ function AppLayout() {
   )
 }
 
+const roleKey = {
+  learner: 'roleLearner',
+  teacher: 'roleTeacher',
+  admin: 'roleAdmin',
+} as const
+
 export function SkeletonRows() {
   return (
-    <div className="rows" aria-hidden="true">
+    <div className="rows" aria-busy="true">
       <div className="row skeleton" />
       <div className="row skeleton" />
       <div className="row skeleton" />
