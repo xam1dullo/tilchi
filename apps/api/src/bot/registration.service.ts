@@ -2,7 +2,7 @@ import { setTimeout as sleep } from 'node:timers/promises'
 import { Inject, Injectable } from '@nestjs/common'
 import { AuthService } from '../auth/auth.service'
 import { KV, type Kv } from '../redis/kv'
-import { UsersRepository } from '../users/users.repository'
+import { DeletedUserError, UsersRepository } from '../users/users.repository'
 import { BotApi, adminChatIds, publicAppUrl } from './bot-api'
 import {
   alreadyRegistered,
@@ -59,13 +59,20 @@ export class RegistrationService {
 
   async consent(action: Of<'consent'>): Promise<Reply> {
     const pending = await this.pending(action.telegramUserId)
-    const reg = await this.users.recordConsent({
-      telegramUserId: action.telegramUserId,
-      version: CONSENT_VERSION,
-      now: new Date(),
-      source: pending?.source ?? null,
-      level: pending?.level ?? null,
-    })
+    let reg: Registration
+    try {
+      reg = await this.users.recordConsent({
+        telegramUserId: action.telegramUserId,
+        version: CONSENT_VERSION,
+        now: new Date(),
+        source: pending?.source ?? null,
+        level: pending?.level ?? null,
+      })
+    } catch (error) {
+      // A deleted account stays deleted; the bot says nothing.
+      if (error instanceof DeletedUserError) return null
+      throw error
+    }
     await this.remember(action.telegramUserId, pending ?? NO_PENDING)
     const field = nextField(reg)
     return field

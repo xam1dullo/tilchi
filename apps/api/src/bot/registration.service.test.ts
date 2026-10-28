@@ -191,6 +191,14 @@ describeWithDatabase('RegistrationService', (current) => {
     expect(JSON.stringify(reply)).toContain('consent:yes')
   })
 
+  it('stays silent for a deleted account', async () => {
+    await complete()
+    await current()
+      .database.db.update(usersTable)
+      .set({ deletedAt: new Date() })
+    expect(await say(tap('consent:yes'))).toBeNull()
+  })
+
   it('answers in the language of the telegram client', async () => {
     const reply = await say({
       message: {
@@ -220,6 +228,9 @@ describeWithDatabase('RegistrationService', (current) => {
     const reply = await say(message('/revoke'))
     expect(reply?.text).toContain('(2)')
     expect(await kv.get('session:cache:h1')).toBeNull()
+    // the shared marker makes a cold read that is mid-flight uncache the session
+    expect(await kv.get('session:revoked:h1')).not.toBeNull()
+    expect(await kv.get('session:revoked:h2')).not.toBeNull()
     for (const tokenHash of ['h1', 'h2']) {
       expect(await sessions.touch(tokenHash, new Date(), 1000)).toBeNull()
     }
