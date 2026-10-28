@@ -9,6 +9,7 @@ import { GroupsRepository } from '../groups/groups.repository'
 import { GroupsService } from '../groups/groups.service'
 import { LessonsRepository } from '../lessons/lessons.repository'
 import { LessonsService } from '../lessons/lessons.service'
+import { actorOf } from '../test/actors'
 import { describeWithDatabase } from '../test/postgres'
 import { UsersRepository } from '../users/users.repository'
 import { AttendanceRepository } from './attendance.repository'
@@ -30,7 +31,7 @@ describeWithDatabase('LivekitWebhook', (current) => {
     const groups = new GroupsService(new GroupsRepository(db))
     const lessons = new LessonsService(groups, new LessonsRepository(db))
     const { lesson } = await seedClassroom({ users, groups, lessons })
-    await lessons.start({ lessonId: lesson.id, role: 'teacher' })
+    await lessons.start({ lessonId: lesson.id, actor: actorOf('admin') })
     return {
       hook: new LivekitWebhook(new AttendanceRepository(db)),
       kinds: async () =>

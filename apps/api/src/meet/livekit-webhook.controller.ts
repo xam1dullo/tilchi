@@ -8,6 +8,7 @@ import {
 } from '@nestjs/common'
 import type { Request } from 'express'
 import { LivekitWebhook } from './livekit-webhook'
+import { Public } from '../http/actor'
 
 const MAX_BODY_BYTES = 256 * 1024
 
@@ -28,6 +29,7 @@ async function readRaw(req: Request) {
   return Buffer.concat(chunks).toString('utf8')
 }
 
+@Public()
 @Controller('api/meet')
 export class LivekitWebhookController {
   constructor(private readonly webhook: LivekitWebhook) {}

@@ -23,6 +23,7 @@ import {
   handoffCookieHeader,
   readCookie,
 } from './policy'
+import { Public } from '../http/actor'
 
 function refuseBearer(authorization: string | undefined) {
   if (bearerSessionRejected(authorization)) {
@@ -44,6 +45,7 @@ function field(body: unknown, name: string) {
   return typeof value === 'string' ? value : ''
 }
 
+@Public()
 @Controller('auth')
 export class AuthController {
   constructor(private readonly auth: AuthService) {}

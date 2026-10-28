@@ -7,7 +7,8 @@ import { GroupsRepository } from '../groups/groups.repository'
 import { LessonsRepository } from '../lessons/lessons.repository'
 import { DEMO_LEARNER, DEMO_TEACHER } from '../demo/policy'
 import { seedClassroom } from '../demo/seed'
-import type { Actor } from '../groups/access'
+import type { Actor } from '../authz/policy'
+import { actorOf } from '../test/actors'
 import { GroupsService } from '../groups/groups.service'
 import { LessonsService } from '../lessons/lessons.service'
 import { AttendanceRepository } from './attendance.repository'
@@ -26,7 +27,6 @@ describeWithDatabase('MeetService', (current) => {
     const groups = new GroupsService(new GroupsRepository(db))
     const lessons = new LessonsService(groups, new LessonsRepository(db))
     const meet = new MeetService(
-      groups,
       lessons,
       new AttendanceRepository(db),
       new RoomAdmin(),
@@ -41,7 +41,7 @@ describeWithDatabase('MeetService', (current) => {
         apiSecret: 'devsecret',
       }),
     ).rejects.toMatchObject({ status: 409 })
-    await lessons.start({ lessonId: lesson.id, role: 'teacher' })
+    await lessons.start({ lessonId: lesson.id, actor: actorOf('admin') })
     const issued = await meet.tokenForLesson({
       lessonId: lesson.id,
       actor: DEMO_LEARNER,
@@ -67,13 +67,12 @@ describeWithDatabase('MeetService', (current) => {
     const groups = new GroupsService(new GroupsRepository(db))
     const lessons = new LessonsService(groups, new LessonsRepository(db))
     const meet = new MeetService(
-      groups,
       lessons,
       new AttendanceRepository(db),
       new RoomAdmin(),
     )
     const { lesson } = await seedClassroom({ users, groups, lessons })
-    await lessons.start({ lessonId: lesson.id, role: 'teacher' })
+    await lessons.start({ lessonId: lesson.id, actor: actorOf('admin') })
     await expect(
       meet.tokenForLesson({
         lessonId: lesson.id,
@@ -102,7 +101,6 @@ describeWithDatabase('MeetService', (current) => {
     const groups = new GroupsService(new GroupsRepository(db))
     const lessons = new LessonsService(groups, new LessonsRepository(db))
     const meet = new MeetService(
-      groups,
       lessons,
       new AttendanceRepository(db),
       new RoomAdmin(),
@@ -117,7 +115,7 @@ describeWithDatabase('MeetService', (current) => {
     await expect(meet.tokenForLesson(input)).rejects.toMatchObject({
       status: 409,
     })
-    await lessons.start({ lessonId: lesson.id, role: 'teacher' })
+    await lessons.start({ lessonId: lesson.id, actor: actorOf('admin') })
     await meet.tokenForLesson(input)
     const rows = await db.db.select().from(attendanceEvents)
     expect(rows).toHaveLength(1)
@@ -140,7 +138,6 @@ describeWithDatabase('MeetService', (current) => {
     const groups = new GroupsService(new GroupsRepository(db))
     const lessons = new LessonsService(groups, new LessonsRepository(db))
     const meet = new MeetService(
-      groups,
       lessons,
       new AttendanceRepository(db),
       new RoomAdmin(),
@@ -154,7 +151,7 @@ describeWithDatabase('MeetService', (current) => {
         action: 'remove',
       })
     await expect(kick(DEMO_TEACHER)).rejects.toMatchObject({ status: 409 })
-    await lessons.start({ lessonId: lesson.id, role: 'teacher' })
+    await lessons.start({ lessonId: lesson.id, actor: actorOf('admin') })
     await expect(kick(DEMO_LEARNER)).rejects.toMatchObject({ status: 403 })
     await expect(
       kick({ userId: 'stranger', role: 'teacher', name: 'X' }),

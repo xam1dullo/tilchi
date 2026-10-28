@@ -1,17 +1,7 @@
-import {
-  Body,
-  Controller,
-  Get,
-  Headers,
-  HttpException,
-  Param,
-  Post,
-} from '@nestjs/common'
-import { AuthService } from '../auth/auth.service'
-import { PREVIEW_HEADER } from '../demo/policy'
-import { canManageGroup, canSeeGroup, groupView } from '../groups/access'
+import { Body, Controller, Get, Param, Post } from '@nestjs/common'
+import { groupView, lessonView } from '../authz/views'
 import { GroupsService } from '../groups/groups.service'
-import { requireActor } from '../http/actor'
+import { Actor } from '../http/actor'
 import { RoomAdmin } from '../meet/room-admin'
 import { LessonsService } from './lessons.service'
 
@@ -23,194 +13,71 @@ function scheduledAtOf(body: unknown) {
 @Controller('api')
 export class LessonsController {
   constructor(
-    private readonly auth: AuthService,
     private readonly groups: GroupsService,
     private readonly lessons: LessonsService,
     private readonly rooms: RoomAdmin,
   ) {}
 
   @Get('groups/:groupId/lessons')
-  async list(
-    @Param('groupId') groupId: string,
-    @Headers('cookie') cookie: string | undefined,
-    @Headers('authorization') authorization: string | undefined,
-    @Headers(PREVIEW_HEADER) previewRole: string | undefined,
-  ) {
-    await this.visibleGroup(groupId, cookie, authorization, previewRole)
-    return { lessons: await this.lessons.listForGroup(groupId) }
+  async list(@Param('groupId') groupId: string, @Actor() actor: Actor) {
+    const group = await this.groups.visible(actor, groupId)
+    const lessons = await this.lessons.listForGroup(groupId)
+    return {
+      lessons: lessons.map((lesson) => lessonView(actor, group, lesson)),
+    }
   }
 
   @Post('groups/:groupId/lessons')
   async create(
     @Param('groupId') groupId: string,
-    @Headers('cookie') cookie: string | undefined,
-    @Headers('authorization') authorization: string | undefined,
-    @Headers(PREVIEW_HEADER) previewRole: string | undefined,
+    @Actor() actor: Actor,
     @Body() body: unknown,
   ) {
-    const actor = await this.managedGroup(
-      groupId,
-      cookie,
-      authorization,
-      previewRole,
-    )
-    const scheduledAt = scheduledAtOf(body)
     return this.lessons.create({
       groupId,
-      scheduledAt,
-      role: actor.role,
+      scheduledAt: scheduledAtOf(body),
+      actor,
     })
   }
 
   @Get('lessons/:lessonId')
-  async get(
-    @Param('lessonId') lessonId: string,
-    @Headers('cookie') cookie: string | undefined,
-    @Headers('authorization') authorization: string | undefined,
-    @Headers(PREVIEW_HEADER) previewRole: string | undefined,
-  ) {
-    const lesson = await this.lessons.get(lessonId)
-    if (!lesson) throw new HttpException({ error: 'not_found' }, 404)
-    const group = await this.visibleGroup(
-      lesson.groupId,
-      cookie,
-      authorization,
-      previewRole,
-    )
+  async get(@Param('lessonId') lessonId: string, @Actor() actor: Actor) {
+    const { lesson, group } = await this.lessons.visible(actor, lessonId)
     return {
-      lesson,
-      group,
+      lesson: lessonView(actor, group, lesson),
+      group: groupView(actor, group),
       meeting: await this.lessons.meetingForLesson(lesson.id),
     }
   }
 
   @Post('lessons/:lessonId/start')
-  async start(
-    @Param('lessonId') lessonId: string,
-    @Headers('cookie') cookie: string | undefined,
-    @Headers('authorization') authorization: string | undefined,
-    @Headers(PREVIEW_HEADER) previewRole: string | undefined,
-  ) {
-    const { actor } = await this.managedLesson(
-      lessonId,
-      cookie,
-      authorization,
-      previewRole,
-    )
-    return this.lessons.start({ lessonId, role: actor.role })
+  start(@Param('lessonId') lessonId: string, @Actor() actor: Actor) {
+    return this.lessons.start({ lessonId, actor })
   }
 
   @Post('lessons/:lessonId/end')
-  async end(
-    @Param('lessonId') lessonId: string,
-    @Headers('cookie') cookie: string | undefined,
-    @Headers('authorization') authorization: string | undefined,
-    @Headers(PREVIEW_HEADER) previewRole: string | undefined,
-  ) {
-    const { actor } = await this.managedLesson(
-      lessonId,
-      cookie,
-      authorization,
-      previewRole,
-    )
-    const ended = await this.lessons.end({ lessonId, role: actor.role })
+  async end(@Param('lessonId') lessonId: string, @Actor() actor: Actor) {
+    const ended = await this.lessons.end({ lessonId, actor })
     const meeting = await this.lessons.meetingForLesson(lessonId)
     if (meeting) await this.rooms.close(meeting.livekitRoom)
     return ended
   }
 
   @Post('lessons/:lessonId/cancel')
-  async cancel(
-    @Param('lessonId') lessonId: string,
-    @Headers('cookie') cookie: string | undefined,
-    @Headers('authorization') authorization: string | undefined,
-    @Headers(PREVIEW_HEADER) previewRole: string | undefined,
-  ) {
-    const { actor } = await this.managedLesson(
-      lessonId,
-      cookie,
-      authorization,
-      previewRole,
-    )
-    return this.lessons.cancel({ lessonId, role: actor.role })
+  cancel(@Param('lessonId') lessonId: string, @Actor() actor: Actor) {
+    return this.lessons.cancel({ lessonId, actor })
   }
 
   @Post('lessons/:lessonId/reschedule')
-  async reschedule(
+  reschedule(
     @Param('lessonId') lessonId: string,
-    @Headers('cookie') cookie: string | undefined,
-    @Headers('authorization') authorization: string | undefined,
-    @Headers(PREVIEW_HEADER) previewRole: string | undefined,
+    @Actor() actor: Actor,
     @Body() body: unknown,
   ) {
-    const { actor } = await this.managedLesson(
+    return this.lessons.reschedule({
       lessonId,
-      cookie,
-      authorization,
-      previewRole,
-    )
-    const scheduledAt = scheduledAtOf(body)
-    return this.lessons.reschedule({ lessonId, scheduledAt, role: actor.role })
-  }
-
-  private async managedLesson(
-    lessonId: string,
-    cookie: string | undefined,
-    authorization: string | undefined,
-    previewRole: string | undefined,
-  ) {
-    const lesson = await this.lessons.get(lessonId)
-    if (!lesson) throw new HttpException({ error: 'not_found' }, 404)
-    const actor = await this.managedGroup(
-      lesson.groupId,
-      cookie,
-      authorization,
-      previewRole,
-    )
-    return { lesson, actor }
-  }
-
-  private async actor(
-    cookie: string | undefined,
-    authorization: string | undefined,
-    previewRole: string | undefined,
-  ) {
-    return requireActor({
-      auth: this.auth,
-      cookie,
-      authorization,
-      previewRole,
+      scheduledAt: scheduledAtOf(body),
+      actor,
     })
-  }
-
-  private async visibleGroup(
-    groupId: string,
-    cookie: string | undefined,
-    authorization: string | undefined,
-    previewRole: string | undefined,
-  ) {
-    const actor = await this.actor(cookie, authorization, previewRole)
-    const group = await this.groups.get(groupId)
-    if (!group || !canSeeGroup(actor, group)) {
-      throw new HttpException({ error: 'not_found' }, 404)
-    }
-    return groupView(actor, group)
-  }
-
-  private async managedGroup(
-    groupId: string,
-    cookie: string | undefined,
-    authorization: string | undefined,
-    previewRole: string | undefined,
-  ) {
-    const actor = await this.actor(cookie, authorization, previewRole)
-    const group = await this.groups.get(groupId)
-    if (!group || !canSeeGroup(actor, group)) {
-      throw new HttpException({ error: 'not_found' }, 404)
-    }
-    if (!canManageGroup(actor, group)) {
-      throw new HttpException({ error: 'forbidden' }, 403)
-    }
-    return actor
   }
 }

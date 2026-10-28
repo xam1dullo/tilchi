@@ -1,6 +1,7 @@
 import { HttpException, Inject, Injectable } from '@nestjs/common'
 import { uuidv7 } from '../id'
 import type { Role } from '../auth/policy'
+import { type Actor, authorize } from '../authz/policy'
 import {
   type GroupKind,
   type GroupRecord,
@@ -45,21 +46,26 @@ export class GroupsService {
     @Inject(GroupsRepository) private readonly groups: GroupsRepository,
   ) {}
 
-  async create(input: { name: string; actorId: string; role: Role }) {
-    if (input.role !== 'teacher' && input.role !== 'admin') {
-      throw new HttpException({ error: 'forbidden' }, 403)
-    }
+  async create(input: { name: string; actor: Actor }) {
+    authorize(input.actor, 'group.create')
     return this.ensure({
       id: uuidv7(),
       name: input.name,
-      actorId: input.actorId,
+      actorId: input.actor.userId,
     })
   }
 
-  async addMember(input: { groupId: string; userId: string; role: Role }) {
-    if (input.role !== 'admin')
-      throw new HttpException({ error: 'forbidden' }, 403)
+  async addMember(input: { groupId: string; userId: string; actor: Actor }) {
+    authorize(input.actor, 'group.addMember')
     return this.putMember(input.groupId, input.userId)
+  }
+
+  /** The group, for an actor who may see it; 404 otherwise. */
+  async visible(actor: Actor, id: string) {
+    const group = await this.get(id)
+    if (!group) throw new HttpException({ error: 'not_found' }, 404)
+    authorize(actor, 'group.view', group)
+    return group
   }
 
   /** Creates the group with `actorId` as its first member, or returns it as it is. */

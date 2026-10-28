@@ -3,6 +3,7 @@ import type { INestApplication } from '@nestjs/common'
 import { Test } from '@nestjs/testing'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { AppModule } from '../app.module'
+import { PUBLIC } from './actor'
 import { AuthService } from '../auth/auth.service'
 import { Database } from '../db/database'
 import { GroupsService } from '../groups/groups.service'
@@ -36,6 +37,7 @@ type Ctx = { group: string; lesson: string; target: string }
 /** Expected status per caller, in the order of WHO. */
 type Row = {
   name: string
+  handler: string
   method: 'GET' | 'POST'
   /** Lesson state the route needs; a fresh lesson is made per request. */
   lesson?: 'scheduled' | 'live'
@@ -47,12 +49,14 @@ type Row = {
 const ROWS: Row[] = [
   {
     name: 'list groups',
+    handler: 'GroupsController.list',
     method: 'GET',
     path: () => '/api/groups',
     expect: [401, 200, 200, 200, 200, 200],
   },
   {
     name: 'create group',
+    handler: 'GroupsController.create',
     method: 'POST',
     path: () => '/api/groups',
     body: () => ({ name: 'New' }),
@@ -60,12 +64,14 @@ const ROWS: Row[] = [
   },
   {
     name: 'get group',
+    handler: 'GroupsController.get',
     method: 'GET',
     path: (c) => `/api/groups/${c.group}`,
     expect: [401, 200, 404, 200, 404, 200],
   },
   {
     name: 'add member',
+    handler: 'GroupsController.addMember',
     method: 'POST',
     path: (c) => `/api/groups/${c.group}/members`,
     body: (c) => ({ userId: c.target }),
@@ -73,12 +79,14 @@ const ROWS: Row[] = [
   },
   {
     name: 'list lessons',
+    handler: 'LessonsController.list',
     method: 'GET',
     path: (c) => `/api/groups/${c.group}/lessons`,
     expect: [401, 200, 404, 200, 404, 200],
   },
   {
     name: 'create lesson',
+    handler: 'LessonsController.create',
     method: 'POST',
     path: (c) => `/api/groups/${c.group}/lessons`,
     body: () => ({ scheduledAt: '2030-01-01T10:00:00Z' }),
@@ -86,6 +94,7 @@ const ROWS: Row[] = [
   },
   {
     name: 'get lesson',
+    handler: 'LessonsController.get',
     method: 'GET',
     lesson: 'scheduled',
     path: (c) => `/api/lessons/${c.lesson}`,
@@ -93,6 +102,7 @@ const ROWS: Row[] = [
   },
   {
     name: 'start lesson',
+    handler: 'LessonsController.start',
     method: 'POST',
     lesson: 'scheduled',
     path: (c) => `/api/lessons/${c.lesson}/start`,
@@ -100,6 +110,7 @@ const ROWS: Row[] = [
   },
   {
     name: 'end lesson',
+    handler: 'LessonsController.end',
     method: 'POST',
     lesson: 'live',
     path: (c) => `/api/lessons/${c.lesson}/end`,
@@ -107,6 +118,7 @@ const ROWS: Row[] = [
   },
   {
     name: 'cancel lesson',
+    handler: 'LessonsController.cancel',
     method: 'POST',
     lesson: 'scheduled',
     path: (c) => `/api/lessons/${c.lesson}/cancel`,
@@ -114,6 +126,7 @@ const ROWS: Row[] = [
   },
   {
     name: 'reschedule lesson',
+    handler: 'LessonsController.reschedule',
     method: 'POST',
     lesson: 'scheduled',
     path: (c) => `/api/lessons/${c.lesson}/reschedule`,
@@ -122,6 +135,7 @@ const ROWS: Row[] = [
   },
   {
     name: 'join meeting',
+    handler: 'MeetController.livekitToken',
     method: 'POST',
     lesson: 'live',
     path: (c) => `/api/meet/lessons/${c.lesson}/token`,
@@ -129,6 +143,7 @@ const ROWS: Row[] = [
   },
   {
     name: 'mute participant',
+    handler: 'MeetController.moderate',
     method: 'POST',
     lesson: 'live',
     path: (c) => `/api/meet/lessons/${c.lesson}/participants/${c.target}/mute`,
@@ -136,6 +151,7 @@ const ROWS: Row[] = [
   },
   {
     name: 'remove participant',
+    handler: 'MeetController.moderate',
     method: 'POST',
     lesson: 'live',
     path: (c) =>
@@ -144,11 +160,53 @@ const ROWS: Row[] = [
   },
   {
     name: 'meet ticket',
+    handler: 'MeetController.ticket',
     method: 'POST',
     path: () => '/api/meet/ticket',
     expect: [401, 201, 201, 201, 201, 201],
   },
 ]
+
+describe('route coverage', () => {
+  const handlers = (
+    controllers: { name: string; prototype: Record<string, object> }[],
+  ) =>
+    controllers.flatMap((controller) =>
+      Object.getOwnPropertyNames(controller.prototype)
+        .filter((name) => name !== 'constructor')
+        .map((name) => ({
+          id: `${controller.name}.${name}`,
+          isPublic: Boolean(
+            Reflect.getMetadata(PUBLIC, controller) ||
+              Reflect.getMetadata(PUBLIC, controller.prototype[name]),
+          ),
+        })),
+    )
+
+  it('every route is public on purpose or has a row in the matrix', () => {
+    const all = handlers(Reflect.getMetadata('controllers', AppModule))
+    const guarded = all.filter((h) => !h.isPublic).map((h) => h.id)
+    expect(new Set(guarded)).toEqual(new Set(ROWS.map((row) => row.handler)))
+    expect(
+      all
+        .filter((h) => h.isPublic)
+        .map((h) => h.id)
+        .sort(),
+    ).toEqual([
+      'AuthController.confirm',
+      'AuthController.logout',
+      'AuthController.miniapp',
+      'AuthController.session',
+      'AuthController.start',
+      'BotController.register',
+      'BotController.webhook',
+      'DemoController.preview',
+      'HealthController.apiHealth',
+      'HealthController.health',
+      'LivekitWebhookController.receive',
+    ])
+  })
+})
 
 describe.skipIf(!hasTestDatabase)('route x role matrix', () => {
   let db: TestDatabase
@@ -213,7 +271,10 @@ describe.skipIf(!hasTestDatabase)('route x role matrix', () => {
 
   beforeEach(async () => {
     group = (
-      await groups.create({ name: 'G', actorId: ids.owner, role: 'teacher' })
+      await groups.create({
+        name: 'G',
+        actor: { userId: ids.owner, role: 'teacher', name: 'owner' },
+      })
     ).id
     await groups.putMember(group, ids.member)
   })
@@ -250,6 +311,43 @@ describe.skipIf(!hasTestDatabase)('route x role matrix', () => {
       }
     })
   }
+
+  it('tells the web what each caller may do', async () => {
+    const lesson = await freshLesson('scheduled')
+    const detail = async (who: string) => {
+      const res = await fetch(`${base}/api/lessons/${lesson}`, {
+        headers: { cookie: `__Host-tilchi_sid=${who}` },
+      })
+      return (await res.json()) as {
+        lesson: { can: Record<string, boolean> }
+        group: { can: Record<string, boolean> }
+      }
+    }
+    expect((await detail('owner')).lesson.can).toMatchObject({
+      start: true,
+      cancel: true,
+      join: false,
+    })
+    expect((await detail('admin')).group.can).toEqual({
+      createLesson: true,
+      manageMembers: true,
+    })
+    expect((await detail('member')).lesson.can).toEqual({
+      start: false,
+      end: false,
+      cancel: false,
+      reschedule: false,
+      join: false,
+    })
+    await groups.putMember(group, ids.other)
+    expect((await detail('other')).lesson.can.start).toBe(false)
+    const list = await fetch(`${base}/api/groups`, {
+      headers: { cookie: '__Host-tilchi_sid=member' },
+    })
+    expect(((await list.json()) as { can: unknown }).can).toEqual({
+      createGroup: false,
+    })
+  })
 
   it('refuses a bearer token on a protected route', async () => {
     const res = await fetch(`${base}/api/groups`, {

@@ -7,6 +7,7 @@ import { UsersRepository } from '../users/users.repository'
 import { LessonEvents, type LessonEvent } from './lesson-events'
 import { LessonsRepository } from './lessons.repository'
 import { LessonsService } from './lessons.service'
+import { actorOf } from '../test/actors'
 
 const AT = '2026-11-01T09:00:00+05:00'
 
@@ -29,15 +30,26 @@ describeWithDatabase('LessonsService cancel and reschedule', (current) => {
     })
     const group = await groups.create({
       name: 'A1',
-      actorId: teacher.id,
-      role: 'teacher',
+      actor: actorOf('teacher', teacher.id),
     })
     const lesson = await lessons.create({
       groupId: group.id,
       scheduledAt: AT,
-      role: 'teacher',
+      actor: actorOf('admin'),
     })
-    return { lessons, group, lesson, seen }
+    const member = await new UsersRepository(db).ensure({
+      id: uuidv7(),
+      role: 'learner',
+      name: 'L',
+    })
+    await groups.putMember(group.id, member.id)
+    return {
+      lessons,
+      group,
+      lesson,
+      seen,
+      learner: actorOf('learner', member.id),
+    }
   }
 
   it('reschedules only a scheduled lesson and emits one event with both times', async () => {
@@ -45,7 +57,7 @@ describeWithDatabase('LessonsService cancel and reschedule', (current) => {
     const moved = await lessons.reschedule({
       lessonId: lesson.id,
       scheduledAt: '2026-11-02T10:00:00+05:00',
-      role: 'teacher',
+      actor: actorOf('admin'),
     })
     expect(moved.scheduledAt).toBe('2026-11-02T05:00:00.000Z')
     expect(seen).toEqual([
@@ -61,31 +73,31 @@ describeWithDatabase('LessonsService cancel and reschedule', (current) => {
       lessons.reschedule({
         lessonId: lesson.id,
         scheduledAt: 'nope',
-        role: 'teacher',
+        actor: actorOf('admin'),
       }),
     ).rejects.toMatchObject({ status: 400 })
-    await lessons.start({ lessonId: lesson.id, role: 'teacher' })
+    await lessons.start({ lessonId: lesson.id, actor: actorOf('admin') })
     await expect(
       lessons.reschedule({
         lessonId: lesson.id,
         scheduledAt: AT,
-        role: 'teacher',
+        actor: actorOf('admin'),
       }),
     ).rejects.toMatchObject({ status: 409 })
     expect(seen).toHaveLength(1)
   })
 
   it('cancels a scheduled lesson once, refuses a live one, and refuses learners', async () => {
-    const { lessons, lesson, group, seen } = await setup()
+    const { lessons, lesson, group, seen, learner } = await setup()
     await expect(
-      lessons.cancel({ lessonId: lesson.id, role: 'learner' }),
+      lessons.cancel({ lessonId: lesson.id, actor: learner }),
     ).rejects.toMatchObject({ status: 403 })
     const cancelled = await lessons.cancel({
       lessonId: lesson.id,
-      role: 'teacher',
+      actor: actorOf('admin'),
     })
     expect(cancelled.status).toBe('cancelled')
-    await lessons.cancel({ lessonId: lesson.id, role: 'admin' })
+    await lessons.cancel({ lessonId: lesson.id, actor: actorOf('admin') })
     expect(seen).toEqual([
       {
         type: 'lesson.cancelled',
@@ -98,28 +110,28 @@ describeWithDatabase('LessonsService cancel and reschedule', (current) => {
       lessons.reschedule({
         lessonId: lesson.id,
         scheduledAt: AT,
-        role: 'teacher',
+        actor: actorOf('admin'),
       }),
     ).rejects.toMatchObject({ status: 409 })
     await expect(
-      lessons.start({ lessonId: lesson.id, role: 'teacher' }),
+      lessons.start({ lessonId: lesson.id, actor: actorOf('admin') }),
     ).rejects.toMatchObject({ status: 409 })
     const other = await lessons.create({
       groupId: group.id,
       scheduledAt: AT,
-      role: 'teacher',
+      actor: actorOf('admin'),
     })
-    await lessons.start({ lessonId: other.id, role: 'teacher' })
+    await lessons.start({ lessonId: other.id, actor: actorOf('admin') })
     await expect(
-      lessons.cancel({ lessonId: other.id, role: 'teacher' }),
+      lessons.cancel({ lessonId: other.id, actor: actorOf('admin') }),
     ).rejects.toMatchObject({ status: 409 })
   })
 
   it('never lets an End that races behind a Cancel turn it into ended', async () => {
     const { lessons, lesson } = await setup()
     const runs = await Promise.allSettled([
-      lessons.cancel({ lessonId: lesson.id, role: 'teacher' }),
-      lessons.end({ lessonId: lesson.id, role: 'teacher' }),
+      lessons.cancel({ lessonId: lesson.id, actor: actorOf('admin') }),
+      lessons.end({ lessonId: lesson.id, actor: actorOf('admin') }),
     ])
     expect(runs[1]).toMatchObject({ status: 'rejected' })
     expect((await lessons.get(lesson.id))?.status).toBe('cancelled')
