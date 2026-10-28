@@ -51,15 +51,23 @@ export class OutboxWorker
       })
   }
 
-  /** Handles due rows, oldest first, up to one batch. Returns how many. */
-  async drainOnce(now: Date = new Date()): Promise<number> {
+  /**
+   * Handles due rows, oldest first, up to one batch. Returns how many. Without
+   * `now` each row reads the clock itself, so a long batch never works on a
+   * stale time; tests pass a fixed `now`.
+   */
+  async drainOnce(now?: Date): Promise<number> {
     let handled = 0
-    while (
-      handled < BATCH &&
-      (await this.outbox.runNext(now, (row) => this.service.handle(row, now)))
-    ) {
+    while (handled < BATCH && (await this.runOne(now))) {
       handled += 1
     }
     return handled
+  }
+
+  private runOne(fixed?: Date) {
+    const now = fixed ?? new Date()
+    return this.outbox.runNext(now, (row, tx) =>
+      this.service.handle(row, now, tx),
+    )
   }
 }

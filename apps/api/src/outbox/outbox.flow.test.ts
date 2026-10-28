@@ -1,7 +1,14 @@
-import { asc, eq } from 'drizzle-orm'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
+import { asc, eq, sql as sqlRaw } from 'drizzle-orm'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { TelegramError } from '../bot/bot-api'
-import { notifications, outbox, outboxDeliveries } from '../db/schema'
+import {
+  lessons as lessonsTable,
+  notifications,
+  outbox,
+  outboxDeliveries,
+} from '../db/schema'
 import { GroupsRepository } from '../groups/groups.repository'
 import { GroupsService } from '../groups/groups.service'
 import { uuidv7 } from '../id'
@@ -12,6 +19,8 @@ import { actorOf } from '../test/actors'
 import { describeWithDatabase } from '../test/postgres'
 import { SessionsRepository } from '../users/sessions.repository'
 import { UsersRepository } from '../users/users.repository'
+import { LessonsController } from '../lessons/lessons.controller'
+import { LessonsService } from '../lessons/lessons.service'
 import { enqueue, OutboxRepository } from './outbox.repository'
 import { NotificationsRepository } from './notifications.repository'
 import { OutboxService } from './outbox.service'
@@ -29,10 +38,12 @@ describeWithDatabase('outbox', (current) => {
   let sent: Array<{ chat: string; text: string }>
   let failWith: (chat: string) => Error | null
   let rooms: { close: ReturnType<typeof vi.fn> }
+  let beforeSend: (chat: string, text: string) => Promise<void> | undefined
 
   beforeEach(() => {
     sent = []
     failWith = () => null
+    beforeSend = () => undefined
     rooms = { close: vi.fn().mockResolvedValue(undefined) }
     vi.stubEnv('PUBLIC_APP_URL', 'https://app.example')
     vi.stubEnv('ADMIN_CHAT_IDS', '1001,1002')
@@ -48,7 +59,7 @@ describeWithDatabase('outbox', (current) => {
     (await rows()).find((row) => row.event === 'lesson.scheduled')!
   const inboxRows = () => current().database.db.select().from(notifications)
 
-  async function setup() {
+  async function setup(scheduledAt = LESSON_AT) {
     const db = current().database
     const users = new UsersRepository(db)
     const groups = new GroupsService(new GroupsRepository(db))
@@ -56,6 +67,7 @@ describeWithDatabase('outbox', (current) => {
     const repo = new OutboxRepository(db)
     const telegram = {
       send: async (chat: string, text: string) => {
+        await beforeSend(chat, text)
         const error = failWith(chat)
         if (error) throw error
         sent.push({ chat, text })
@@ -85,7 +97,7 @@ describeWithDatabase('outbox', (current) => {
     const lesson = (await lessons.insert({
       id: uuidv7(),
       groupId: group.id,
-      scheduledAt: LESSON_AT,
+      scheduledAt,
     }))!
     return {
       db,
@@ -94,6 +106,7 @@ describeWithDatabase('outbox', (current) => {
       service,
       worker,
       sessions: new SessionsRepository(db),
+      groups,
       group,
       lesson,
       teacher,
@@ -166,7 +179,9 @@ describeWithDatabase('outbox', (current) => {
 
   describe('reminders', () => {
     const reminders = async () =>
-      (await rows()).filter((row) => row.event === 'lesson.reminder')
+      (await rows())
+        .filter((row) => row.event === 'lesson.reminder')
+        .sort((a, b) => a.availableAt.getTime() - b.availableAt.getTime())
 
     it('schedules T-24 h and T-15 min for the lesson time', async () => {
       await setup()
@@ -366,13 +381,15 @@ describeWithDatabase('outbox', (current) => {
       ).toHaveLength(2)
     })
 
-    it('waits as Telegram asks on 429 without counting an attempt', async () => {
+    it('waits as Telegram asks on 429 and counts it as an attempt', async () => {
       const { worker } = await setup()
       failWith = () => new TelegramError('limited', 429, 7)
       await worker.drainOnce(DAY)
       const row = await scheduledRow()
-      expect(row?.attempts).toBe(0)
-      expect(row?.availableAt).toEqual(new Date(DAY.getTime() + 7000))
+      expect(row.attempts).toBe(1)
+      const wait = row.availableAt.getTime() - DAY.getTime()
+      expect(wait).toBeGreaterThanOrEqual(7000)
+      expect(wait).toBeLessThan(9000)
     })
 
     it('skips a chat that blocked the bot instead of retrying it forever', async () => {
@@ -447,6 +464,228 @@ describeWithDatabase('outbox', (current) => {
       )
       expect(mine.map((n) => n.userId)).toEqual([ada.id])
       expect(sent.some((m) => m.text.includes('Seanslar'))).toBe(false)
+    })
+  })
+
+  describe('review fixes', () => {
+    const send429 = (seconds: number) => () =>
+      new TelegramError('slow', 429, seconds)
+
+    it('computes a 429 wait from the clock now, not from a stale drain start', async () => {
+      const { lessons, lesson, worker } = await setup()
+      await lessons.start(lesson.id, new Date())
+      failWith = send429(7)
+      const before = Date.now()
+      // A drain started long ago would have used its old `now`.
+      await worker.drainOnce()
+      const row = (await rows()).find((r) => r.event === 'lesson.started')!
+      expect(row.availableAt.getTime()).toBeGreaterThanOrEqual(before + 7000)
+    })
+
+    it('caps 429 retries: they count as attempts', async () => {
+      const { lessons, lesson, worker } = await setup()
+      await lessons.start(lesson.id, new Date())
+      failWith = send429(1)
+      let now = DAY
+      for (let i = 0; i < MAX_ATTEMPTS; i += 1) {
+        await worker.drainOnce(now)
+        const row = (await rows()).find((r) => r.event === 'lesson.started')!
+        now = new Date(row.availableAt.getTime() + 1)
+      }
+      const row = (await rows()).find((r) => r.event === 'lesson.started')!
+      expect(row.attempts).toBe(MAX_ATTEMPTS)
+      expect(row.failedAt).not.toBeNull()
+    })
+
+    it('judges quiet hours at each send, not at the drain start (21:59:59)', async () => {
+      const { worker } = await setup()
+      beforeSend = async (chat) => {
+        if (chat === '111') await new Promise((r) => setTimeout(r, 1300))
+      }
+      await worker.drainOnce(at('2029-12-31T21:59:59'))
+      // The first chat went out in time; by the second, it is 22:00.
+      expect(sent.map((m) => m.chat)).toEqual(['111'])
+      const row = await scheduledRow()
+      expect(row.sentAt).toBeNull()
+      expect(row.availableAt).toEqual(at('2030-01-01T08:00:00'))
+    })
+
+    describe('24 h reminder wording and quiet hours', () => {
+      const LATE = at('2030-01-02T22:30:00')
+      const reminder24 = async () =>
+        (await rows()).find(
+          (r) => r.event === 'lesson.reminder' && r.payload.lead === '24h',
+        )!
+
+      it('says "bugun" when quiet hours push it to the lesson day', async () => {
+        const { worker } = await setup(LATE)
+        const due = (await reminder24()).availableAt
+        expect(due).toEqual(at('2030-01-01T22:30:00'))
+        await worker.drainOnce(due)
+        expect(sent.some((m) => m.text.includes('Dars ertaga'))).toBe(false)
+        await worker.drainOnce(at('2030-01-02T08:00:00'))
+        expect(sent.some((m) => m.text.includes('Dars bugun'))).toBe(true)
+      })
+
+      it('drops it when it could only go out within 12 h of the lesson', async () => {
+        const { worker } = await setup(LATE)
+        await worker.drainOnce(at('2030-01-02T11:00:00'))
+        expect(sent.some((m) => m.text.includes('Dars ertaga'))).toBe(false)
+        expect(sent.some((m) => m.text.includes('Dars bugun'))).toBe(false)
+        const row = (await rows()).find(
+          (r) => r.event === 'lesson.reminder' && r.payload.lead === '24h',
+        )!
+        expect(row.sentAt).not.toBeNull()
+      })
+    })
+
+    it('skips "lesson started" when the lesson already ended before the drain', async () => {
+      const { lessons, lesson, worker } = await setup()
+      await lessons.start(lesson.id, new Date())
+      await lessons.end(lesson.id, new Date())
+      await worker.drainOnce(DAY)
+      expect(sent.some((m) => m.text.includes('Dars boshlandi'))).toBe(false)
+      const row = (await rows()).find((r) => r.event === 'lesson.started')!
+      expect(row.sentAt).not.toBeNull()
+    })
+
+    it('backfills reminders for lessons scheduled before the outbox, idempotently', async () => {
+      const base = await setup()
+      const db = base.db.db
+      await db.delete(outbox)
+      const hours = (h: number) => new Date(Date.now() + h * 3600_000)
+      const make = async (
+        scheduledAt: Date,
+        status: 'scheduled' | 'cancelled' = 'scheduled',
+      ) => {
+        const id = uuidv7()
+        await db
+          .insert(lessonsTable)
+          .values({ id, groupId: base.group.id, scheduledAt, status })
+        return id
+      }
+      const far = await make(hours(72))
+      await make(hours(1))
+      await make(hours(-5))
+      await make(hours(72), 'cancelled')
+      const sql = readFileSync(
+        join(__dirname, '../../drizzle/0003_backfill_lesson_reminders.sql'),
+        'utf8',
+      )
+      await db.execute(sqlRaw.raw(sql))
+      await db.execute(sqlRaw.raw(sql))
+      // the lesson `setup` made also counts: it is scheduled and has no reminders
+      const all = await rows()
+      expect(
+        all.filter((r) => r.payload.lessonId === base.lesson.id),
+      ).toHaveLength(2)
+      const queued = all.filter((r) => r.payload.lessonId !== base.lesson.id)
+      expect(
+        queued
+          .map(
+            (r) =>
+              `${r.payload.lessonId === far ? 'far' : 'soon'}:${r.payload.lead}`,
+          )
+          .sort(),
+      ).toEqual(['far:15m', 'far:24h', 'soon:15m'])
+      expect(queued.every((r) => r.event === 'lesson.reminder')).toBe(true)
+      const farLesson = (await base.lessons.get(far))!
+      expect(
+        queued.find((r) => r.payload.lessonId === far)?.payload.scheduledAt,
+      ).toBe(farLesson.scheduledAt)
+      // the same keys a new lesson uses, so a later reschedule supersedes them
+      expect(queued[0]?.idempotencyKey).toMatch(
+        /^lesson\.reminder\.(24h|15m):.*:created$/,
+      )
+    })
+
+    it('does not mark rows sent without a bot token', async () => {
+      vi.stubEnv('TELEGRAM_BOT_TOKEN', '')
+      const db = current().database
+      const { BotApi } = await import('../bot/bot-api')
+      const { TelegramSender } = await import('./telegram-sender')
+      const base = await setup()
+      const service = new OutboxService(
+        base.repo,
+        new NotificationsRepository(db),
+        base.lessons,
+        rooms as unknown as RoomAdmin,
+        new TelegramSender(new BotApi()),
+      )
+      await new OutboxWorker(base.repo, service).drainOnce(DAY)
+      const row = await scheduledRow()
+      expect(row.sentAt).toBeNull()
+      expect(row.attempts).toBe(1)
+      expect(row.lastError).toContain('TELEGRAM_BOT_TOKEN')
+    })
+
+    it('End closes the room in the request; a failed close is retried by the drain', async () => {
+      const { groups, lessons, lesson, repo, worker } = await setup()
+      const controller = new LessonsController(
+        groups,
+        new LessonsService(groups, lessons),
+        rooms as unknown as RoomAdmin,
+        repo,
+        worker,
+      )
+      const admin = actorOf('admin')
+      await lessons.start(lesson.id, new Date())
+      await controller.end(lesson.id, admin)
+      expect(rooms.close).toHaveBeenCalledExactlyOnceWith(`lesson-${lesson.id}`)
+      await worker.drainOnce(DAY)
+      expect(rooms.close).toHaveBeenCalledTimes(1)
+
+      // a second lesson whose close fails inside the request
+      const other = (await lessons.insert({
+        id: uuidv7(),
+        groupId: lesson.groupId,
+        scheduledAt: LESSON_AT,
+      }))!
+      await lessons.start(other.id, new Date())
+      rooms.close.mockRejectedValueOnce(new Error('livekit down'))
+      const ended = await controller.end(other.id, admin)
+      expect(ended.status).toBe('ended')
+      // the failed close queued a retry and kicked the drain
+      await vi.waitFor(async () => {
+        const row = (await rows()).find(
+          (r) => r.idempotencyKey === `meeting.close:${other.id}`,
+        )
+        expect(row?.sentAt).not.toBeNull()
+      })
+      expect(rooms.close).toHaveBeenCalledTimes(3)
+      expect(rooms.close).toHaveBeenLastCalledWith(`lesson-${other.id}`)
+    })
+
+    it('a reschedule waits for a reminder being delivered, so no stale reminder goes out', async () => {
+      const { lessons, lesson, worker } = await setup()
+      let release: () => void = () => {}
+      const gate = new Promise<void>((resolve) => {
+        release = resolve
+      })
+      let entered: () => void = () => {}
+      const inside = new Promise<void>((resolve) => {
+        entered = resolve
+      })
+      beforeSend = async (_chat, text) => {
+        if (text.includes('Dars ertaga')) {
+          entered()
+          await gate
+        }
+      }
+      const drain = worker.drainOnce(at('2030-01-01T12:00:00'))
+      await inside
+      let moved = false
+      const move = lessons
+        .reschedule(lesson.id, at('2030-01-05T10:00:00'))
+        .then(() => {
+          moved = true
+        })
+      await new Promise((r) => setTimeout(r, 300))
+      expect(moved).toBe(false)
+      release()
+      await drain
+      await move
+      expect(moved).toBe(true)
     })
   })
 })

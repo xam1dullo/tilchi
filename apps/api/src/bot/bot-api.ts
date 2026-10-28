@@ -47,6 +47,11 @@ export class BotApi implements OnApplicationBootstrap {
 
   /** Throws `TelegramError` on failure; the outbox worker decides about retries. */
   async deliver(chatId: string, text: string) {
+    // Unlike the menu button, a missing token must fail so the row is retried,
+    // never marked sent.
+    if (!process.env.TELEGRAM_BOT_TOKEN) {
+      throw new Error('TELEGRAM_BOT_TOKEN is not set')
+    }
     await this.call('sendMessage', {
       chat_id: chatId,
       text,

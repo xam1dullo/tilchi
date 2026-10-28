@@ -113,13 +113,13 @@ describe.skipIf(!hasTestDatabase)('persisted classroom HTTP', () => {
         preview: 'teacher',
       })
       expect(ended.body.status).toBe('ended')
-      // The room closes from the outbox; the controller kicks a drain.
-      await app.get(OutboxWorker).drainOnce()
-      await vi.waitFor(() =>
-        expect(closeRoom).toHaveBeenCalledExactlyOnceWith(
-          `lesson-${DEMO_LESSON_ID}`,
-        ),
+      // End removes participants inside the request, not later from a queue.
+      expect(closeRoom).toHaveBeenCalledExactlyOnceWith(
+        `lesson-${DEMO_LESSON_ID}`,
       )
+      // The retry row was completed, so a drain does not close it again.
+      await app.get(OutboxWorker).drainOnce()
+      expect(closeRoom).toHaveBeenCalledTimes(1)
     })
 
     it('keeps learners from creating groups or starting lessons', async () => {
