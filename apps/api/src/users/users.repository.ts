@@ -1,11 +1,12 @@
 import { Inject, Injectable } from '@nestjs/common'
 import { and, asc, eq, isNull, lt, or, sql } from 'drizzle-orm'
 import type { Role } from '../auth/policy'
-import type { Field, Registration } from '../bot/registration'
-import { Database } from '../db/database'
+import { type Field, type Registration, nextField } from '../bot/registration'
+import { Database, type Tx, inTransaction } from '../db/database'
 import { users } from '../db/schema'
 import { isUuid } from '../db/uuid'
 import { uuidv7 } from '../id'
+import { enqueue } from '../outbox/outbox.repository'
 
 export type User = {
   id: string
@@ -146,13 +147,15 @@ export class UsersRepository {
   /**
    * Stores one registration answer only while the field is still empty and the
    * update is newer than the last applied one, so a redelivered update is a
-   * no-op: it returns null and the caller does nothing.
+   * no-op: it returns null and the caller does nothing. The answer that
+   * completes the registration queues the admin alert in the same transaction.
    */
   async saveAnswer(
     telegramUserId: string,
     field: Field,
     value: string,
     updateId?: number,
+    outer?: Tx,
   ): Promise<Registration | null> {
     const column = users[field]
     // The update id is stored in the same statement as the answer, so a
@@ -161,15 +164,33 @@ export class UsersRepository {
       updateId === undefined
         ? undefined
         : or(isNull(users.lastUpdateId), lt(users.lastUpdateId, updateId))
-    const [row] = await this.database.db
-      .update(users)
-      .set({
-        [field]: value,
-        ...(updateId === undefined ? {} : { lastUpdateId: updateId }),
-      })
-      .where(and(eq(users.telegramId, telegramUserId), isNull(column), fresh))
-      .returning()
-    return row ? toRegistration(row) : null
+    return inTransaction(this.database.db, outer, async (tx) => {
+      const [row] = await tx
+        .update(users)
+        .set({
+          [field]: value,
+          ...(updateId === undefined ? {} : { lastUpdateId: updateId }),
+        })
+        .where(and(eq(users.telegramId, telegramUserId), isNull(column), fresh))
+        .returning()
+      if (!row) return null
+      const saved = toRegistration(row)
+      if (!nextField(saved)) {
+        // Never includes the phone number.
+        await enqueue(tx, {
+          event: 'registration.completed',
+          payload: {
+            userId: saved.userId,
+            telegramUserId,
+            name: saved.name,
+            level: saved.level,
+            source: saved.source,
+          },
+          idempotencyKey: `registration.completed:${saved.userId}`,
+        })
+      }
+      return saved
+    })
   }
 
   async get(id: string): Promise<User | null> {

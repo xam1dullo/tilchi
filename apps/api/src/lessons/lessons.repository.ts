@@ -1,9 +1,17 @@
 import { Inject, Injectable } from '@nestjs/common'
 import { and, asc, eq, sql } from 'drizzle-orm'
-import { Database } from '../db/database'
+import { Database, type Tx, inTransaction } from '../db/database'
 import { lessons, meetings } from '../db/schema'
 import { isUuid } from '../db/uuid'
 import { uuidv7 } from '../id'
+import {
+  cancelledEntries,
+  endEntries,
+  rescheduledEntries,
+  scheduledEntries,
+  startedEntries,
+} from '../outbox/lesson-entries'
+import { enqueueAll, supersedeReminders } from '../outbox/outbox.repository'
 import { type LessonCommand, lessonTransition } from './lesson-transition'
 
 export type LessonStatus = 'scheduled' | 'live' | 'ended' | 'cancelled'
@@ -67,18 +75,25 @@ function toMeeting(row: typeof meetings.$inferSelect): Meeting {
 export class LessonsRepository {
   constructor(@Inject(Database) private readonly database: Database) {}
 
-  /** Null when the id is taken, so creating the same lesson twice changes nothing. */
-  async insert(input: {
-    id: string
-    groupId: string
-    scheduledAt: Date
-  }): Promise<Lesson | null> {
-    const [row] = await this.database.db
-      .insert(lessons)
-      .values(input)
-      .onConflictDoNothing()
-      .returning()
-    return row ? toLesson(row, null) : null
+  /**
+   * Null when the id is taken, so creating the same lesson twice changes
+   * nothing. The "scheduled" notice and the reminders are queued in the same
+   * transaction (pass `tx` to join a larger one).
+   */
+  async insert(
+    input: { id: string; groupId: string; scheduledAt: Date },
+    tx?: Tx,
+  ): Promise<Lesson | null> {
+    return inTransaction(this.database.db, tx, async (t) => {
+      const [row] = await t
+        .insert(lessons)
+        .values(input)
+        .onConflictDoNothing()
+        .returning()
+      if (!row) return null
+      await enqueueAll(t, scheduledEntries(row, new Date()))
+      return toLesson(row, null)
+    })
   }
 
   async get(id: string): Promise<Lesson | null> {
@@ -105,9 +120,9 @@ export class LessonsRepository {
    * Opens the lesson's one Meeting and marks it live. The lesson row is
    * locked, so starting twice, even at once, ends with the same Meeting.
    */
-  async start(id: string, now: Date): Promise<StartResult> {
+  async start(id: string, now: Date, outer?: Tx): Promise<StartResult> {
     if (!isUuid(id)) return { kind: 'not_found' }
-    return this.database.db.transaction(async (tx) => {
+    return inTransaction(this.database.db, outer, async (tx) => {
       const [lesson] = await tx
         .select()
         .from(lessons)
@@ -133,6 +148,7 @@ export class LessonsRepository {
               .where(eq(lessons.id, id))
               .returning()
           : [lesson]
+      if (step.kind === 'next') await enqueueAll(tx, startedEntries(live))
       const [meeting] = await tx
         .select()
         .from(meetings)
@@ -146,22 +162,27 @@ export class LessonsRepository {
   }
 
   /** Cancels a scheduled lesson. Cancelling a cancelled one changes nothing. */
-  async cancel(id: string, now: Date): Promise<ChangeResult> {
-    return this.change(id, { type: 'cancel' }, now)
+  async cancel(id: string, now: Date, tx?: Tx): Promise<ChangeResult> {
+    return this.change(id, { type: 'cancel' }, now, tx)
   }
 
   /** Moves a lesson that is still scheduled; any other status is a conflict. */
-  async reschedule(id: string, scheduledAt: Date): Promise<ChangeResult> {
-    return this.change(id, { type: 'reschedule', scheduledAt }, new Date())
+  async reschedule(
+    id: string,
+    scheduledAt: Date,
+    tx?: Tx,
+  ): Promise<ChangeResult> {
+    return this.change(id, { type: 'reschedule', scheduledAt }, new Date(), tx)
   }
 
   private async change(
     id: string,
     command: LessonCommand,
     now: Date,
+    outer?: Tx,
   ): Promise<ChangeResult> {
     if (!isUuid(id)) return { kind: 'not_found' }
-    return this.database.db.transaction(async (tx) => {
+    return inTransaction(this.database.db, outer, async (tx) => {
       const [lesson] = await tx
         .select()
         .from(lessons)
@@ -178,6 +199,15 @@ export class LessonsRepository {
         .set(step.patch)
         .where(eq(lessons.id, id))
         .returning()
+      // Reminders for the old time are retired and the new ones queued,
+      // under the same row lock, so no stale reminder can fire afterwards.
+      await supersedeReminders(tx, id, now)
+      await enqueueAll(
+        tx,
+        command.type === 'cancel'
+          ? cancelledEntries(row)
+          : rescheduledEntries(row, lesson.scheduledAt, now),
+      )
       return {
         kind: 'changed',
         lesson: toLesson(row, null),
@@ -187,12 +217,12 @@ export class LessonsRepository {
   }
 
   /**
-   * Ends a live lesson and closes its Meeting, keeping the first end time.
+   * Ends a live lesson and closes its Meeting (the LiveKit room closes via the outbox), keeping the first end time.
    * A lesson that is scheduled or cancelled is a conflict, never overwritten.
    */
-  async end(id: string, now: Date): Promise<EndResult> {
+  async end(id: string, now: Date, outer?: Tx): Promise<EndResult> {
     if (!isUuid(id)) return { kind: 'not_found' }
-    return this.database.db.transaction(async (tx) => {
+    return inTransaction(this.database.db, outer, async (tx) => {
       const [lesson] = await tx
         .select()
         .from(lessons)
@@ -215,7 +245,9 @@ export class LessonsRepository {
           closedAt: sql`coalesce(${meetings.closedAt}, ${now.toISOString()}::timestamptz)`,
         })
         .where(eq(meetings.lessonId, id))
-        .returning({ id: meetings.id })
+        .returning({ id: meetings.id, room: meetings.livekitRoom })
+      // The room closes from the outbox, so a failed LiveKit call is retried.
+      if (meeting) await enqueueAll(tx, endEntries(id, meeting.room))
       return { kind: 'ended', lesson: toLesson(ended, meeting?.id ?? null) }
     })
   }

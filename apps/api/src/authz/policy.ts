@@ -62,3 +62,16 @@ export function authorize(actor: Actor, action: Action, group?: GroupScope) {
     throw new HttpException({ error: 'forbidden' }, 403)
   }
 }
+
+/**
+ * A notification belongs to one user. Nobody else reads or marks it, admins
+ * included, and its existence stays private: anyone else gets a 404.
+ */
+export function authorizeNotification(
+  actor: Actor,
+  notification: { userId: string },
+) {
+  if (notification.userId !== actor.userId) {
+    throw new HttpException({ error: 'not_found' }, 404)
+  }
+}

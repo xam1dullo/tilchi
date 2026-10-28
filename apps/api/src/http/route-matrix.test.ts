@@ -9,6 +9,7 @@ import { Database } from '../db/database'
 import { GroupsService } from '../groups/groups.service'
 import { uuidv7 } from '../id'
 import { LessonsRepository } from '../lessons/lessons.repository'
+import { NotificationsRepository } from '../outbox/notifications.repository'
 import { RoomAdmin } from '../meet/room-admin'
 import { KV, createMemoryKv } from '../redis/kv'
 import { createTestDatabase, hasTestDatabase } from '../test/postgres'
@@ -171,6 +172,20 @@ const ROWS: Row[] = [
     expect: [401, 403, 404, 200, 404, 200],
   },
   {
+    name: 'list notifications',
+    handler: 'NotificationsController.list',
+    method: 'GET',
+    path: () => '/api/notifications',
+    expect: [401, 200, 200, 200, 200, 200],
+  },
+  {
+    name: 'read notification',
+    handler: 'NotificationsController.read',
+    method: 'POST',
+    path: (c) => `/api/notifications/${c.notification}/read`,
+    expect: [401, 201, 404, 404, 404, 404],
+  },
+  {
     name: 'meet ticket',
     handler: 'MeetController.ticket',
     method: 'POST',
@@ -226,6 +241,7 @@ describe.skipIf(!hasTestDatabase)('route x role matrix', () => {
   let base: string
   let lessons: LessonsRepository
   let groups: GroupsService
+  let inbox: NotificationsRepository
   const ids = {} as Record<keyof typeof ROLE | 'target', string>
   let group = ''
 
@@ -262,6 +278,7 @@ describe.skipIf(!hasTestDatabase)('route x role matrix', () => {
     const users = ref.get(UsersRepository)
     lessons = ref.get(LessonsRepository)
     groups = ref.get(GroupsService)
+    inbox = ref.get(NotificationsRepository)
     for (const who of Object.keys(ROLE) as (keyof typeof ROLE)[]) {
       const user = await users.ensure({
         id: uuidv7(),
@@ -300,6 +317,19 @@ describe.skipIf(!hasTestDatabase)('route x role matrix', () => {
     })
     if (state === 'live') await lessons.start(id, new Date())
     return id
+  }
+
+  async function freshNotification() {
+    await inbox.add({
+      outboxId: null,
+      userId: ids.member,
+      event: 'lesson.scheduled',
+      title: 't',
+      body: 'b',
+      link: null,
+    })
+    const [mine] = (await inbox.listFor(ids.member)).notifications
+    return mine.id
   }
 
   for (const row of ROWS) {

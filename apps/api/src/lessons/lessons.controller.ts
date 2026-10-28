@@ -2,7 +2,7 @@ import { Body, Controller, Get, Param, Post } from '@nestjs/common'
 import { groupView, lessonView } from '../authz/views'
 import { GroupsService } from '../groups/groups.service'
 import { Actor } from '../http/actor'
-import { RoomAdmin } from '../meet/room-admin'
+import { OutboxWorker } from '../outbox/outbox.worker'
 import { LessonsService } from './lessons.service'
 
 function scheduledAtOf(body: unknown) {
@@ -15,7 +15,7 @@ export class LessonsController {
   constructor(
     private readonly groups: GroupsService,
     private readonly lessons: LessonsService,
-    private readonly rooms: RoomAdmin,
+    private readonly worker: OutboxWorker,
   ) {}
 
   @Get('groups/:groupId/lessons')
@@ -58,8 +58,8 @@ export class LessonsController {
   @Post('lessons/:lessonId/end')
   async end(@Param('lessonId') lessonId: string, @Actor() actor: Actor) {
     const ended = await this.lessons.end({ lessonId, actor })
-    const meeting = await this.lessons.meetingForLesson(lessonId)
-    if (meeting) await this.rooms.close(meeting.livekitRoom)
+    // The room closes from the outbox (retried on failure); drain it now.
+    this.worker.kick()
     return ended
   }
 

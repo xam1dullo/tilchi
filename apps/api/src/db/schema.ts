@@ -3,11 +3,14 @@ import {
   bigint,
   check,
   index,
+  integer,
+  jsonb,
   pgEnum,
   pgTable,
   primaryKey,
   text,
   timestamp,
+  uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core'
 
@@ -162,5 +165,69 @@ export const attendanceEvents = pgTable(
   },
   (table) => [
     index('attendance_events_lesson_user_idx').on(table.lessonId, table.userId),
+  ],
+)
+
+/**
+ * Transactional outbox: rows are written in the same transaction as the domain
+ * change, then drained by a worker. `idempotencyKey` makes a repeated enqueue
+ * a no-op; a row with `sentAt` or `failedAt` set is finished.
+ */
+export const outbox = pgTable(
+  'outbox',
+  {
+    id: uuid('id').primaryKey(),
+    event: text('event').notNull(),
+    payload: jsonb('payload').$type<Record<string, unknown>>().notNull(),
+    idempotencyKey: text('idempotency_key').notNull().unique(),
+    availableAt: tstz('available_at').notNull().defaultNow(),
+    attempts: integer('attempts').notNull().default(0),
+    lastError: text('last_error'),
+    sentAt: tstz('sent_at'),
+    /** Set when the attempts ran out; the row is never retried again. */
+    failedAt: tstz('failed_at'),
+    createdAt: tstz('created_at').notNull().defaultNow(),
+  },
+  (table) => [
+    index('outbox_pending_idx')
+      .on(table.availableAt)
+      .where(sql`${table.sentAt} is null and ${table.failedAt} is null`),
+  ],
+)
+
+/** One Telegram message already sent for an outbox row: a retry skips it. */
+export const outboxDeliveries = pgTable(
+  'outbox_deliveries',
+  {
+    outboxId: uuid('outbox_id').notNull(),
+    chatId: text('chat_id').notNull(),
+    sentAt: tstz('sent_at').notNull().defaultNow(),
+  },
+  (table) => [primaryKey({ columns: [table.outboxId, table.chatId] })],
+)
+
+/** The web inbox. */
+export const notifications = pgTable(
+  'notifications',
+  {
+    id: uuid('id').primaryKey(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id),
+    event: text('event').notNull(),
+    title: text('title').notNull(),
+    body: text('body').notNull(),
+    link: text('link'),
+    readAt: tstz('read_at'),
+    createdAt: tstz('created_at').notNull().defaultNow(),
+    /** The outbox row that produced it; a redelivered row adds nothing. */
+    outboxId: uuid('outbox_id'),
+  },
+  (table) => [
+    index('notifications_user_created_idx').on(table.userId, table.createdAt),
+    uniqueIndex('notifications_outbox_user_idx').on(
+      table.outboxId,
+      table.userId,
+    ),
   ],
 )

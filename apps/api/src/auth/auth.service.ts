@@ -277,7 +277,9 @@ export class AuthService {
 
   /** Ends every session of a user on every device; returns how many ended. */
   async revokeAll(userId: string, now = Date.now()) {
-    const hashes = await this.sessions.revokeAllForUser(userId, new Date(now))
+    const hashes = await this.sessions.revokeAllForUser(userId, new Date(now), {
+      notify: true,
+    })
     await this.forget(hashes)
     return hashes.length
   }
