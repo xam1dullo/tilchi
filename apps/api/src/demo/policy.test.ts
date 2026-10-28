@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { demoActor, demoEnabled, parsePreviewRole } from './policy'
 
 describe('demoEnabled', () => {
-  it('never seeds or previews in production', () => {
+  it('never seeds or previews outside development and test', () => {
     expect(
       demoEnabled({
         nodeEnv: 'production',
@@ -10,9 +10,23 @@ describe('demoEnabled', () => {
         previewRole: 'teacher',
       }),
     ).toBe(false)
+    expect(
+      demoEnabled({
+        nodeEnv: 'staging',
+        demo: '1',
+        previewRole: 'teacher',
+      }),
+    ).toBe(false)
+    expect(
+      demoEnabled({
+        nodeEnv: undefined,
+        demo: '1',
+        previewRole: 'learner',
+      }),
+    ).toBe(false)
   })
 
-  it('turns on from TILCHI_DEMO or a preview role outside production', () => {
+  it('turns on from TILCHI_DEMO or a preview role in development or test', () => {
     expect(
       demoEnabled({
         nodeEnv: 'development',

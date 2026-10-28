@@ -20,12 +20,12 @@ The session cookie is `__Host-tilchi_sid`. A login needs the Telegram bot to bin
 Local compose is HTTP, so the browser will not store `__Host-tilchi_sid`. The classroom loop uses preview instead:
 
 1. `docker-compose.dev.yml` sets `TILCHI_DEMO=1` and `TILCHI_PREVIEW_ROLE=learner` on Nest and Start.
-2. Nest seeds one teacher, one learner, group `A1 morning`, and a scheduled lesson. It never seeds when `NODE_ENV=production`.
+2. Nest seeds one teacher, one learner, group `A1 morning`, and a scheduled lesson. Seed and preview run only when `NODE_ENV` is `development` or `test`.
 3. Open http://localhost/app. You should see the seeded group, not only the empty state.
 4. Switch roles with `?preview=teacher` or `?preview=learner` (the top-bar control does the same). Teacher can create a group, schedule a lesson, start/end, and open the meeting. Learner can join only while the lesson is live.
 5. `POST /api/meet/lessons/:id/token` mints a LiveKit JWT against compose LiveKit. The meet page connects through nginx `/rtc`. If credentials are missing the API returns `501` with a note.
 
-`TILCHI_PREVIEW_ROLE` and `TILCHI_DEMO` are ignored when `NODE_ENV=production`. Do not set them on the VPS.
+`TILCHI_PREVIEW_ROLE` and `TILCHI_DEMO` are ignored unless `NODE_ENV` is `development` or `test`. Production nginx clears `X-Tilchi-Preview-Role`, and Nest refuses to start if either flag is set. Do not set them on the VPS.
 
 ## Checks
 

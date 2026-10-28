@@ -3,8 +3,18 @@ import {
   isPreviewUser,
   keepAppSearch,
   parsePreviewRole,
+  previewRuntimeAllowed,
   previewUser,
 } from './preview'
+
+describe('previewRuntimeAllowed', () => {
+  it('allows only development and test', () => {
+    expect(previewRuntimeAllowed('development')).toBe(true)
+    expect(previewRuntimeAllowed('test')).toBe(true)
+    expect(previewRuntimeAllowed('production')).toBe(false)
+    expect(previewRuntimeAllowed('staging')).toBe(false)
+  })
+})
 
 describe('parsePreviewRole', () => {
   it('accepts learner and teacher and rejects parent', () => {

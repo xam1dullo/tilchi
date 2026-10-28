@@ -37,6 +37,18 @@ describe('productionConfigErrors', () => {
     expect(errors.join()).toMatch(/LIVEKIT_API_SECRET/)
   })
 
+  it('refuses demo and preview flags in production', () => {
+    const demo = productionConfigErrors({ ...good, TILCHI_DEMO: '1' })
+    expect(demo.join()).toMatch(/TILCHI_DEMO/)
+    const preview = productionConfigErrors({
+      ...good,
+      TILCHI_PREVIEW_ROLE: 'teacher',
+    })
+    expect(preview.join()).toMatch(/TILCHI_PREVIEW_ROLE/)
+    expect(preview.join()).not.toContain('teacher')
+    expect(productionConfigErrors(good)).toEqual([])
+  })
+
   it('never echoes a secret value', () => {
     const secret = 'short-but-secret'
     const errors = productionConfigErrors({

@@ -24,5 +24,11 @@ export function productionConfigErrors(env: Env): string[] {
   if ((env.LIVEKIT_API_SECRET?.trim().length ?? 0) < 32) {
     errors.push('LIVEKIT_API_SECRET must be at least 32 chars')
   }
+  if (env.TILCHI_DEMO?.trim()) {
+    errors.push('TILCHI_DEMO must be unset')
+  }
+  if (env.TILCHI_PREVIEW_ROLE?.trim()) {
+    errors.push('TILCHI_PREVIEW_ROLE must be unset')
+  }
   return errors
 }

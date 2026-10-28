@@ -91,7 +91,7 @@ function MeetJoin({
         )
         if (closed) return
         setRoomName(issued.room)
-        const url = `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}`
+        const url = `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}/rtc`
         const { Room } = await import('livekit-client')
         const room = new Room()
         await room.connect(url, issued.token)

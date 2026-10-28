@@ -1,6 +1,11 @@
 import { createIsomorphicFn } from '@tanstack/react-start'
 import type { AppRole } from './nav'
-import { parsePreviewRole, previewUser, runtimeEnv } from './preview'
+import {
+  parsePreviewRole,
+  previewRuntimeAllowed,
+  previewUser,
+  runtimeEnv,
+} from './preview'
 
 export type SessionUser = {
   userId: string
@@ -39,7 +44,7 @@ export const loadPreviewUser = createIsomorphicFn()
     async (
       override: AppRole | null | undefined,
     ): Promise<SessionUser | null> => {
-      if (runtimeEnv('NODE_ENV') === 'production') return null
+      if (!previewRuntimeAllowed(runtimeEnv('NODE_ENV'))) return null
       const role =
         override ?? parsePreviewRole(runtimeEnv('TILCHI_PREVIEW_ROLE'))
       return role ? previewUser(role) : null

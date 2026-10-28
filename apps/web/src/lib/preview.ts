@@ -11,6 +11,10 @@ export function runtimeEnv(name: string): string | undefined {
   return process.env[name]
 }
 
+export function previewRuntimeAllowed(nodeEnv: string | undefined) {
+  return nodeEnv === 'development' || nodeEnv === 'test'
+}
+
 export function previewUser(role: AppRole): SessionUser {
   if (role === 'teacher')
     return { userId: 'preview-teacher', role, name: 'Demo teacher' }

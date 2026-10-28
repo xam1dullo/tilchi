@@ -66,6 +66,14 @@ describe('resolveActor', () => {
       env: { nodeEnv: 'production', demo: '1', previewRole: 'teacher' },
     })
     expect(prod).toBeNull()
+    const staging = await resolveActor({
+      auth: authWith(null),
+      cookie: undefined,
+      authorization: undefined,
+      previewRole: 'teacher',
+      env: { nodeEnv: 'staging', demo: '1', previewRole: 'teacher' },
+    })
+    expect(staging).toBeNull()
   })
 
   it('rejects a bearer session header', async () => {

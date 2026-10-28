@@ -31,12 +31,16 @@ export function parsePreviewRole(value: unknown): Role | null {
   return null
 }
 
+export function demoRuntimeAllowed(nodeEnv: string | undefined) {
+  return nodeEnv === 'development' || nodeEnv === 'test'
+}
+
 export function demoEnabled(env: {
   nodeEnv: string | undefined
   demo: string | undefined
   previewRole: string | undefined
 }) {
-  if (env.nodeEnv === 'production') return false
+  if (!demoRuntimeAllowed(env.nodeEnv)) return false
   if (env.demo === '1') return true
   return parsePreviewRole(env.previewRole) !== null
 }

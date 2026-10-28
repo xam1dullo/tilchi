@@ -1,3 +1,4 @@
+import { createIsomorphicFn } from '@tanstack/react-start'
 import type { AppRole } from './nav'
 
 export const PREVIEW_HEADER = 'X-Tilchi-Preview-Role'
@@ -20,6 +21,13 @@ export class ApiError extends Error {
   }
 }
 
+const requestCookie = createIsomorphicFn()
+  .server(async (): Promise<string> => {
+    const { getRequestHeader } = await import('@tanstack/react-start/server')
+    return getRequestHeader('cookie') ?? ''
+  })
+  .client((): string => '')
+
 export async function apiFetch<T>(
   path: string,
   init: RequestInit & { previewRole?: AppRole | null } = {},
@@ -34,11 +42,8 @@ export async function apiFetch<T>(
   if (!next.has('content-type') && rest.body) {
     next.set('content-type', 'application/json')
   }
-  if (typeof window === 'undefined') {
-    const { getRequestHeader } = await import('@tanstack/react-start/server')
-    const cookie = getRequestHeader('cookie')
-    if (cookie) next.set('cookie', cookie)
-  }
+  const cookie = await requestCookie()
+  if (cookie) next.set('cookie', cookie)
   const response = await fetch(`${base}${path}`, {
     credentials: 'include',
     ...rest,
