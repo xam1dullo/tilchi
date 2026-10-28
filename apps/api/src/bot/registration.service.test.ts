@@ -1,11 +1,11 @@
+import { eq } from 'drizzle-orm'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { AuthService } from '../auth/auth.service'
-import { users as usersTable } from '../db/schema'
+import { outbox, users as usersTable } from '../db/schema'
 import { createMemoryKv } from '../redis/kv'
 import { describeWithDatabase } from '../test/postgres'
 import { SessionsRepository } from '../users/sessions.repository'
 import { UsersRepository } from '../users/users.repository'
-import type { BotApi } from './bot-api'
 import { RegistrationService } from './registration.service'
 import { parseBotUpdate } from './updates'
 
@@ -26,7 +26,6 @@ const tap = (data: string, id = 99) => ({
 type Reply = { text?: string; reply_markup?: Record<string, unknown> } | null
 
 describeWithDatabase('RegistrationService', (current) => {
-  const sent: Array<{ chat: string; text: string }> = []
   let service: RegistrationService
   let users: UsersRepository
   let sessions: SessionsRepository
@@ -34,18 +33,12 @@ describeWithDatabase('RegistrationService', (current) => {
   const kv = createMemoryKv()
 
   beforeEach(() => {
-    sent.length = 0
     vi.stubEnv('ADMIN_CHAT_IDS', '1001, 1002')
     vi.stubEnv('PUBLIC_APP_URL', 'https://app.example')
     users = new UsersRepository(current().database)
     sessions = new SessionsRepository(current().database)
     auth = new AuthService(kv, users, sessions)
-    const api = {
-      send: async (chat: string, text: string) => {
-        sent.push({ chat, text })
-      },
-    } as BotApi
-    service = new RegistrationService(kv, users, auth, api)
+    service = new RegistrationService(kv, users, auth)
   })
   afterEach(() => vi.unstubAllEnvs())
 
@@ -145,17 +138,27 @@ describeWithDatabase('RegistrationService', (current) => {
     expect(reg?.consentAt).toBeInstanceOf(Date)
   })
 
-  it('alerts each admin chat once per registration, without the phone', async () => {
+  it('queues one admin alert per registration, without the phone', async () => {
+    const alerts = () =>
+      current()
+        .database.db.select()
+        .from(outbox)
+        .where(eq(outbox.event, 'registration.completed'))
+    expect(await alerts()).toHaveLength(0)
     await complete()
-    expect(sent.map((m) => m.chat)).toEqual(['1001', '1002'])
-    expect(sent[0]?.text).toContain('Ada L')
-    expect(sent[0]?.text).toContain('orta')
-    expect(sent[0]?.text).toContain('tg://user?id=99')
-    expect(sent[0]?.text).not.toContain('998')
-    // a redelivered final answer and a repeated /start do not alert again
+    const [row] = await alerts()
+    expect(row?.payload).toEqual({
+      userId: expect.any(String),
+      telegramUserId: '99',
+      name: 'Ada L',
+      level: 'orta',
+      source: null,
+    })
+    expect(JSON.stringify(row?.payload)).not.toContain('998')
+    // a redelivered final answer and a repeated /start do not queue another
     await say(message('IELTS 7'))
     await say(message('/start'))
-    expect(sent).toHaveLength(2)
+    expect(await alerts()).toHaveLength(1)
   })
 
   it('treats a registered learner as registered, even after a repeated consent tap', async () => {
@@ -164,7 +167,6 @@ describeWithDatabase('RegistrationService', (current) => {
     expect(again?.text).toContain('allaqachon')
     const tapped = await say(tap('consent:yes'))
     expect(tapped?.text).toContain('allaqachon')
-    expect(sent).toHaveLength(2)
   })
 
   it('resumes with the next unanswered prompt', async () => {

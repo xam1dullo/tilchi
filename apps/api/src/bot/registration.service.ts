@@ -3,7 +3,7 @@ import { Inject, Injectable } from '@nestjs/common'
 import { AuthService } from '../auth/auth.service'
 import { KV, type Kv } from '../redis/kv'
 import { DeletedUserError, UsersRepository } from '../users/users.repository'
-import { BotApi, adminChatIds, publicAppUrl } from './bot-api'
+import { publicAppUrl } from './bot-api'
 import {
   alreadyRegistered,
   consentPrompt,
@@ -41,7 +41,6 @@ export class RegistrationService {
     @Inject(KV) private readonly kv: Kv,
     @Inject(UsersRepository) private readonly users: UsersRepository,
     @Inject(AuthService) private readonly auth: AuthService,
-    @Inject(BotApi) private readonly api: BotApi,
   ) {}
 
   async start(action: Of<'start_registration'>): Promise<Reply> {
@@ -117,7 +116,6 @@ export class RegistrationService {
     const following = nextField(saved)
     if (following) return fieldPrompt(action.chatId, action.lang, following)
     await this.kv.del(stateKey(action.telegramUserId))
-    await this.alertAdmins(action.telegramUserId, saved)
     return doneNotice(action.chatId, action.lang, publicAppUrl())
   }
 
@@ -125,18 +123,6 @@ export class RegistrationService {
     const user = await this.users.registration(action.telegramUserId)
     const count = user ? await this.auth.revokeAll(user.userId) : 0
     return revokedNotice(action.chatId, action.lang, count)
-  }
-
-  /** Never includes the phone number. */
-  private async alertAdmins(telegramUserId: string, reg: Registration) {
-    const text = [
-      'New registration',
-      `Name: ${reg.name}`,
-      `Level: ${reg.level}`,
-      `Source: ${reg.source ?? 'direct'}`,
-      `Chat: tg://user?id=${telegramUserId}`,
-    ].join('\n')
-    await Promise.all(adminChatIds().map((id) => this.api.send(id, text)))
   }
 
   private remember(telegramUserId: string, pending: Pending) {

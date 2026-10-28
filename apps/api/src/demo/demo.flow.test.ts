@@ -5,6 +5,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import { AppModule } from '../app.module'
 import { Database } from '../db/database'
 import { RoomAdmin } from '../meet/room-admin'
+import { OutboxWorker } from '../outbox/outbox.worker'
 import {
   createTestDatabase,
   hasTestDatabase,
@@ -112,8 +113,12 @@ describe.skipIf(!hasTestDatabase)('persisted classroom HTTP', () => {
         preview: 'teacher',
       })
       expect(ended.body.status).toBe('ended')
-      expect(closeRoom).toHaveBeenCalledExactlyOnceWith(
-        `lesson-${DEMO_LESSON_ID}`,
+      // The room closes from the outbox; the controller kicks a drain.
+      await app.get(OutboxWorker).drainOnce()
+      await vi.waitFor(() =>
+        expect(closeRoom).toHaveBeenCalledExactlyOnceWith(
+          `lesson-${DEMO_LESSON_ID}`,
+        ),
       )
     })
 

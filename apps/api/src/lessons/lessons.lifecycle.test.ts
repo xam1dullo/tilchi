@@ -1,10 +1,11 @@
+import { asc, inArray } from 'drizzle-orm'
 import { expect, it } from 'vitest'
 import { GroupsRepository } from '../groups/groups.repository'
 import { GroupsService } from '../groups/groups.service'
 import { uuidv7 } from '../id'
 import { describeWithDatabase } from '../test/postgres'
 import { UsersRepository } from '../users/users.repository'
-import { LessonEvents, type LessonEvent } from './lesson-events'
+import { outbox } from '../db/schema'
 import { LessonsRepository } from './lessons.repository'
 import { LessonsService } from './lessons.service'
 import { actorOf } from '../test/actors'
@@ -15,14 +16,20 @@ describeWithDatabase('LessonsService cancel and reschedule', (current) => {
   const setup = async () => {
     const db = current().database
     const groups = new GroupsService(new GroupsRepository(db))
-    const events = new LessonEvents()
-    const seen: LessonEvent[] = []
-    events.on((event) => seen.push(event))
-    const lessons = new LessonsService(
-      groups,
-      new LessonsRepository(db),
-      events,
-    )
+    const lessons = new LessonsService(groups, new LessonsRepository(db))
+    // The notices are outbox rows now; `seen` reads the change events back.
+    const seen = {
+      async changes() {
+        const rows = await db.db
+          .select()
+          .from(outbox)
+          .where(
+            inArray(outbox.event, ['lesson.cancelled', 'lesson.rescheduled']),
+          )
+          .orderBy(asc(outbox.createdAt), asc(outbox.id))
+        return rows.map((row) => ({ event: row.event, ...row.payload }))
+      },
+    }
     const teacher = await new UsersRepository(db).ensure({
       id: uuidv7(),
       role: 'teacher',
@@ -60,9 +67,9 @@ describeWithDatabase('LessonsService cancel and reschedule', (current) => {
       actor: actorOf('admin'),
     })
     expect(moved.scheduledAt).toBe('2026-11-02T05:00:00.000Z')
-    expect(seen).toEqual([
+    expect(await seen.changes()).toEqual([
       {
-        type: 'lesson.rescheduled',
+        event: 'lesson.rescheduled',
         lessonId: lesson.id,
         groupId: group.id,
         scheduledAt: '2026-11-02T05:00:00.000Z',
@@ -84,7 +91,7 @@ describeWithDatabase('LessonsService cancel and reschedule', (current) => {
         actor: actorOf('admin'),
       }),
     ).rejects.toMatchObject({ status: 409 })
-    expect(seen).toHaveLength(1)
+    expect(await seen.changes()).toHaveLength(1)
   })
 
   it('cancels a scheduled lesson once, refuses a live one, and refuses learners', async () => {
@@ -98,9 +105,9 @@ describeWithDatabase('LessonsService cancel and reschedule', (current) => {
     })
     expect(cancelled.status).toBe('cancelled')
     await lessons.cancel({ lessonId: lesson.id, actor: actorOf('admin') })
-    expect(seen).toEqual([
+    expect(await seen.changes()).toEqual([
       {
-        type: 'lesson.cancelled',
+        event: 'lesson.cancelled',
         lessonId: lesson.id,
         groupId: group.id,
         scheduledAt: '2026-11-01T04:00:00.000Z',
