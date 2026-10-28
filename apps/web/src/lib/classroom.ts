@@ -44,3 +44,14 @@ export function formatLessonTime(iso: string, locale: string) {
     timeStyle: 'short',
   }).format(date)
 }
+
+/**
+ * Reads a `datetime-local` value as Asia/Tashkent wall time whatever the
+ * device zone is. Tashkent is a fixed UTC+5 (no DST), so a literal offset
+ * is exact. Null when the value is not a complete date and time.
+ */
+export function tashkentInputToIso(value: string) {
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?$/.test(value)) return null
+  const date = new Date(`${value}${value.length === 16 ? ':00' : ''}+05:00`)
+  return Number.isNaN(date.getTime()) ? null : date.toISOString()
+}
