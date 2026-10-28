@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common'
 import { and, asc, eq, isNull, lte, sql } from 'drizzle-orm'
-import { Database, type Executor } from '../db/database'
+import { Database, type Executor, type Tx } from '../db/database'
 import {
   attendanceEvents,
   groupMembers,
@@ -64,7 +64,10 @@ export async function supersedeReminders(
 }
 
 /** What handling a claimed row decided: finished, or try again at a later time. */
-export type Outcome = { kind: 'sent' } | { kind: 'defer'; until: Date }
+export type Outcome =
+  | { kind: 'sent' }
+  /** `attempt`: the wait is a failure that counts towards the attempt cap. */
+  | { kind: 'defer'; until: Date; attempt?: boolean }
 
 @Injectable()
 export class OutboxRepository {
@@ -75,11 +78,11 @@ export class OutboxRepository {
    * workers never take the same row), runs `handle` on it, and records the
    * outcome in the same transaction. A throw counts as a failed attempt: the
    * row is retried with exponential backoff until the attempts run out.
-   * Returns false when nothing was due.
+   * Returns false when nothing was due. `handle` gets the claim transaction.
    */
   async runNext(
     now: Date,
-    handle: (row: OutboxRow) => Promise<Outcome>,
+    handle: (row: OutboxRow, tx: Tx) => Promise<Outcome>,
   ): Promise<boolean> {
     return this.database.db.transaction(async (tx) => {
       const [row] = await tx
@@ -97,30 +100,59 @@ export class OutboxRepository {
         .for('update', { skipLocked: true })
       if (!row) return false
       try {
-        const outcome = await handle(row)
-        await tx
-          .update(outbox)
-          .set(
-            outcome.kind === 'sent'
-              ? { sentAt: now, lastError: null }
-              : { availableAt: outcome.until },
-          )
-          .where(eq(outbox.id, row.id))
+        const outcome = await handle(row, tx)
+        if (outcome.kind === 'sent') {
+          await tx
+            .update(outbox)
+            .set({ sentAt: now, lastError: null })
+            .where(eq(outbox.id, row.id))
+        } else if (outcome.attempt) {
+          await this.fail(tx, row, now, 'rate limited', outcome.until)
+        } else {
+          await tx
+            .update(outbox)
+            .set({ availableAt: outcome.until })
+            .where(eq(outbox.id, row.id))
+        }
       } catch (error) {
-        const attempts = row.attempts + 1
-        await tx
-          .update(outbox)
-          .set({
-            attempts,
-            lastError: String((error as Error).message ?? error).slice(0, 500),
-            ...(isExhausted(attempts)
-              ? { failedAt: now }
-              : { availableAt: new Date(now.getTime() + backoffMs(attempts)) }),
-          })
-          .where(eq(outbox.id, row.id))
+        await this.fail(tx, row, now, String((error as Error).message ?? error))
       }
       return true
     })
+  }
+
+  /** Counts a failed attempt: retry at `retryAt` (or with backoff), or give up. */
+  private async fail(
+    tx: Tx,
+    row: OutboxRow,
+    now: Date,
+    message: string,
+    retryAt?: Date,
+  ) {
+    const attempts = row.attempts + 1
+    await tx
+      .update(outbox)
+      .set({
+        attempts,
+        lastError: message.slice(0, 500),
+        ...(isExhausted(attempts)
+          ? { failedAt: now }
+          : {
+              availableAt:
+                retryAt ?? new Date(now.getTime() + backoffMs(attempts)),
+            }),
+      })
+      .where(eq(outbox.id, row.id))
+  }
+
+  /** Marks a row done when its work was already done inline (idempotent). */
+  async complete(idempotencyKey: string, now = new Date()) {
+    await this.database.db
+      .update(outbox)
+      .set({ sentAt: now })
+      .where(
+        and(eq(outbox.idempotencyKey, idempotencyKey), isNull(outbox.sentAt)),
+      )
   }
 
   /** The group's members with their Telegram ids; the teacher is one of them. */

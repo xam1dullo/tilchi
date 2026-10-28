@@ -12,7 +12,20 @@ export function tashkentTime(iso: string | undefined) {
   return `${pad(d.getUTCDate())}.${pad(d.getUTCMonth() + 1)} ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`
 }
 
-type Payload = Partial<LessonPayload> & Record<string, unknown>
+type Payload = Partial<LessonPayload> & Record<string, unknown> & { at?: Date }
+
+const tashkentDay = (d: Date) =>
+  new Date(d.getTime() + TASHKENT_OFFSET_MS).toISOString().slice(0, 10)
+
+/** "ertaga" only while the lesson really is on another day than the send time. */
+const reminderTitle = (p: Payload) => {
+  if (p.lead === '15m') return 'Dars 15 daqiqadan so‘ng'
+  const sameDay =
+    p.at &&
+    p.scheduledAt &&
+    tashkentDay(p.at) === tashkentDay(new Date(p.scheduledAt))
+  return sameDay ? 'Dars bugun' : 'Dars ertaga'
+}
 
 const groupLink = (p: Payload) =>
   p.groupId ? `/app/groups/${p.groupId}` : null
@@ -30,7 +43,7 @@ const RENDER: Partial<Record<OutboxEvent, (p: Payload) => Message>> = {
     link: groupLink(p),
   }),
   'lesson.reminder': (p) => ({
-    title: p.lead === '15m' ? 'Dars 15 daqiqadan so‘ng' : 'Dars ertaga',
+    title: reminderTitle(p),
     body: `Dars ${when(p)} da boshlanadi.`,
     link: groupLink(p),
   }),
@@ -66,10 +79,12 @@ const RENDER: Partial<Record<OutboxEvent, (p: Payload) => Message>> = {
   }),
 }
 
+/** `at` is the send time; it only changes the wording of the 24 h reminder. */
 export const renderMessage = (
   event: OutboxEvent,
   payload: Record<string, unknown>,
-): Message | null => RENDER[event]?.(payload as Payload) ?? null
+  at?: Date,
+): Message | null => RENDER[event]?.({ ...payload, at } as Payload) ?? null
 
 /** Telegram text: title, body, and the app link when the public app url is known. */
 export function telegramText(message: Message, appUrl: string | undefined) {

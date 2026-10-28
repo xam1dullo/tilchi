@@ -96,9 +96,10 @@ export class LessonsRepository {
     })
   }
 
-  async get(id: string): Promise<Lesson | null> {
+  /** With `tx`, the lesson row is share-locked until that transaction ends. */
+  async get(id: string, tx?: Tx): Promise<Lesson | null> {
     if (!isUuid(id)) return null
-    return (await this.select(eq(lessons.id, id)))[0] ?? null
+    return (await this.select(eq(lessons.id, id), tx))[0] ?? null
   }
 
   /** In time order, which is also the order the web page shows them. */
@@ -252,13 +253,18 @@ export class LessonsRepository {
     })
   }
 
-  private async select(where: ReturnType<typeof and>): Promise<Lesson[]> {
-    const rows = await this.database.db
+  private async select(
+    where: ReturnType<typeof and>,
+    tx?: Tx,
+  ): Promise<Lesson[]> {
+    const query = (tx ?? this.database.db)
       .select({ lesson: lessons, meetingId: meetings.id })
       .from(lessons)
       .leftJoin(meetings, eq(meetings.lessonId, lessons.id))
       .where(where)
       .orderBy(asc(lessons.scheduledAt), asc(lessons.id))
+      .$dynamic()
+    const rows = await (tx ? query.for('share', { of: lessons }) : query)
     return rows.map((row) => toLesson(row.lesson, row.meetingId))
   }
 }
