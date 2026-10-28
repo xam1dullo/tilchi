@@ -1,5 +1,48 @@
 import { describe, expect, it } from 'vitest'
-import { databaseUrl, productionConfigErrors } from './config'
+import {
+  databaseUrl,
+  productionConfigErrors,
+  readBootstrapConfig,
+} from './config'
+
+describe('readBootstrapConfig', () => {
+  it('defaults to port 3001 and parses a configured port', () => {
+    expect(readBootstrapConfig({})).toEqual({
+      ok: true,
+      config: { port: 3001 },
+    })
+    expect(readBootstrapConfig({ PORT: '8080' })).toEqual({
+      ok: true,
+      config: { port: 8080 },
+    })
+  })
+
+  it('rejects invalid listen ports without echoing their values', () => {
+    for (const PORT of [
+      '',
+      ' ',
+      '0',
+      '-1',
+      '65536',
+      '1.5',
+      'abc',
+      '1e3',
+      '0x50',
+    ]) {
+      expect(readBootstrapConfig({ PORT })).toEqual({
+        ok: false,
+        errors: ['PORT must be an integer between 1 and 65535'],
+      })
+    }
+  })
+
+  it('keeps all production validation before bootstrap', () => {
+    const result = readBootstrapConfig({ NODE_ENV: 'production' })
+    expect(result.ok).toBe(false)
+    if (!result.ok)
+      expect(result.errors.join()).toContain('TELEGRAM_WEBHOOK_SECRET')
+  })
+})
 
 const good = {
   NODE_ENV: 'production',
