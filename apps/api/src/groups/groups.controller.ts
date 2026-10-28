@@ -13,7 +13,10 @@ export class GroupsController {
     const groups = await this.groups.listForUser(actor.userId, actor.role)
     return {
       groups: groups.map((group) => groupView(actor, group)),
-      can: { createGroup: can(actor, 'group.create') },
+      can: {
+        createGroup: can(actor, 'group.create'),
+        assignTeacher: can(actor, 'teacher.list'),
+      },
     }
   }
 

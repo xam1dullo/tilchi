@@ -32,7 +32,12 @@ const ROLE = {
   admin: 'admin',
 } as const
 
-type Ctx = { group: string; lesson: string; target: string }
+type Ctx = {
+  group: string
+  lesson: string
+  target: string
+  teacher: string
+}
 
 /** Expected status per caller, in the order of WHO. */
 type Row = {
@@ -59,9 +64,15 @@ const ROWS: Row[] = [
     handler: 'GroupsController.create',
     method: 'POST',
     path: () => '/api/groups',
-    body: () => ({ name: 'New' }),
-    // an admin must name the teacher, so a bare name is a 400 for them
-    expect: [401, 403, 403, 201, 201, 400],
+    body: (c) => ({ name: 'New', teacherId: c.teacher }),
+    expect: [401, 403, 403, 201, 201, 201],
+  },
+  {
+    name: 'list teachers',
+    handler: 'TeachersController.list',
+    method: 'GET',
+    path: () => '/api/teachers',
+    expect: [401, 403, 403, 403, 403, 200],
   },
   {
     name: 'get group',
@@ -298,6 +309,7 @@ describe.skipIf(!hasTestDatabase)('route x role matrix', () => {
           group,
           lesson: row.lesson ? await freshLesson(row.lesson) : '',
           target: ids.target,
+          teacher: ids.owner,
         }
         const headers: Record<string, string> = {
           'content-type': 'application/json',
@@ -347,6 +359,7 @@ describe.skipIf(!hasTestDatabase)('route x role matrix', () => {
     })
     expect(((await list.json()) as { can: unknown }).can).toEqual({
       createGroup: false,
+      assignTeacher: false,
     })
   })
 
@@ -383,6 +396,36 @@ describe.skipIf(!hasTestDatabase)('route x role matrix', () => {
       body: JSON.stringify({ scheduledAt: '2030-01-01T10:00:00Z' }),
     })
     expect(creatorOnly.status).toBe(404)
+  })
+
+  it('refuses an admin without an active teacher, and lists only id and name', async () => {
+    const post = (body: unknown) =>
+      fetch(`${base}/api/groups`, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          cookie: '__Host-tilchi_sid=admin',
+        },
+        body: JSON.stringify(body),
+      })
+    for (const body of [{ name: 'X' }, { name: 'X', teacherId: 'nope' }]) {
+      const res = await post(body)
+      expect(res.status).toBe(400)
+      expect(await res.json()).toMatchObject({ error: 'teacher_required' })
+    }
+    const list = await fetch(`${base}/api/teachers`, {
+      headers: { cookie: '__Host-tilchi_sid=admin' },
+    })
+    const { teachers } = (await list.json()) as {
+      teachers: Record<string, unknown>[]
+    }
+    expect(teachers.map((t) => Object.keys(t).sort())).toEqual(
+      teachers.map(() => ['id', 'name']),
+    )
+    expect(teachers.map((t) => t.id)).toEqual(
+      expect.arrayContaining([ids.owner, ids.other]),
+    )
+    expect(teachers.map((t) => t.id)).not.toContain(ids.member)
   })
 
   it('keeps the meet ticket session-only: no preview fallback', async () => {
