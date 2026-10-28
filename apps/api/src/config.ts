@@ -2,6 +2,19 @@ type Env = Record<string, string | undefined>
 
 const DEV_LIVEKIT_VALUES = new Set(['devkey', 'devsecret'])
 const WEBHOOK_SECRET = /^[A-Za-z0-9_-]{32,256}$/
+// Port 1 refuses at once, so a test that forgot its database fails fast
+// instead of reaching whatever Postgres happens to run on this machine.
+const UNCONFIGURED_TEST_URL = 'postgres://127.0.0.1:1/unconfigured'
+
+/** The Postgres url, or a boot error. Tests that never query may run without one. */
+export function databaseUrl(env: Env): string {
+  const url = env.DATABASE_URL?.trim()
+  if (url) return url
+  if (env.NODE_ENV === 'test') return UNCONFIGURED_TEST_URL
+  throw new Error(
+    'DATABASE_URL is required: set it to a postgres:// connection string (see .env.example)',
+  )
+}
 
 // Returns variable names only. Values never reach logs or responses.
 export function productionConfigErrors(env: Env): string[] {

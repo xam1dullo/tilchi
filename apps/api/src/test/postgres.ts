@@ -1,6 +1,8 @@
 import { randomBytes } from 'node:crypto'
+import { setTimeout as sleep } from 'node:timers/promises'
 import { Pool } from 'pg'
 import { afterAll, beforeAll, beforeEach, describe } from 'vitest'
+import { Database } from '../db/database'
 import { runMigrations } from '../db/migrations'
 
 /**
@@ -25,6 +27,8 @@ export const hasTestDatabase = Boolean(configured)
 
 export type TestDatabase = {
   url: string
+  /** The same pool the API uses, connected to this database. */
+  database: Database
   /** Empty every table and keep the schema. */
   reset(): Promise<void>
   /** Close the connections and drop the database. */
@@ -42,8 +46,10 @@ export async function createTestDatabase(
   const url = base.toString()
   const pool = new Pool({ connectionString: url, max: 1 })
   if (options.migrate !== false) await runMigrations(url)
+  const database = Database.connect(url)
   return {
     url,
+    database,
     async reset() {
       const { rows } = await pool.query<{ tablename: string }>(
         `SELECT tablename FROM pg_tables WHERE schemaname = 'public'`,
@@ -53,7 +59,19 @@ export async function createTestDatabase(
       await pool.query(`TRUNCATE ${names} CASCADE`)
     },
     async drop() {
+      await database.onApplicationShutdown()
       await pool.end()
+      // The server retires a backend a moment after its client hangs up.
+      // Dropping first makes it send a FATAL to a socket nobody reads anymore,
+      // which node-postgres reports as an unhandled error.
+      for (let i = 0; i < 100; i += 1) {
+        const { rows } = await admin.query<{ n: number }>(
+          'SELECT count(*)::int AS n FROM pg_stat_activity WHERE datname = $1',
+          [name],
+        )
+        if (rows[0]?.n === 0) break
+        await sleep(20)
+      }
       await admin.query(`DROP DATABASE ${name} WITH (FORCE)`)
       await admin.end()
     },
