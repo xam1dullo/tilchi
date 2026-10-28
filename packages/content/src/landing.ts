@@ -1,8 +1,17 @@
-import { faqs as uzFaqs } from './domain/faqs'
-import { methodSteps as uzSteps } from './domain/method'
 import { programs as uzPrograms } from './domain/programs'
-import { trustItems as uzTrust } from './domain/trust'
+import type { ProgramIconId } from './domain/programs'
 import { botLink, site, teacher } from './site'
+
+const iconSegment: Record<ProgramIconId, SegmentId> = {
+  kids: 'bolalar',
+  ielts: 'ielts',
+  adults: 'kattalar',
+}
+const uzKidsItems = [
+  "Yoshga mos o'yin-metodika",
+  'Qisqa, jonli darslar',
+  'Har darsda speaking mashqlari',
+] as const
 
 export const contentLocales = ['uz', 'ru', 'en'] as const
 export type ContentLocale = (typeof contentLocales)[number]
@@ -101,17 +110,35 @@ const uz: Landing = {
       'Birinchi dars bepul',
     ],
   },
-  trust: uzTrust,
+  trust: [
+    {
+      dt: 'Bepul',
+      dd: "Birinchi demo dars. Karta ham, oldindan to'lov ham so'ralmaydi.",
+    },
+    {
+      dt: '12',
+      dd: "Kichik guruh: bir guruhda 12 o'quvchigacha.",
+    },
+    {
+      dt: '12 soat',
+      dd: "Shuncha oldin ogohlantirsangiz, dars bepul ko'chiriladi.",
+    },
+    {
+      dt: 'Shartnomasiz',
+      dd: "Istagan vaqtda to'xtatasiz, jarima yo'q.",
+    },
+  ],
   segments: {
     eyebrow: 'Kim uchun',
     title: "Sizga mos yo'nalishni tanlang",
     cta: 'Boshlash',
-    cards: uzPrograms.map((p, i) => ({
-      segment: segmentIds[i] as SegmentId,
+    cards: uzPrograms.map((p) => ({
+      segment: iconSegment[p.iconId],
       age: p.age,
       title: p.title,
       desc: p.desc,
-      items: p.items,
+      // v1 has no parent role: the legacy kids bullets about parents are replaced.
+      items: p.iconId === 'kids' ? uzKidsItems : p.items,
     })),
   },
   teacher: {
@@ -129,7 +156,26 @@ const uz: Landing = {
   method: {
     eyebrow: 'Qanday boshlanadi',
     title: 'Uch qadam',
-    steps: uzSteps,
+    steps: [
+      {
+        n: '01',
+        title: "Telegram'da yoziling",
+        desc: "Pastdagi tugma orqali botga o'tasiz — segment va darajangizni tanlaysiz, bot qolganini so'raydi.",
+        time: '~2 daqiqa',
+      },
+      {
+        n: '02',
+        title: 'Bepul demo dars',
+        desc: "O'qituvchi bilan tanishasiz, darajangiz aniqlanadi va sizga mos reja tuziladi. Majburiyatsiz.",
+        time: '30 daqiqa · jonli',
+      },
+      {
+        n: '03',
+        title: 'Darslar boshlanadi',
+        desc: 'Guruh yoki individual formatni tanlaysiz — jadval sizning vaqtingizga moslanadi.',
+        time: `haftada ${perWeek} dars`,
+      },
+    ],
   },
   courses: {
     eyebrow: 'Kurslar',
@@ -141,8 +187,8 @@ const uz: Landing = {
         id: 'group',
         segments: ['bolalar', 'kattalar'],
         name: 'Ingliz tili — guruh darslari',
-        desc: `${site.cohort.groupMin}–${site.cohort.groupSeats} kishilik kichik guruhda haftada ${perWeek} dars. Uy vazifasi tekshiriladi, har darsda speaking mashqlari.`,
-        facts: [`${min} daqiqa`, `haftada ${perWeek} dars`, 'Zoom'],
+        desc: `12 kishigacha kichik guruhda haftada ${perWeek} dars. Uy vazifasi tekshiriladi, har darsda speaking mashqlari.`,
+        facts: [`${min} daqiqa`, `haftada ${perWeek} dars`, 'Jonli dars'],
       },
       {
         id: 'ielts',
@@ -160,7 +206,20 @@ const uz: Landing = {
   faq: {
     eyebrow: 'Savollar',
     title: "Ko'p so'raladigan savollar",
-    items: uzFaqs.filter((f) => !f.q.includes('launch')),
+    items: [
+      {
+        q: "Darslar qayerda o'tadi?",
+        a: "Darslar Tilchi ichida jonli o'tadi — havola Telegram'ga keladi. Kamera va mikrofon kerak bo'ladi.",
+      },
+      {
+        q: 'Bepul demo dars nima o‘z ichiga oladi?',
+        a: "30 daqiqalik jonli suhbat: darajangiz aniqlanadi, maqsadingiz muhokama qilinadi va sizga mos dastur taklif etiladi. Hech qanday to'lov yoki karta so'ralmaydi.",
+      },
+      {
+        q: "Darsni o'tkazib yuborsam nima bo'ladi?",
+        a: "Kamida 12 soat oldin ogohlantirsangiz — dars boshqa vaqtga bepul ko'chiriladi. Individual formatda jadval umuman moslashuvchan.",
+      },
+    ],
   },
   cta: {
     title: 'Birinchi dars bepul',
@@ -201,8 +260,8 @@ const ru: Landing = {
   trust: [
     { dt: 'Бесплатно', dd: 'Первый пробный урок. Ни карты, ни предоплаты.' },
     {
-      dt: '5',
-      dd: 'Максимум мест в группе — реальная вместимость одного преподавателя.',
+      dt: '12',
+      dd: 'Малая группа: до 12 учеников в одной группе.',
     },
     {
       dt: '12 часов',
@@ -210,7 +269,7 @@ const ru: Landing = {
     },
     {
       dt: 'Без договора',
-      dd: 'Оплата помесячно. Остановитесь в любой месяц, без штрафов.',
+      dd: 'Можно остановиться в любой момент, без штрафов.',
     },
   ],
   segments: {
@@ -225,8 +284,8 @@ const ru: Landing = {
         desc: 'Через игру и интерактивные задания — ребёнку интересно, он учится без скуки.',
         items: [
           'Игровая методика по возрасту',
-          'Ежемесячный отчёт родителям',
-          'Родитель может смотреть урок',
+          'Короткие живые уроки',
+          'Speaking-практика на каждом уроке',
         ],
       },
       {
@@ -280,7 +339,7 @@ const ru: Landing = {
         n: '02',
         title: 'Бесплатный пробный урок',
         desc: 'Знакомитесь с преподавателем, определяется уровень и составляется план. Без обязательств.',
-        time: '30 минут · Zoom',
+        time: '30 минут · вживую',
       },
       {
         n: '03',
@@ -300,8 +359,8 @@ const ru: Landing = {
         id: 'group',
         segments: ['bolalar', 'kattalar'],
         name: 'Английский — групповые занятия',
-        desc: `Малая группа из ${site.cohort.groupMin}–${site.cohort.groupSeats} человек, ${perWeek} урока в неделю. Домашние задания проверяются, на каждом уроке — speaking-практика.`,
-        facts: [`${min} минут`, `${perWeek} урока в неделю`, 'Zoom'],
+        desc: `Малая группа до 12 человек, ${perWeek} урока в неделю. Домашние задания проверяются, на каждом уроке — speaking-практика.`,
+        facts: [`${min} минут`, `${perWeek} урока в неделю`, 'Живой урок'],
       },
       {
         id: 'ielts',
@@ -322,23 +381,15 @@ const ru: Landing = {
     items: [
       {
         q: 'Где проходят уроки?',
-        a: 'Все уроки онлайн через Zoom. Ссылка приходит в Telegram перед занятием. Нужны камера и микрофон.',
+        a: 'Уроки проходят вживую внутри Tilchi — ссылка приходит в Telegram. Нужны камера и микрофон.',
       },
       {
         q: 'Что входит в бесплатный пробный урок?',
         a: '30 минут живого разговора: определяем уровень, обсуждаем цель и предлагаем подходящую программу. Оплата и карта не нужны.',
       },
       {
-        q: 'Как проходит оплата?',
-        a: 'Помесячно, переводом на карту Uzcard или Humo. Платить нужно только после пробного урока, если решите продолжить. Чек отправляете в Telegram — оплату подтверждаем и начинаем занятия.',
-      },
-      {
         q: 'Что если я пропущу урок?',
         a: 'Предупредите минимум за 12 часов — урок бесплатно перенесём. В индивидуальном формате расписание гибкое.',
-      },
-      {
-        q: 'Ребёнок будет на уроке один?',
-        a: 'По желанию родитель может наблюдать за уроком. Каждый месяц отправляем короткий отчёт о прогрессе.',
       },
     ],
   },
@@ -384,14 +435,14 @@ const en: Landing = {
       dd: 'The first demo lesson. No card and no upfront payment.',
     },
     {
-      dt: '5',
-      dd: 'Seats per group at most — the real capacity of a single teacher.',
+      dt: '12',
+      dd: 'Small groups: up to 12 learners in one group.',
     },
     {
       dt: '12 hours',
       dd: 'Give this much notice and the lesson moves for free.',
     },
-    { dt: 'No contract', dd: 'Pay monthly. Stop in any month, no penalty.' },
+    { dt: 'No contract', dd: 'Stop whenever you like, no penalty.' },
   ],
   segments: {
     eyebrow: 'Who it is for',
@@ -405,8 +456,8 @@ const en: Landing = {
         desc: 'Games and interactive tasks — the child learns out of curiosity, not boredom.',
         items: [
           'Age-appropriate play method',
-          'Monthly report to parents',
-          'Parents can watch the lesson',
+          'Short, live lessons',
+          'Speaking practice in every lesson',
         ],
       },
       {
@@ -460,7 +511,7 @@ const en: Landing = {
         n: '02',
         title: 'Free demo lesson',
         desc: 'You meet the teacher, your level is assessed and a plan is made. No commitment.',
-        time: '30 minutes · Zoom',
+        time: '30 minutes · live',
       },
       {
         n: '03',
@@ -480,8 +531,8 @@ const en: Landing = {
         id: 'group',
         segments: ['bolalar', 'kattalar'],
         name: 'English — group lessons',
-        desc: `A small group of ${site.cohort.groupMin}–${site.cohort.groupSeats} people, ${perWeek} lessons a week. Homework is checked, with speaking practice in every lesson.`,
-        facts: [`${min} minutes`, `${perWeek} lessons a week`, 'Zoom'],
+        desc: `A small group of up to 12 people, ${perWeek} lessons a week. Homework is checked, with speaking practice in every lesson.`,
+        facts: [`${min} minutes`, `${perWeek} lessons a week`, 'Live lessons'],
       },
       {
         id: 'ielts',
@@ -502,23 +553,15 @@ const en: Landing = {
     items: [
       {
         q: 'Where do the lessons take place?',
-        a: 'All lessons are online on Zoom. The link arrives in Telegram before the lesson. You need a camera and a microphone.',
+        a: 'Lessons happen live inside Tilchi — the link arrives in Telegram. You need a camera and a microphone.',
       },
       {
         q: 'What does the free demo lesson include?',
         a: 'A 30-minute live conversation: we assess your level, discuss your goal and suggest a fitting programme. No payment or card.',
       },
       {
-        q: 'How do I pay?',
-        a: 'Monthly, by Uzcard or Humo card transfer. You pay only after the demo lesson, if you decide to continue. Send the receipt in Telegram — the payment is confirmed and lessons begin.',
-      },
-      {
         q: 'What if I miss a lesson?',
         a: 'Give at least 12 hours notice and the lesson moves for free. In the individual format the schedule is flexible.',
-      },
-      {
-        q: 'Will a child be alone in the lesson?',
-        a: 'If you wish, a parent can watch the lesson. A short progress report is sent every month.',
       },
     ],
   },
