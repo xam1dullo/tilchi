@@ -14,6 +14,7 @@ import { LessonsService } from './lessons/lessons.service'
 import { LessonsRepository } from './lessons/lessons.repository'
 import { MeetController } from './meet/meet.controller'
 import { MeetService } from './meet/meet.service'
+import { RoomAdmin } from './meet/room-admin'
 import { KV, createKvFromEnv } from './redis/kv'
 import { SessionsRepository } from './users/sessions.repository'
 import { UsersRepository } from './users/users.repository'
@@ -40,6 +41,7 @@ import { UsersRepository } from './users/users.repository'
     GroupsService,
     LessonsService,
     MeetService,
+    RoomAdmin,
     DemoSeedService,
   ],
 })

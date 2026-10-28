@@ -4,6 +4,7 @@ import { Test } from '@nestjs/testing'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import { AppModule } from '../app.module'
 import { Database } from '../db/database'
+import { RoomAdmin } from '../meet/room-admin'
 import {
   createTestDatabase,
   hasTestDatabase,
@@ -16,6 +17,7 @@ describe.skipIf(!hasTestDatabase)('persisted classroom HTTP', () => {
   let database: TestDatabase
   let app: INestApplication
   let base = ''
+  const closeRoom = vi.fn().mockResolvedValue(undefined)
 
   beforeAll(async () => {
     vi.stubEnv('NODE_ENV', 'test')
@@ -28,6 +30,8 @@ describe.skipIf(!hasTestDatabase)('persisted classroom HTTP', () => {
     const mod = await Test.createTestingModule({ imports: [AppModule] })
       .overrideProvider(Database)
       .useValue(Database.connect(database.url))
+      .overrideProvider(RoomAdmin)
+      .useValue({ close: closeRoom })
       .compile()
     app = mod.createNestApplication()
     await app.listen(0)
@@ -108,6 +112,9 @@ describe.skipIf(!hasTestDatabase)('persisted classroom HTTP', () => {
         preview: 'teacher',
       })
       expect(ended.body.status).toBe('ended')
+      expect(closeRoom).toHaveBeenCalledExactlyOnceWith(
+        `lesson-${DEMO_LESSON_ID}`,
+      )
     })
 
     it('keeps learners from creating groups or starting lessons', async () => {

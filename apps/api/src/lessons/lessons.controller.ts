@@ -12,6 +12,7 @@ import { PREVIEW_HEADER } from '../demo/policy'
 import { canManageGroup, canSeeGroup } from '../groups/access'
 import { GroupsService } from '../groups/groups.service'
 import { requireActor } from '../http/actor'
+import { RoomAdmin } from '../meet/room-admin'
 import { LessonsService } from './lessons.service'
 
 @Controller('api')
@@ -20,6 +21,7 @@ export class LessonsController {
     private readonly auth: AuthService,
     private readonly groups: GroupsService,
     private readonly lessons: LessonsService,
+    private readonly rooms: RoomAdmin,
   ) {}
 
   @Get('groups/:groupId/lessons')
@@ -115,7 +117,10 @@ export class LessonsController {
       authorization,
       previewRole,
     )
-    return this.lessons.end({ lessonId, role: actor.role })
+    const ended = await this.lessons.end({ lessonId, role: actor.role })
+    const meeting = await this.lessons.meetingForLesson(lessonId)
+    if (meeting) await this.rooms.close(meeting.livekitRoom)
+    return ended
   }
 
   private async actor(
