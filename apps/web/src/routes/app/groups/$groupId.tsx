@@ -51,7 +51,7 @@ function GroupPage() {
         <div>
           <h2>{group.name}</h2>
           <p className="hint">
-            {copy.members} {group.memberIds.length}/{group.capacity}
+            {copy.members} {group.learnerCount}/{group.capacity}
           </p>
         </div>
         {manage.canSchedule ? (

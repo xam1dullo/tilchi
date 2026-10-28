@@ -9,6 +9,7 @@ const group: Group = {
   kind: 'adult',
   createdBy: 'owner',
   memberIds: ['owner', 'other-teacher', 'learner'],
+  learnerCount: 1,
 }
 
 describe('group management access', () => {
@@ -48,6 +49,16 @@ describe('group view (XAM-792)', () => {
   it('gives member ids to the owning teacher and admins', () => {
     expect(view('owner', 'teacher')).toHaveProperty('memberIds')
     expect(view('admin', 'admin')).toHaveProperty('memberIds')
+  })
+
+  it('gives every actor the learner count', () => {
+    for (const [id, role] of [
+      ['owner', 'teacher'],
+      ['learner', 'learner'],
+      ['other-teacher', 'teacher'],
+    ] as const) {
+      expect(view(id, role)).toHaveProperty('learnerCount', 1)
+    }
   })
 
   it('hides member ids from learners and visiting teachers', () => {

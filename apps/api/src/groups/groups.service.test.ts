@@ -40,6 +40,7 @@ describeWithDatabase('GroupsService', (current) => {
       kind: 'adult',
       createdBy: teacher,
       memberIds: [teacher],
+      learnerCount: 0,
     })
     expect((await groups().listForUser(teacher))[0]?.id).toBe(group.id)
     expect(
@@ -57,6 +58,7 @@ describeWithDatabase('GroupsService', (current) => {
       role: 'admin',
     })
     expect(withMember.memberIds).toEqual([teacher, learner])
+    expect(withMember.learnerCount).toBe(1)
     expect((await groups().listForUser(learner))[0]?.id).toBe(group.id)
     expect(await groups().listForUser(admin)).toEqual([])
   })

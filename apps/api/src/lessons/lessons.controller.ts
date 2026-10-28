@@ -9,7 +9,7 @@ import {
 } from '@nestjs/common'
 import { AuthService } from '../auth/auth.service'
 import { PREVIEW_HEADER } from '../demo/policy'
-import { canManageGroup, canSeeGroup } from '../groups/access'
+import { canManageGroup, canSeeGroup, groupView } from '../groups/access'
 import { GroupsService } from '../groups/groups.service'
 import { requireActor } from '../http/actor'
 import { RoomAdmin } from '../meet/room-admin'
@@ -194,7 +194,7 @@ export class LessonsController {
     if (!group || !canSeeGroup(actor, group)) {
       throw new HttpException({ error: 'not_found' }, 404)
     }
-    return group
+    return groupView(actor, group)
   }
 
   private async managedGroup(

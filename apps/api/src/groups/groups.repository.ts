@@ -13,6 +13,8 @@ export type GroupRecord = {
   teacherId: string
   /** In the order they joined; the teacher is the first member. */
   memberIds: string[]
+  /** Learners only; the teacher and admins are not counted (Q11). */
+  learnerCount: number
 }
 
 export type AddMemberResult =
@@ -46,7 +48,12 @@ export class GroupsRepository {
       await tx
         .insert(groupMembers)
         .values({ groupId: input.id, userId: input.teacherId })
-      return { ...input, kind: 'adult', memberIds: [input.teacherId] }
+      return {
+        ...input,
+        kind: 'adult',
+        memberIds: [input.teacherId],
+        learnerCount: 0,
+      }
     })
   }
 
@@ -131,8 +138,13 @@ export class GroupsRepository {
   ): Promise<GroupRecord[]> {
     if (rows.length === 0) return []
     const members = await this.database.db
-      .select({ groupId: groupMembers.groupId, userId: groupMembers.userId })
+      .select({
+        groupId: groupMembers.groupId,
+        userId: groupMembers.userId,
+        role: users.role,
+      })
       .from(groupMembers)
+      .innerJoin(users, eq(users.id, groupMembers.userId))
       .where(
         inArray(
           groupMembers.groupId,
@@ -140,14 +152,14 @@ export class GroupsRepository {
         ),
       )
       .orderBy(asc(groupMembers.addedAt), asc(groupMembers.userId))
+    const inGroup = (id: string) => members.filter((m) => m.groupId === id)
     return rows.map((row) => ({
       id: row.id,
       name: row.name,
       kind: row.kind,
       teacherId: row.teacherId,
-      memberIds: members
-        .filter((member) => member.groupId === row.id)
-        .map((member) => member.userId),
+      memberIds: inGroup(row.id).map((member) => member.userId),
+      learnerCount: inGroup(row.id).filter((m) => m.role === 'learner').length,
     }))
   }
 }

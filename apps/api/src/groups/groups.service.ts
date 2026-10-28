@@ -14,6 +14,7 @@ export type Group = {
   kind: GroupKind
   createdBy: string
   memberIds: string[]
+  learnerCount: number
 }
 
 export type LearnerGroup = Omit<Group, 'memberIds'>
@@ -30,6 +31,7 @@ function toGroup(record: GroupRecord): Group {
     kind: record.kind,
     createdBy: record.teacherId,
     memberIds: record.memberIds,
+    learnerCount: record.learnerCount,
   }
 }
 

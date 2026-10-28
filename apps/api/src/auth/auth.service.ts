@@ -158,18 +158,21 @@ export class AuthService {
     try {
       return await this.users.upsertTelegram(telegramUserId, name)
     } catch (error) {
-      if (error instanceof DeletedUserError) {
-        throw new HttpException({ error: 'account_deleted' }, 403)
-      }
-      throw error
+      throw this.deletedAs403(error)
     }
+  }
+
+  private deletedAs403(error: unknown) {
+    return error instanceof DeletedUserError
+      ? new HttpException({ error: 'account_deleted' }, 403)
+      : error
   }
 
   /** Soft-deletes the user, then ends every session they have, on every instance. */
   async deleteUser(userId: string, now = Date.now()) {
     await this.users.softDelete(userId, new Date(now))
     const hashes = await this.sessions.revokeAllForUser(userId, new Date(now))
-    await Promise.all(hashes.map((secretHash) => this.forget(secretHash)))
+    await this.forget(hashes)
   }
 
   private async hit(key: string, limit: number, scope: 'ip' | 'telegram') {
@@ -190,14 +193,20 @@ export class AuthService {
       expiresAt: now + SESSION_TTL_MS,
       absoluteExpiresAt: now + SESSION_ABSOLUTE_TTL_MS,
     }
-    await this.sessions.insert({
-      userId: user.id,
-      tokenHash: secretHash,
-      now: new Date(now),
-      idleExpiresAt: new Date(record.expiresAt),
-      absoluteExpiresAt: new Date(record.absoluteExpiresAt),
-    })
-    await this.cacheSession(secretHash, record)
+    try {
+      await this.sessions.insert({
+        userId: user.id,
+        tokenHash: secretHash,
+        now: new Date(now),
+        idleExpiresAt: new Date(record.expiresAt),
+        absoluteExpiresAt: new Date(record.absoluteExpiresAt),
+      })
+    } catch (error) {
+      throw this.deletedAs403(error)
+    }
+    if (!(await this.cacheIfLive(secretHash, record))) {
+      throw new HttpException({ error: 'account_deleted' }, 403)
+    }
     return { token, maxAgeSeconds: SESSION_TTL_MS / 1000, user, secretHash }
   }
 
@@ -226,12 +235,8 @@ export class AuthService {
       expiresAt: live.expiresAt.getTime(),
       absoluteExpiresAt: live.absoluteExpiresAt.getTime(),
     }
-    await this.cacheSession(secretHash, record)
     // A logout may have landed between the read above and this write.
-    if (await this.kv.get(revokedKey(secretHash))) {
-      await this.kv.del(sessionCacheKey(secretHash))
-      return null
-    }
+    if (!(await this.cacheIfLive(secretHash, record))) return null
     return actorOf(record)
   }
 
@@ -240,21 +245,34 @@ export class AuthService {
     if (!token) return
     const secretHash = hash(token)
     await this.sessions.revoke(secretHash, new Date(now))
-    await this.forget(secretHash)
+    await this.forget([secretHash])
   }
 
   /**
-   * Marker first, then the cache: a cold read that is mid-flight re-checks the
-   * marker after it caches, so it can never leave a revoked session cached.
+   * The one way to end sessions in the cache: marker first, then the entry. A
+   * cold read or login that is mid-flight re-checks the marker after it
+   * caches (`cacheIfLive`), so it can never leave a revoked session cached.
    * The marker outlives the cache entry it guards.
    */
-  private async forget(secretHash: string) {
-    await this.kv.set(
-      revokedKey(secretHash),
-      '1',
-      SESSION_CACHE_TTL_SECONDS * 2,
+  async forget(secretHashes: string[]) {
+    await Promise.all(
+      secretHashes.map(async (secretHash) => {
+        await this.kv.set(
+          revokedKey(secretHash),
+          '1',
+          SESSION_CACHE_TTL_SECONDS * 2,
+        )
+        await this.kv.del(sessionCacheKey(secretHash))
+      }),
     )
+  }
+
+  /** Caches the record unless the session was revoked meanwhile. */
+  private async cacheIfLive(secretHash: string, record: SessionRecord) {
+    await this.cacheSession(secretHash, record)
+    if (!(await this.kv.get(revokedKey(secretHash)))) return true
     await this.kv.del(sessionCacheKey(secretHash))
+    return false
   }
 
   /** Ends every session of a user on every device. Revoke first, then evict. */

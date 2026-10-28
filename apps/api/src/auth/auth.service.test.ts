@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { users } from '../db/schema'
 import { createMemoryKv, type Kv } from '../redis/kv'
@@ -434,5 +434,56 @@ describeWithDatabase('AuthService deleted users', (current) => {
     await expect(auth.confirm(again.id, again.secret)).rejects.toMatchObject({
       status: 403,
     })
+  })
+})
+
+describeWithDatabase('AuthService login vs deleteUser race', (current) => {
+  it('opens no session when the user is deleted after login read them', async () => {
+    const { auth, usersRepo } = build(current())
+    const first = await login(auth, '42')
+    const real = usersRepo.upsertTelegram.bind(usersRepo)
+    vi.spyOn(usersRepo, 'upsertTelegram').mockImplementation(
+      async (...args) => {
+        const user = await real(...args)
+        await auth.deleteUser(user.id)
+        return user
+      },
+    )
+    const again = await confirmed(auth, '42')
+    await expect(auth.confirm(again.id, again.secret)).rejects.toMatchObject({
+      status: 403,
+    })
+    expect(await auth.read(first.token)).toBeNull()
+    const rows = await current().database.db.execute(
+      sql`select count(*)::int as n from sessions where revoked_at is null`,
+    )
+    expect(rows.rows[0]).toEqual({ n: 0 })
+  })
+
+  it('never caches a session that deleteUser revoked mid-login', async () => {
+    const base = createMemoryKv()
+    let meanwhile: (() => Promise<void>) | null = null
+    const cached: string[] = []
+    const kv: Kv = {
+      ...base,
+      async set(key, value, ttl) {
+        if (key.startsWith('session:cache:')) cached.push(key)
+        if (meanwhile && key.startsWith('session:cache:')) {
+          const run = meanwhile
+          meanwhile = null
+          await run()
+        }
+        return base.set(key, value, ttl)
+      },
+    }
+    const { auth, usersRepo } = build(current(), kv)
+    const { id, secret } = await confirmed(auth, '42')
+    const user = await usersRepo.upsertTelegram('42', 'Ada')
+    meanwhile = () => auth.deleteUser(user.id)
+    await expect(auth.confirm(id, secret)).rejects.toMatchObject({
+      status: 403,
+    })
+    expect(cached).toHaveLength(1)
+    expect(await base.get(cached[0])).toBeNull()
   })
 })

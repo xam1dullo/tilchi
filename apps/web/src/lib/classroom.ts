@@ -4,7 +4,7 @@ export type GroupRecord = {
   id: string
   name: string
   capacity: number
-  memberIds: string[]
+  learnerCount: number
 }
 
 export type LessonStatus = 'scheduled' | 'live' | 'ended' | 'cancelled'
