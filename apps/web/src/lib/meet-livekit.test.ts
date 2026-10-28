@@ -27,6 +27,7 @@ function sources(dir: string): string[] {
 // appear, and the dynamic one only in the adapter.
 const staticImport = /^import\s+(?!type\s)[^'";]*from\s+['"]livekit-client['"]/m
 const bareImport = /^import\s+['"]livekit-client['"]/m
+const dynamicImport = /import\(\s*['"]livekit-client['"]\s*\)/
 
 describe('livekit-client loading', () => {
   const root = fileURLToPath(new URL('..', import.meta.url))
@@ -38,5 +39,14 @@ describe('livekit-client loading', () => {
       return staticImport.test(text) || bareImport.test(text)
     })
     expect(offenders).toEqual([])
+  })
+
+  it('is loaded on demand by the adapter, and only there', () => {
+    const dynamic = files.filter((path) =>
+      dynamicImport.test(readFileSync(path, 'utf8')),
+    )
+    expect(dynamic.map((path) => path.slice(root.length))).toEqual([
+      'lib/meet-livekit.ts',
+    ])
   })
 })
