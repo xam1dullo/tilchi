@@ -7,6 +7,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common'
 import { AuthService } from '../auth/auth.service'
+import { confirmAnswer, confirmPrompt, expiredNotice } from './replies'
 import { parseBotUpdate } from './updates'
 import { decideWebhook } from './webhook-guard'
 
@@ -31,12 +32,25 @@ export class BotController {
 
     const action = parseBotUpdate(body)
     if (action.type === 'bind_handoff') {
-      await this.auth.bindTelegram(
+      const bound = await this.auth.bindTelegram(
         action.handoffId,
         action.telegramUserId,
         action.name,
       )
-      return { ok: true, action: 'bind_handoff' }
+      return bound
+        ? confirmPrompt({
+            chatId: action.chatId,
+            handoffId: action.handoffId,
+            context: bound.context,
+          })
+        : expiredNotice(action.chatId)
+    }
+    if (action.type === 'confirm_handoff') {
+      const confirmed = await this.auth.confirmTelegram(
+        action.handoffId,
+        action.telegramUserId,
+      )
+      return confirmAnswer(action.callbackQueryId, confirmed)
     }
     return { ok: true, action: 'ignore' }
   }

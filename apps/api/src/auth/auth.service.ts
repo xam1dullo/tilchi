@@ -1,9 +1,18 @@
 import { HttpException, Injectable } from '@nestjs/common'
 import { createHash, randomBytes } from 'node:crypto'
 import {
+  type Handoff,
+  bindTelegramUser,
+  claimHandoff,
+  confirmByTelegramUser,
+  newHandoff,
+} from './handoff'
+import {
+  AUTH_MINIAPP_IP_LIMIT,
   AUTH_START_IP_LIMIT,
   AUTH_START_TELEGRAM_LIMIT,
   HANDOFF_TTL_MS,
+  HANDOFF_WRITE_ATTEMPTS,
   RATE_WINDOW_MS,
   SESSION_CACHE_TTL_SECONDS,
   SESSION_TTL_MS,
@@ -11,14 +20,8 @@ import {
 } from './policy'
 import { uuidv7 } from '../id'
 import { createKvFromEnv, type Kv } from '../redis/kv'
-import { UserStore } from '../users/user-store'
-
-type Handoff = {
-  id: string
-  createdAt: number
-  telegramUserId?: string
-  confirmedAt?: number
-}
+import { verifyInitData } from './init-data'
+import { type User, UserStore } from '../users/user-store'
 
 type SessionRecord = {
   userId: string
@@ -48,27 +51,22 @@ export class AuthService {
     return service
   }
 
-  async start(input: { ip: string; telegramKey?: string }) {
-    const ipHits = await this.kv.incr(
-      `rate:ip:${input.ip}`,
-      RATE_WINDOW_MS / 1000,
-    )
-    if (ipHits > AUTH_START_IP_LIMIT) {
-      throw new HttpException({ error: 'rate_limited', scope: 'ip' }, 429)
-    }
+  async start(input: { ip: string; context: string; telegramKey?: string }) {
+    await this.hit(`rate:ip:${input.ip}`, AUTH_START_IP_LIMIT, 'ip')
     if (input.telegramKey) {
-      const telegramHits = await this.kv.incr(
+      await this.hit(
         `rate:tg:${input.telegramKey}`,
-        RATE_WINDOW_MS / 1000,
+        AUTH_START_TELEGRAM_LIMIT,
+        'telegram',
       )
-      if (telegramHits > AUTH_START_TELEGRAM_LIMIT) {
-        throw new HttpException(
-          { error: 'rate_limited', scope: 'telegram' },
-          429,
-        )
-      }
     }
-    const handoff: Handoff = { id: uuidv7(), createdAt: Date.now() }
+    const bindingSecret = randomBytes(32).toString('base64url')
+    const handoff = newHandoff({
+      id: uuidv7(),
+      secret: bindingSecret,
+      context: input.context,
+      now: Date.now(),
+    })
     await this.kv.set(
       this.handoffKey(handoff.id),
       JSON.stringify(handoff),
@@ -76,47 +74,98 @@ export class AuthService {
     )
     return {
       handoffId: handoff.id,
+      bindingSecret,
       expiresInSeconds: HANDOFF_TTL_MS / 1000,
       deepLink: `https://t.me/${process.env.TELEGRAM_BOT_USERNAME ?? 'tilchiuz_bot'}?start=${handoff.id.replace(/-/g, '')}`,
     }
   }
 
+  /**
+   * Bot saw `/start <handoffId>`. The first Telegram user binds the handoff;
+   * anyone else, or an expired handoff, gets null. Returns where the request
+   * came from so that user can refuse a handoff they did not start.
+   */
   async bindTelegram(
     handoffId: string,
     telegramUserId: string,
     name?: string | null,
+    now = Date.now(),
+  ) {
+    const next = await this.updateHandoff(handoffId, (handoff) =>
+      bindTelegramUser(handoff, { telegramUserId, name: name ?? null }, now),
+    )
+    return next ? { context: next.context } : null
+  }
+
+  /** Bot saw the confirm tap. Only the bound Telegram user may confirm. */
+  async confirmTelegram(
+    handoffId: string,
+    telegramUserId: string,
+    now = Date.now(),
+  ) {
+    const next = await this.updateHandoff(handoffId, (handoff) =>
+      confirmByTelegramUser(handoff, telegramUserId, now),
+    )
+    return next !== null
+  }
+
+  /**
+   * Browser claim. Mints a session for the confirmed Telegram user, once, and
+   * only for the browser that started the handoff.
+   */
+  async confirm(
+    handoffId: string,
+    browserSecret: string | undefined,
+    now = Date.now(),
   ) {
     const handoff = await this.readHandoff(handoffId)
     if (!handoff) throw new HttpException({ error: 'handoff_expired' }, 410)
-    handoff.telegramUserId = telegramUserId
-    handoff.confirmedAt = Date.now()
-    const remaining = Math.max(
-      1,
-      Math.ceil((HANDOFF_TTL_MS - (Date.now() - handoff.createdAt)) / 1000),
-    )
-    await this.kv.set(
-      this.handoffKey(handoff.id),
-      JSON.stringify(handoff),
-      remaining,
-    )
-    this.users.upsertTelegram(telegramUserId, name)
-    return { ok: true as const, handoffId: handoff.id }
-  }
-
-  async confirm(handoffId: string, now = Date.now()) {
-    const handoff = await this.readHandoff(handoffId)
-    if (!handoff || now - handoff.createdAt > HANDOFF_TTL_MS) {
+    const claim = claimHandoff(handoff, browserSecret, now)
+    if (claim.kind === 'expired') {
       await this.kv.del(this.handoffKey(handoffId))
       throw new HttpException({ error: 'handoff_expired' }, 410)
     }
-    if (!handoff.telegramUserId || !handoff.confirmedAt) {
-      if ((process.env.NODE_ENV ?? 'development') === 'production') {
-        throw new HttpException({ error: 'handoff_unconfirmed' }, 403)
-      }
-      throw new HttpException({ error: 'handoff_pending' }, 409)
+    if (claim.kind === 'wrong_browser') {
+      throw new HttpException({ error: 'wrong_browser' }, 403)
     }
-    await this.kv.del(this.handoffKey(handoff.id))
-    const user = this.users.upsertTelegram(handoff.telegramUserId)
+    if (claim.kind === 'waiting') {
+      throw new HttpException({ status: 'waiting' }, 409)
+    }
+    if (!(await this.kv.take(this.handoffKey(handoff.id)))) {
+      throw new HttpException({ error: 'handoff_expired' }, 410)
+    }
+    const user = this.users.upsertTelegram(claim.telegramUserId, claim.name)
+    return this.openSession(user, now)
+  }
+
+  /**
+   * Mini App initData: the same session, proven by the bot token HMAC. Every
+   * attempt counts against the ip first, so a flood of payloads, forged or
+   * replayed, is cut off before any verification or session write.
+   */
+  async miniApp(input: { initData: string; ip: string }, now = Date.now()) {
+    await this.hit(`rate:miniapp:ip:${input.ip}`, AUTH_MINIAPP_IP_LIMIT, 'ip')
+    const verified = verifyInitData(
+      input.initData,
+      process.env.TELEGRAM_BOT_TOKEN ?? '',
+      Math.floor(now / 1000),
+    )
+    if (!verified) throw new HttpException({ error: 'invalid_init_data' }, 401)
+    const user = this.users.upsertTelegram(
+      verified.telegramUserId,
+      verified.name,
+    )
+    return this.openSession(user, now)
+  }
+
+  private async hit(key: string, limit: number, scope: 'ip' | 'telegram') {
+    const hits = await this.kv.incr(key, RATE_WINDOW_MS / 1000)
+    if (hits > limit) {
+      throw new HttpException({ error: 'rate_limited', scope }, 429)
+    }
+  }
+
+  private async openSession(user: User, now: number) {
     const token = randomBytes(32).toString('base64url')
     const secretHash = hash(token)
     const record: SessionRecord = {
@@ -176,10 +225,32 @@ export class AuthService {
   }
 
   private async readHandoff(id: string) {
-    const normalized = normalizeHandoffId(id)
-    const raw = await this.kv.get(this.handoffKey(normalized))
+    const raw = await this.kv.get(this.handoffKey(id))
     if (!raw) return null
     return JSON.parse(raw) as Handoff
+  }
+
+  /**
+   * Change a handoff without being able to undo anyone else's write. The swap
+   * only lands while the record is still the one the change was computed from.
+   * If it moved, the change is recomputed from the new record; if it is gone
+   * (consumed by `confirm`, or expired) nothing is written, so a late bind or
+   * confirm tap cannot bring a consumed handoff back. Running out of attempts
+   * refuses the request instead of writing anyway.
+   */
+  private async updateHandoff(
+    id: string,
+    change: (handoff: Handoff) => Handoff | null,
+  ) {
+    const key = this.handoffKey(id)
+    for (let attempt = 0; attempt < HANDOFF_WRITE_ATTEMPTS; attempt += 1) {
+      const raw = await this.kv.get(key)
+      if (!raw) return null
+      const next = change(JSON.parse(raw) as Handoff)
+      if (!next) return null
+      if (await this.kv.cas(key, raw, JSON.stringify(next))) return next
+    }
+    return null
   }
 
   private handoffKey(id: string) {
