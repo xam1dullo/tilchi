@@ -4,8 +4,8 @@ Tilchi is one pnpm repo. `BUILD-BRIEF-v1.md` is the product contract. `AGENTS.md
 
 ## Tree
 
-- `apps/web` is TanStack Start. `/` is the thin Kunduzgi hero. `/app` is the empty classroom in uz, ru, and en. Tokens are in `apps/web/src/styles/tokens.css`.
-- `apps/api` is NestJS and Drizzle. It has health, the cookie session stub, the webhook guard, the meet ticket, and a production config guard (`src/config.ts`). The schema covers User, Session, Group, Lesson, and Meeting. Migrations go to `apps/api/drizzle` (`db:generate`, `db:migrate`). The live session store is still in memory.
+- `apps/web` TanStack Start. `/` is the thin Kunduzgi hero. `/app` lists groups, `/app/groups/$groupId` lists lessons, `/app/meet/$lessonId` joins a live room. Tokens are `apps/web/src/styles/tokens.css`.
+- `apps/api` NestJS and Drizzle. Health, cookie session, webhook guard, groups, lessons, LiveKit lesson tokens, and a production config guard (`src/config.ts`). Schema covers User, Session, Group, Lesson, Meeting. Migrations go to `apps/api/drizzle` (`db:generate`, `db:migrate`). The live session store is still memory. Demo seed is `TILCHI_DEMO=1` in `development` or `test` only.
 - `packages/content` is pure TypeScript copy. No React.
 - `docker-compose.yml` is the local stack: nginx, Start, Nest, Postgres, Redis, LiveKit, and coturn. `docker-compose.prod.yml` is the VPS overlay with ghcr images by SHA, TLS, and required secrets.
 - `docker/nginx/locations.conf` is the path contract. `dev.conf.template` and `prod.conf.template` wrap it.
@@ -29,3 +29,4 @@ cp .env.example .env && docker compose up --build
 - Do not use `import type` for a Nest provider you inject.
 - Do not set `proxy_set_header` inside an nginx location.
 - Do not add a parent role or a cohort label.
+- Do not set `TILCHI_DEMO` or `TILCHI_PREVIEW_ROLE` in production. Nest refuses to start.

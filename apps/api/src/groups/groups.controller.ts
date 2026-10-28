@@ -6,14 +6,11 @@ import {
   HttpException,
   Param,
   Post,
-  UnauthorizedException,
 } from '@nestjs/common'
 import { AuthService } from '../auth/auth.service'
-import {
-  SESSION_COOKIE,
-  bearerSessionRejected,
-  readCookie,
-} from '../auth/policy'
+import { PREVIEW_HEADER } from '../demo/policy'
+import { requireActor } from '../http/actor'
+import { canSeeGroup } from './access'
 import { GroupsService } from './groups.service'
 
 @Controller('api/groups')
@@ -27,18 +24,20 @@ export class GroupsController {
   async list(
     @Headers('cookie') cookie: string | undefined,
     @Headers('authorization') authorization: string | undefined,
+    @Headers(PREVIEW_HEADER) previewRole: string | undefined,
   ) {
-    const session = await this.requireSession(cookie, authorization)
-    return { groups: this.groups.listForUser(session.userId) }
+    const actor = await this.actor(cookie, authorization, previewRole)
+    return { groups: this.groups.listForUser(actor.userId, actor.role) }
   }
 
   @Post()
   async create(
     @Headers('cookie') cookie: string | undefined,
     @Headers('authorization') authorization: string | undefined,
+    @Headers(PREVIEW_HEADER) previewRole: string | undefined,
     @Body() body: unknown,
   ) {
-    const session = await this.requireSession(cookie, authorization)
+    const actor = await this.actor(cookie, authorization, previewRole)
     const name =
       body &&
       typeof body === 'object' &&
@@ -47,9 +46,24 @@ export class GroupsController {
         : 'Group'
     return this.groups.create({
       name,
-      actorId: session.userId,
-      role: session.role,
+      actorId: actor.userId,
+      role: actor.role,
     })
+  }
+
+  @Get(':groupId')
+  async get(
+    @Param('groupId') groupId: string,
+    @Headers('cookie') cookie: string | undefined,
+    @Headers('authorization') authorization: string | undefined,
+    @Headers(PREVIEW_HEADER) previewRole: string | undefined,
+  ) {
+    const actor = await this.actor(cookie, authorization, previewRole)
+    const group = this.groups.get(groupId)
+    if (!group || !canSeeGroup(actor, group)) {
+      throw new HttpException({ error: 'not_found' }, 404)
+    }
+    return group
   }
 
   @Post(':groupId/members')
@@ -57,27 +71,29 @@ export class GroupsController {
     @Param('groupId') groupId: string,
     @Headers('cookie') cookie: string | undefined,
     @Headers('authorization') authorization: string | undefined,
+    @Headers(PREVIEW_HEADER) previewRole: string | undefined,
     @Body() body: unknown,
   ) {
-    const session = await this.requireSession(cookie, authorization)
+    const actor = await this.actor(cookie, authorization, previewRole)
     const userId =
       body &&
       typeof body === 'object' &&
       typeof (body as { userId?: unknown }).userId === 'string'
         ? (body as { userId: string }).userId
         : ''
-    return this.groups.addMember({ groupId, userId, role: session.role })
+    return this.groups.addMember({ groupId, userId, role: actor.role })
   }
 
-  private async requireSession(
+  private actor(
     cookie: string | undefined,
     authorization: string | undefined,
+    previewRole: string | undefined,
   ) {
-    if (bearerSessionRejected(authorization)) {
-      throw new HttpException({ error: 'cookie_session_required' }, 400)
-    }
-    const session = await this.auth.read(readCookie(cookie, SESSION_COOKIE))
-    if (!session) throw new UnauthorizedException()
-    return session
+    return requireActor({
+      auth: this.auth,
+      cookie,
+      authorization,
+      previewRole,
+    })
   }
 }

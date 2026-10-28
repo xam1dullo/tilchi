@@ -11,12 +11,14 @@ services:
       TELEGRAM_WEBHOOK_SECRET: ${TELEGRAM_WEBHOOK_SECRET:-}
       LIVEKIT_API_KEY: ${LIVEKIT_API_KEY:-devkey}
       LIVEKIT_API_SECRET: ${LIVEKIT_API_SECRET:-devsecret}
-      TILCHI_PREVIEW_ROLE: ${TILCHI_PREVIEW_ROLE:-}
+      TILCHI_PREVIEW_ROLE: ${TILCHI_PREVIEW_ROLE:-learner}
+      TILCHI_DEMO: ${TILCHI_DEMO:-1}
 
   start:
     environment:
       NODE_ENV: development
       TILCHI_PREVIEW_ROLE: ${TILCHI_PREVIEW_ROLE:-learner}
+      TILCHI_DEMO: ${TILCHI_DEMO:-1}
 
   postgres:
     environment:

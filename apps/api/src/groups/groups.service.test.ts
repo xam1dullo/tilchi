@@ -18,4 +18,23 @@ describe('GroupsService', () => {
     expect(withMember.memberIds).toEqual(['t1', 'u1'])
     expect(groups.listForUser('u1')[0]?.id).toBe(group.id)
   })
+
+  it('lists every group for an admin and keeps ensure idempotent', () => {
+    const groups = new GroupsService()
+    const first = groups.ensure({
+      id: 'g1',
+      name: 'A1',
+      actorId: 't1',
+    })
+    const second = groups.ensure({
+      id: 'g1',
+      name: 'ignored',
+      actorId: 't2',
+    })
+    groups.putMember('g1', 'u1')
+    expect(second.id).toBe(first.id)
+    expect(second.memberIds).toEqual(['t1', 'u1'])
+    expect(groups.listForUser('admin', 'admin')).toHaveLength(1)
+    expect(groups.listForUser('u1', 'learner')).toHaveLength(1)
+  })
 })

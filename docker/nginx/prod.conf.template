@@ -37,5 +37,9 @@ server {
   add_header X-Content-Type-Options nosniff always;
   add_header Referrer-Policy strict-origin-when-cross-origin always;
 
+  # Server-level so locations keep the shared headers. Empty overwrites any
+  # client-supplied preview role before Nest sees it.
+  proxy_set_header X-Tilchi-Preview-Role "";
+
   include /etc/nginx/tilchi/locations.conf;
 }

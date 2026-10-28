@@ -15,12 +15,14 @@ Networking (see 0010):
 - Nest and LiveKit share one key pair from env (`LIVEKIT_API_KEY`/`LIVEKIT_API_SECRET`). The entrypoint writes that pair into the server config and execs `/livekit-server`. Production refuses the dev pair.
 - Browsers never hold LiveKit API keys. They get a per-room access token from Nest.
 
-`POST /api/meet/ticket` is a stub: it is not stored, not room-scoped, and not single-use. Do not mint LiveKit from it. LiveKit join waits on a signed, scoped, single-use ticket. Until then `POST /api/meet/lessons/:id/token` returns `501 meet_ticket_not_ready`. The handler still reads `__Host-tilchi_sid` only and never puts that cookie into a peer-facing value. `/api/health` returns `{ ok, service }` and no secret flags.
+`POST /api/meet/ticket` is still a stub: it is not stored, not room-scoped, and not single-use. Do not mint LiveKit from it.
 
-Phase 1 does not render `/app/meet`. Ink-dark tiles are allowed later. See 0004. LiveKit signaling stays on the compose network; nginx proxies `/rtc/`. Do not publish host port 7880.
+`POST /api/meet/lessons/:id/token` mints a 60-second room-scoped LiveKit JWT from `LIVEKIT_API_KEY` / `LIVEKIT_API_SECRET` after the lesson is live and the actor is a group member (or admin). The handler reads `__Host-tilchi_sid` or, in `development`/`test` only, the demo preview header. It never puts the session cookie into the token or the response. Missing LiveKit credentials return `501 livekit_unconfigured` with a note. `/api/health` returns `{ ok, service }` and no secret flags.
+
+`/app/meet/$lessonId` is the Phase 1 join surface. nginx keeps `/rtc` on shared server-level headers (no `proxy_set_header` inside the location). `location ^~ /rtc/` strips the prefix so `wss://<host>/rtc` + the SDK's `/rtc` path reaches LiveKit as `/rtc`. `location = /rtc` covers a connect to the bare `/rtc` path. Do not publish host port 7880.
 
 ## Open
 
 - The ticket is issued but not yet stored or redeemable. It must be bound to user and room, and be single-use.
-- LiveKit access-token minting (`livekit-server-sdk`) is not wired.
 - coturn is not yet advertised to clients through `rtc.turn_servers` (0010, open item 3).
+- LiveKit room teardown on lesson end is not wired.
