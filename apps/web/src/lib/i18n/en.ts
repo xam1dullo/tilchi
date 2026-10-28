@@ -18,6 +18,13 @@ export const en = {
   locale: 'Language',
   logout: 'Log out',
   heroCta: 'Continue in Telegram',
+  loginOpenTelegram: 'Open Telegram',
+  loginVerifying: 'Checking your Telegram sign-in.',
+  loginRejected:
+    'Telegram did not accept the sign-in. Start again in this window.',
+  loginRateLimited: 'Too many attempts. Try again in a minute.',
+  loginNetwork: 'Cannot reach the server. Check your connection and try again.',
+  loginUnavailable: 'Sign-in is unavailable right now. Try again shortly.',
   createGroup: 'Create a group',
   groupName: 'Group name',
   scheduleLesson: 'Schedule a lesson',

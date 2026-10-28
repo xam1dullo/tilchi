@@ -109,6 +109,16 @@
   color: var(--ink-2);
 }
 
+.login-error {
+  color: var(--danger);
+}
+
+.sign-in .btn:disabled {
+  opacity: 0.6;
+  cursor: progress;
+  transform: none;
+}
+
 @media (max-width: 920px) {
   .empty-split {
     grid-template-columns: 1fr;

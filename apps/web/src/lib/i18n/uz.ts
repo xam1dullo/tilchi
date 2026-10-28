@@ -18,6 +18,16 @@ export const uz = {
   locale: 'Til',
   logout: 'Chiqish',
   heroCta: "Telegram'da davom etish",
+  loginOpenTelegram: "Telegram'ni ochish",
+  loginVerifying: 'Telegram orqali tekshirilmoqda.',
+  loginRejected:
+    'Telegram kirishni qabul qilmadi. Shu oynada kirishni qayta boshlang.',
+  loginRateLimited:
+    "Juda ko'p urinish bo'ldi. Bir daqiqadan so'ng qayta urinib ko'ring.",
+  loginNetwork:
+    "Server bilan aloqa yo'q. Internetni tekshirib, qayta urinib ko'ring.",
+  loginUnavailable:
+    "Kirish hozir ishlamayapti. Birozdan so'ng qayta urinib ko'ring.",
   createGroup: 'Guruh ochish',
   groupName: 'Guruh nomi',
   scheduleLesson: 'Dars rejalashtirish',
