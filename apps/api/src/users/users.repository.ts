@@ -89,6 +89,13 @@ export class UsersRepository {
     return toUser(row)
   }
 
+  async softDelete(id: string, now = new Date()) {
+    await this.database.db
+      .update(users)
+      .set({ deletedAt: now })
+      .where(and(eq(users.id, id), isNull(users.deletedAt)))
+  }
+
   async registration(telegramUserId: string): Promise<Registration | null> {
     const [row] = await this.database.db
       .select()
@@ -129,8 +136,10 @@ export class UsersRepository {
           source: sql`coalesce(${users.source}, ${input.source})`,
           level: sql`coalesce(${users.level}, ${input.level})`,
         },
+        setWhere: isNull(users.deletedAt),
       })
       .returning()
+    if (!row) throw new DeletedUserError()
     return toRegistration(row)
   }
 
@@ -161,13 +170,6 @@ export class UsersRepository {
       .where(and(eq(users.telegramId, telegramUserId), isNull(column), fresh))
       .returning()
     return row ? toRegistration(row) : null
-  }
-
-  async softDelete(id: string, now = new Date()) {
-    await this.database.db
-      .update(users)
-      .set({ deletedAt: now })
-      .where(and(eq(users.id, id), isNull(users.deletedAt)))
   }
 
   async get(id: string): Promise<User | null> {

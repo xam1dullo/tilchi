@@ -78,16 +78,6 @@ export class SessionsRepository {
     return row ?? null
   }
 
-  /** Revokes every live session of a user; returns the hashes for cache eviction. */
-  async revokeAll(userId: string, now: Date): Promise<string[]> {
-    const rows = await this.database.db
-      .update(sessions)
-      .set({ revokedAt: now })
-      .where(and(eq(sessions.userId, userId), isNull(sessions.revokedAt)))
-      .returning({ tokenHash: sessions.tokenHash })
-    return rows.map((row) => row.tokenHash)
-  }
-
   async revoke(tokenHash: string, now: Date) {
     await this.database.db
       .update(sessions)
