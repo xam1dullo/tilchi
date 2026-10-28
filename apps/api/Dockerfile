@@ -7,7 +7,7 @@ COPY packages/content/package.json packages/content/package.json
 RUN pnpm install --frozen-lockfile --filter @tilchi/api...
 COPY apps/api apps/api
 RUN pnpm --filter @tilchi/api build
-RUN pnpm --filter @tilchi/api deploy --prod /out
+RUN pnpm --filter @tilchi/api deploy --prod --legacy /out
 
 FROM node:22-alpine
 WORKDIR /app
