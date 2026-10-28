@@ -1,5 +1,24 @@
 type Env = Record<string, string | undefined>
 
+type BootstrapConfigResult =
+  | { ok: true; config: { port: number } }
+  | { ok: false; errors: string[] }
+
+export function readBootstrapConfig(env: Env): BootstrapConfigResult {
+  const errors = productionConfigErrors(env)
+  const raw = env.PORT ?? '3001'
+  const port = Number(raw)
+  if (
+    !/^\d+$/.test(raw) ||
+    !Number.isInteger(port) ||
+    port < 1 ||
+    port > 65535
+  ) {
+    errors.push('PORT must be an integer between 1 and 65535')
+  }
+  return errors.length ? { ok: false, errors } : { ok: true, config: { port } }
+}
+
 const DEV_LIVEKIT_VALUES = new Set(['devkey', 'devsecret'])
 const WEBHOOK_SECRET = /^[A-Za-z0-9_-]{32,256}$/
 // Port 1 refuses at once, so a test that forgot its database fails fast
