@@ -9,13 +9,12 @@ COPY apps/web apps/web
 COPY packages/content packages/content
 RUN pnpm --filter @tilchi/web build
 # The SSR bundle keeps react, react-dom, and TanStack external.
-RUN pnpm --filter @tilchi/web deploy --legacy --prod /out
+RUN pnpm --filter @tilchi/web deploy --prod --legacy /out
 
 FROM node:22-alpine
 WORKDIR /app
 ENV NODE_ENV=production
-COPY --from=build /out/package.json ./package.json
-COPY --from=build /out/node_modules ./node_modules
+COPY --from=build /out /app
 COPY --from=build /repo/apps/web/dist ./dist
 COPY --from=build /repo/apps/web/serve.mjs ./serve.mjs
 USER node

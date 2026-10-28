@@ -54,6 +54,19 @@ export const groups = pgTable('groups', {
   deletedAt: timestamp('deleted_at', { withTimezone: true }),
 })
 
+export const groupMembers = pgTable('group_members', {
+  id: uuid('id').primaryKey(),
+  groupId: uuid('group_id')
+    .notNull()
+    .references(() => groups.id),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => users.id),
+  createdAt: timestamp('created_at', { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+})
+
 export const lessons = pgTable('lessons', {
   id: uuid('id').primaryKey(),
   groupId: uuid('group_id')

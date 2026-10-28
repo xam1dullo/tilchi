@@ -1,0 +1,36 @@
+# Local defaults. Never use as the sole file in production.
+# docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+
+services:
+  nest:
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: ${DATABASE_URL:-postgres://tilchi:tilchi@postgres:5432/tilchi}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-dev-bot-token}
+      TELEGRAM_WEBHOOK_SECRET: ${TELEGRAM_WEBHOOK_SECRET:-}
+      LIVEKIT_API_KEY: ${LIVEKIT_API_KEY:-devkey}
+      LIVEKIT_API_SECRET: ${LIVEKIT_API_SECRET:-devsecret}
+      TILCHI_PREVIEW_ROLE: ${TILCHI_PREVIEW_ROLE:-}
+
+  start:
+    environment:
+      NODE_ENV: development
+      TILCHI_PREVIEW_ROLE: ${TILCHI_PREVIEW_ROLE:-learner}
+
+  postgres:
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-tilchi}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-tilchi}
+      POSTGRES_DB: ${POSTGRES_DB:-tilchi}
+
+  livekit:
+    environment:
+      LIVEKIT_API_KEY: ${LIVEKIT_API_KEY:-devkey}
+      LIVEKIT_API_SECRET: ${LIVEKIT_API_SECRET:-devsecret}
+
+  coturn:
+    environment:
+      TURN_USER: ${TURN_USER:-tilchi}
+      TURN_PASSWORD: ${TURN_PASSWORD:-dev-turn-password}
+      TURN_REALM: ${TURN_REALM:-tilchi.local}

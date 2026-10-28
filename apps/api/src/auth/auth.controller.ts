@@ -4,13 +4,13 @@ import {
   Get,
   Headers,
   HttpException,
-  Inject,
   Post,
   Req,
   Res,
 } from '@nestjs/common'
 import type { Request, Response } from 'express'
 import { AuthService } from './auth.service'
+import { clientIp } from './client-ip'
 import {
   SESSION_COOKIE,
   bearerSessionRejected,
@@ -41,45 +41,50 @@ function handoffId(body: unknown) {
 
 @Controller('auth')
 export class AuthController {
-  constructor(@Inject(AuthService) private readonly auth: AuthService) {}
+  constructor(private readonly auth: AuthService) {}
 
-  // req.ip honours `trust proxy` (one hop: nginx), so a client-sent
-  // X-Forwarded-For prefix cannot pick its own rate-limit bucket.
   @Post('start')
-  start(@Req() req: Request, @Body() body: unknown) {
+  async start(
+    @Req() req: Request,
+    @Headers('x-real-ip') realIp: string | undefined,
+    @Body() body: unknown,
+  ) {
     return this.auth.start({
-      ip: req.ip ?? 'unknown',
+      ip: clientIp({ realIp, requestIp: req.ip }),
       telegramKey: telegramKey(body),
     })
   }
 
   @Post('confirm')
-  confirm(@Body() body: unknown, @Res({ passthrough: true }) res: Response) {
-    const opened = this.auth.confirm(handoffId(body))
+  async confirm(
+    @Body() body: unknown,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const opened = await this.auth.confirm(handoffId(body))
     res.setHeader(
       'Set-Cookie',
       cookieHeader(opened.token, opened.maxAgeSeconds),
     )
-    return { ok: true }
+    return { ok: true, user: { id: opened.user.id, role: opened.user.role } }
   }
 
   @Get('session')
-  session(
+  async session(
     @Headers('cookie') cookie: string | undefined,
     @Headers('authorization') authorization: string | undefined,
   ) {
     refuseBearer(authorization)
-    const session = this.auth.read(readCookie(cookie, SESSION_COOKIE))
+    const session = await this.auth.read(readCookie(cookie, SESSION_COOKIE))
     if (!session) return { user: null }
     return { user: session }
   }
 
   @Post('logout')
-  logout(
+  async logout(
     @Headers('cookie') cookie: string | undefined,
     @Res({ passthrough: true }) res: Response,
   ) {
-    this.auth.logout(readCookie(cookie, SESSION_COOKIE))
+    await this.auth.logout(readCookie(cookie, SESSION_COOKIE))
     res.setHeader('Set-Cookie', clearCookieHeader())
     return { ok: true }
   }

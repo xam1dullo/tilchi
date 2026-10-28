@@ -24,7 +24,7 @@ Docker Compose on one VPS. Cloudflare is DNS-only (no proxy) plus R2 for audio o
 | livekit  | `livekit/livekit-server:v1.8.4`       | signaling via nginx `/rtc`; 7881/tcp, 7882/udp media |
 | coturn   | `coturn/coturn:4.6.2`                 | 3478/udp+tcp, 49160-49200/udp relay                  |
 
-`docker-compose.yml` is the local stack. `docker-compose.prod.yml` is the production overlay. It swaps `build:` for ghcr images, adds TLS, and turns every secret into `${VAR:?}`, so a missing value stops `compose` before anything starts.
+`docker-compose.yml` is the production shape: secrets use `${VAR:?}` and there are no silent dev defaults. `docker-compose.dev.yml` fills local defaults only. `docker-compose.prod.yml` swaps `build:` for ghcr images by git SHA, adds TLS, and passes the public node IP. A missing secret stops `compose` before anything starts.
 
 ### Paths (one origin)
 
@@ -90,7 +90,7 @@ In production, Nest refuses to boot when any of these is true:
 - `TELEGRAM_WEBHOOK_SECRET` is not 32-256 chars of `[A-Za-z0-9_-]`.
 - The LiveKit keys are missing or still the `devkey`/`devsecret` pair.
 
-The boot errors name the variable and never print its value. LiveKit reads the same pair from `LIVEKIT_KEYS`. coturn takes its credentials on the command line from env and refuses to relay into private ranges.
+The boot errors name the variable and never print its value. `docker/livekit/entrypoint.sh` writes that pair into the server config and execs `/livekit-server` (absolute path). In production it also passes `--node-ip`. coturn's entrypoint writes credentials from env and refuses to relay into private ranges.
 
 ### Security must-not-repeat (2026-10-28 review)
 
@@ -104,7 +104,7 @@ The boot errors name the variable and never print its value. LiveKit reads the s
 
 ## Consequences
 
-- Local development is `cp .env.example .env && docker compose up --build`. Production differs only by the overlay and `/etc/tilchi.env`.
+- Local development is `cp .env.example .env && docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build`. Production adds `docker-compose.prod.yml` and `/etc/tilchi.env`.
 - One VPS is a single point of failure. That is accepted for v1 (1-3 concurrent rooms of up to 12).
 - `pgdata` backups are not yet defined and must exist before the first real learner.
 
@@ -112,6 +112,6 @@ The boot errors name the variable and never print its value. LiveKit reads the s
 
 1. The SSH path for CI. "SSH not public" conflicts with "GHA SSH deploy". Pick one: a self-hosted runner on the VPS, a private tunnel (Tailscale or WireGuard) from the runner, or a pull-based deploy on the VPS. This is a PM decision.
 2. The `production` environment does not exist on GitHub yet. Referencing it creates it with no reviewers, so the owner must add required reviewers before unholding.
-3. LiveKit does not yet hand coturn to clients (`rtc.turn_servers`). This needs config templating, because the yaml cannot read env.
+3. LiveKit does not yet hand coturn to clients (`rtc.turn_servers`). The entrypoint templates the LiveKit config from env; the TURN server list is still not advertised.
 4. The domain (`tilchi.uz` or `app.tilchi.uz`) and the marketing cut-over from Cloudflare Pages are undecided.
 5. Postgres backup and restore drill.
