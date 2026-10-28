@@ -85,8 +85,13 @@ export class LessonsService {
   async end(input: { lessonId: string; role: Role }) {
     requireManager(input.role)
     const ended = await this.lessons.end(input.lessonId, new Date())
-    if (!ended) throw new HttpException({ error: 'not_found' }, 404)
-    return ended
+    if (ended.kind === 'not_found') {
+      throw new HttpException({ error: 'not_found' }, 404)
+    }
+    if (ended.kind === 'conflict') {
+      throw new HttpException({ error: 'lesson_not_live' }, 409)
+    }
+    return ended.lesson
   }
 
   async cancel(input: { lessonId: string; role: Role }) {

@@ -114,4 +114,14 @@ describeWithDatabase('LessonsService cancel and reschedule', (current) => {
       lessons.cancel({ lessonId: other.id, role: 'teacher' }),
     ).rejects.toMatchObject({ status: 409 })
   })
+
+  it('never lets an End that races behind a Cancel turn it into ended', async () => {
+    const { lessons, lesson } = await setup()
+    const runs = await Promise.allSettled([
+      lessons.cancel({ lessonId: lesson.id, role: 'teacher' }),
+      lessons.end({ lessonId: lesson.id, role: 'teacher' }),
+    ])
+    expect(runs[1]).toMatchObject({ status: 'rejected' })
+    expect((await lessons.get(lesson.id))?.status).toBe('cancelled')
+  })
 })

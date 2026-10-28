@@ -14,6 +14,10 @@ rtc:
   use_external_ip: false
 keys:
   ${LIVEKIT_API_KEY}: ${LIVEKIT_API_SECRET}
+webhook:
+  api_key: ${LIVEKIT_API_KEY}
+  urls:
+    - http://nest:3001/api/meet/webhook
 room:
   max_participants: 14
   empty_timeout: 300

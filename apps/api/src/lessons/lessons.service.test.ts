@@ -130,15 +130,18 @@ describeWithDatabase('LessonsService', (current) => {
     expect((await lessons.meetingForLesson(lesson.id))?.closedAt).toBe(closed)
   })
 
-  it('ends a lesson that never started, and refuses to start one that ended', async () => {
+  it('refuses to end a lesson that never started, and to start one that ended', async () => {
     const { lessons, group } = await classroom()
     const lesson = await lessons.create({
       groupId: group.id,
       scheduledAt: AT,
       role: 'teacher',
     })
-    const ended = await lessons.end({ lessonId: lesson.id, role: 'teacher' })
-    expect(ended).toMatchObject({ status: 'ended', meetingId: null })
+    expect(
+      await outcome(lessons.end({ lessonId: lesson.id, role: 'teacher' })),
+    ).toBe('409 lesson_not_live')
+    await lessons.start({ lessonId: lesson.id, role: 'teacher' })
+    await lessons.end({ lessonId: lesson.id, role: 'teacher' })
     expect(
       await outcome(lessons.start({ lessonId: lesson.id, role: 'teacher' })),
     ).toBe('409 lesson_closed')
