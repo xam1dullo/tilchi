@@ -4,6 +4,7 @@ import { Database } from '../db/database'
 import { lessons, meetings } from '../db/schema'
 import { isUuid } from '../db/uuid'
 import { uuidv7 } from '../id'
+import { type LessonCommand, lessonTransition } from './lesson-transition'
 
 export type LessonStatus = 'scheduled' | 'live' | 'ended' | 'cancelled'
 
@@ -27,6 +28,11 @@ export type StartResult =
   | { kind: 'started'; lesson: Lesson; meeting: Meeting }
   | { kind: 'not_found' }
   | { kind: 'closed' }
+
+export type EndResult =
+  | { kind: 'ended'; lesson: Lesson }
+  | { kind: 'not_found' }
+  | { kind: 'conflict' }
 
 export type ChangeResult =
   | { kind: 'changed'; lesson: Lesson; previousScheduledAt: string }
@@ -108,9 +114,8 @@ export class LessonsRepository {
         .where(eq(lessons.id, id))
         .for('update')
       if (!lesson) return { kind: 'not_found' }
-      if (lesson.status === 'ended' || lesson.status === 'cancelled') {
-        return { kind: 'closed' }
-      }
+      const step = lessonTransition(lesson, { type: 'start' }, now)
+      if (step.kind === 'refused') return { kind: 'closed' }
       await tx
         .insert(meetings)
         .values({
@@ -120,11 +125,14 @@ export class LessonsRepository {
           openedAt: now,
         })
         .onConflictDoNothing()
-      const [live] = await tx
-        .update(lessons)
-        .set({ status: 'live', startedAt: lesson.startedAt ?? now })
-        .where(eq(lessons.id, id))
-        .returning()
+      const [live] =
+        step.kind === 'next'
+          ? await tx
+              .update(lessons)
+              .set(step.patch)
+              .where(eq(lessons.id, id))
+              .returning()
+          : [lesson]
       const [meeting] = await tx
         .select()
         .from(meetings)
@@ -139,27 +147,18 @@ export class LessonsRepository {
 
   /** Cancels a scheduled lesson. Cancelling a cancelled one changes nothing. */
   async cancel(id: string, now: Date): Promise<ChangeResult> {
-    return this.change(id, (lesson) =>
-      lesson.status === 'cancelled'
-        ? 'unchanged'
-        : lesson.status === 'scheduled'
-          ? { status: 'cancelled', cancelledAt: now }
-          : null,
-    )
+    return this.change(id, { type: 'cancel' }, now)
   }
 
   /** Moves a lesson that is still scheduled; any other status is a conflict. */
   async reschedule(id: string, scheduledAt: Date): Promise<ChangeResult> {
-    return this.change(id, (lesson) =>
-      lesson.status === 'scheduled' ? { scheduledAt } : null,
-    )
+    return this.change(id, { type: 'reschedule', scheduledAt }, new Date())
   }
 
   private async change(
     id: string,
-    plan: (
-      lesson: typeof lessons.$inferSelect,
-    ) => Partial<typeof lessons.$inferInsert> | 'unchanged' | null,
+    command: LessonCommand,
+    now: Date,
   ): Promise<ChangeResult> {
     if (!isUuid(id)) return { kind: 'not_found' }
     return this.database.db.transaction(async (tx) => {
@@ -169,14 +168,14 @@ export class LessonsRepository {
         .where(eq(lessons.id, id))
         .for('update')
       if (!lesson) return { kind: 'not_found' }
-      const patch = plan(lesson)
-      if (patch === null) return { kind: 'conflict' }
-      if (patch === 'unchanged') {
+      const step = lessonTransition(lesson, command, now)
+      if (step.kind === 'refused') return { kind: 'conflict' }
+      if (step.kind === 'same') {
         return { kind: 'unchanged', lesson: toLesson(lesson, null) }
       }
       const [row] = await tx
         .update(lessons)
-        .set(patch)
+        .set(step.patch)
         .where(eq(lessons.id, id))
         .returning()
       return {
@@ -187,21 +186,29 @@ export class LessonsRepository {
     })
   }
 
-  /** Ends the lesson and closes its Meeting, keeping the first end time. */
-  async end(id: string, now: Date): Promise<Lesson | null> {
-    if (!isUuid(id)) return null
+  /**
+   * Ends a live lesson and closes its Meeting, keeping the first end time.
+   * A lesson that is scheduled or cancelled is a conflict, never overwritten.
+   */
+  async end(id: string, now: Date): Promise<EndResult> {
+    if (!isUuid(id)) return { kind: 'not_found' }
     return this.database.db.transaction(async (tx) => {
       const [lesson] = await tx
         .select()
         .from(lessons)
         .where(eq(lessons.id, id))
         .for('update')
-      if (!lesson) return null
-      const [ended] = await tx
-        .update(lessons)
-        .set({ status: 'ended', endedAt: lesson.endedAt ?? now })
-        .where(eq(lessons.id, id))
-        .returning()
+      if (!lesson) return { kind: 'not_found' }
+      const step = lessonTransition(lesson, { type: 'end' }, now)
+      if (step.kind === 'refused') return { kind: 'conflict' }
+      const [ended] =
+        step.kind === 'next'
+          ? await tx
+              .update(lessons)
+              .set(step.patch)
+              .where(eq(lessons.id, id))
+              .returning()
+          : [lesson]
       const [meeting] = await tx
         .update(meetings)
         .set({
@@ -209,7 +216,7 @@ export class LessonsRepository {
         })
         .where(eq(meetings.lessonId, id))
         .returning({ id: meetings.id })
-      return toLesson(ended, meeting?.id ?? null)
+      return { kind: 'ended', lesson: toLesson(ended, meeting?.id ?? null) }
     })
   }
 
