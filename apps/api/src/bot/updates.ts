@@ -14,6 +14,7 @@ type TgUser = {
 }
 
 export type TelegramUpdate = {
+  update_id?: number
   message?: {
     text?: string
     from?: TgUser
@@ -40,7 +41,7 @@ export type BotAction =
       level: Level | null
     } & Who)
   | ({ type: 'consent'; callbackQueryId: string } & Who)
-  | ({ type: 'answer'; text: string } & Who)
+  | ({ type: 'answer'; text: string; updateId?: number } & Who)
   | ({ type: 'revoke_all' } & Who)
 
 const nameOf = (from: TgUser) =>
@@ -152,7 +153,14 @@ function parseMessage(
 
 export function parseBotUpdate(update: unknown): BotAction {
   if (!update || typeof update !== 'object') return IGNORE
-  const { message, callback_query: callback } = update as TelegramUpdate
+  const {
+    message,
+    callback_query: callback,
+    update_id,
+  } = update as TelegramUpdate
   if (callback) return parseCallback(callback)
-  return message ? parseMessage(message) : IGNORE
+  const action = message ? parseMessage(message) : IGNORE
+  return action.type === 'answer' && Number.isSafeInteger(update_id)
+    ? { ...action, updateId: update_id }
+    : action
 }

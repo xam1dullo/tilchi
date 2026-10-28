@@ -1,3 +1,4 @@
+import { setTimeout as sleep } from 'node:timers/promises'
 import { Inject, Injectable } from '@nestjs/common'
 import { AuthService } from '../auth/auth.service'
 import { KV, type Kv } from '../redis/kv'
@@ -19,6 +20,9 @@ import {
 } from './registration'
 import type { BotAction } from './updates'
 
+const LOCK_TTL_SECONDS = 10
+const LOCK_ATTEMPTS = 20
+const LOCK_WAIT_MS = 50
 const STATE_TTL_SECONDS = 7 * 24 * 60 * 60
 
 /** What a visitor arrived with, kept until they consent and the row exists. */
@@ -69,7 +73,23 @@ export class RegistrationService {
       : alreadyRegistered(action.chatId, action.lang, publicAppUrl())
   }
 
+  /** One answer at a time per user, so each reads the field the last one filled. */
   async answer(action: Of<'answer'>): Promise<Reply> {
+    const lock = `reg:lock:${action.telegramUserId}`
+    for (let attempt = 0; attempt < LOCK_ATTEMPTS; attempt += 1) {
+      if ((await this.kv.incr(lock, LOCK_TTL_SECONDS)) === 1) {
+        try {
+          return await this.applyAnswer(action)
+        } finally {
+          await this.kv.del(lock)
+        }
+      }
+      await sleep(LOCK_WAIT_MS)
+    }
+    return null
+  }
+
+  private async applyAnswer(action: Of<'answer'>): Promise<Reply> {
     // Free text only counts inside a registration the user started.
     if (!(await this.kv.get(stateKey(action.telegramUserId)))) return null
     const reg = await this.users.registration(action.telegramUserId)
@@ -83,6 +103,7 @@ export class RegistrationService {
       action.telegramUserId,
       field,
       value,
+      action.updateId,
     )
     // A redelivered update finds the field already filled: nothing to do.
     if (!saved) return null

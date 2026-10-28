@@ -49,10 +49,11 @@ export function publicAppUrl(env: NodeJS.ProcessEnv = process.env) {
   return value?.startsWith('https://') ? value : undefined
 }
 
-/** `ADMIN_CHAT_IDS` (comma list) with the legacy single `ADMIN_CHAT_ID` as fallback. */
+/** `ADMIN_CHAT_IDS` (comma list) plus the legacy single `ADMIN_CHAT_ID`, deduplicated. */
 export function adminChatIds(env: NodeJS.ProcessEnv = process.env) {
-  return (env.ADMIN_CHAT_IDS ?? env.ADMIN_CHAT_ID ?? '')
+  const ids = `${env.ADMIN_CHAT_IDS ?? ''},${env.ADMIN_CHAT_ID ?? ''}`
     .split(',')
     .map((id) => id.trim())
     .filter(Boolean)
+  return [...new Set(ids)]
 }

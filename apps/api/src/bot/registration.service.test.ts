@@ -9,7 +9,9 @@ import type { BotApi } from './bot-api'
 import { RegistrationService } from './registration.service'
 import { parseBotUpdate } from './updates'
 
+let nextUpdateId = 1000
 const message = (text: string, id = 99, extra: object = {}) => ({
+  update_id: nextUpdateId++,
   message: {
     text,
     from: { id, first_name: 'Tg Name' },
@@ -75,6 +77,38 @@ describeWithDatabase('RegistrationService', (current) => {
       await say(message(text, id))
     }
   }
+
+  it('does not let a replayed update fill the next field', async () => {
+    await say(tap('consent:yes'))
+    const name = message('Ada L')
+    await say(name)
+    await say(name)
+    await say(name)
+    expect(await users.registration('99')).toMatchObject({
+      name: 'Ada L',
+      level: null,
+    })
+  })
+
+  it('applies concurrent updates one after the other, none lost', async () => {
+    await say(tap('consent:yes'))
+    await Promise.all([say(message('Ada L')), say(message('orta'))])
+    expect(await users.registration('99')).toMatchObject({
+      name: 'Ada L',
+      level: 'orta',
+    })
+  })
+
+  it('drops an update older than the last one applied', async () => {
+    await say(tap('consent:yes'))
+    const old = message('stale')
+    await say(message('Ada L'))
+    await say(old)
+    expect(await users.registration('99')).toMatchObject({
+      name: 'Ada L',
+      level: null,
+    })
+  })
 
   it('asks for consent first and stores nothing until it is given', async () => {
     const reply = await say(message('/start ielts_orta'))

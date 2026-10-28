@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common'
-import { and, eq, isNull, sql } from 'drizzle-orm'
+import { and, eq, isNull, lt, or, sql } from 'drizzle-orm'
 import type { Role } from '../auth/policy'
 import type { Field, Registration } from '../bot/registration'
 import { Database } from '../db/database'
@@ -126,19 +126,30 @@ export class UsersRepository {
   }
 
   /**
-   * Stores one registration answer only while the field is still empty, so a
-   * redelivered update is a no-op: it returns null and the caller does nothing.
+   * Stores one registration answer only while the field is still empty and the
+   * update is newer than the last applied one, so a redelivered update is a
+   * no-op: it returns null and the caller does nothing.
    */
   async saveAnswer(
     telegramUserId: string,
     field: Field,
     value: string,
+    updateId?: number,
   ): Promise<Registration | null> {
     const column = users[field]
+    // The update id is stored in the same statement as the answer, so a
+    // replayed or older update can never fill the next field.
+    const fresh =
+      updateId === undefined
+        ? undefined
+        : or(isNull(users.lastUpdateId), lt(users.lastUpdateId, updateId))
     const [row] = await this.database.db
       .update(users)
-      .set({ [field]: value })
-      .where(and(eq(users.telegramId, telegramUserId), isNull(column)))
+      .set({
+        [field]: value,
+        ...(updateId === undefined ? {} : { lastUpdateId: updateId }),
+      })
+      .where(and(eq(users.telegramId, telegramUserId), isNull(column), fresh))
       .returning()
     return row ? toRegistration(row) : null
   }
