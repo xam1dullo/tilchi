@@ -119,19 +119,206 @@
   font-size: var(--fs-h2);
 }
 
+/* Meeting: the page stays light; only the video tiles are ink-dark. */
 .meet-stage {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
   margin-top: 24px;
-  padding: clamp(24px, 3.5vw, 44px);
-  border-radius: var(--r-lg);
+}
+
+.meet-notices {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.meet-notices:empty {
+  display: none;
+}
+
+.meet-notice {
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: var(--r-md);
+  background: var(--bg-alt);
+  color: var(--ink);
+  font-size: var(--fs-sm);
+}
+
+.meet-notice[data-tone="alert"] {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.meet-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+}
+
+.meet-grid:empty {
+  display: none;
+}
+
+.meet-tile {
+  position: relative;
+  display: grid;
+  place-items: center;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: var(--r-md);
   background: var(--meet-bg);
   color: var(--on-accent);
 }
 
-.meet-stage .tag {
-  background: var(--accent-2);
-  color: var(--on-accent);
+/* A paper gap, then the accent ring: it reads on the light page. */
+.meet-tile[data-speaking="true"] {
+  box-shadow:
+    0 0 0 3px var(--bg),
+    0 0 0 6px var(--accent);
 }
 
-.meet-stage .hint {
-  color: var(--on-accent-muted);
+.meet-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: var(--meet-bg);
+}
+
+.meet-tile[data-local="true"] .meet-video {
+  transform: scaleX(-1);
+}
+
+.meet-avatar {
+  display: grid;
+  place-items: center;
+  width: clamp(56px, 28%, 96px);
+  aspect-ratio: 1;
+  border-radius: var(--r-full);
+  background: var(--ink-2);
+  color: var(--on-accent);
+  font: 600 var(--fs-h3) / 1 var(--font-sans);
+  letter-spacing: 0.04em;
+}
+
+.meet-label {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: calc(100% - 16px);
+  padding: 4px 8px;
+  border-radius: var(--r-sm);
+  background: rgba(21, 26, 23, 0.78);
+  color: var(--on-accent);
+  font: 600 var(--fs-xs) / 1.3 var(--font-sans);
+}
+
+.meet-tile[data-speaking="true"] .meet-label {
+  background: var(--accent-2);
+}
+
+.meet-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.meet-flag {
+  display: inline-flex;
+}
+
+.meet-icon {
+  flex: none;
+}
+
+.meet-controls {
+  position: sticky;
+  bottom: 8px;
+  z-index: var(--z-sticky);
+  min-inline-size: 0;
+  margin: 0;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--bg-elev);
+  box-shadow: var(--sh-panel);
+}
+
+.meet-controls-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+
+/* 48px keeps every control above the 44px touch target floor. */
+.meet-control {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 48px;
+  min-height: 48px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: var(--r-md);
+  background: transparent;
+  color: var(--ink);
+  font: 600 var(--fs-ui) / 1 var(--font-sans);
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+  cursor: pointer;
+}
+
+.meet-control:hover:not(:disabled) {
+  background: var(--bg-alt);
+}
+
+.meet-control[aria-pressed="true"] {
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+.meet-control:disabled {
+  color: var(--muted);
+  cursor: not-allowed;
+}
+
+.meet-leave {
+  color: var(--danger);
+  box-shadow: inset 0 0 0 1px var(--danger);
+}
+
+.meet-leave:hover:not(:disabled) {
+  background: var(--danger-soft);
+}
+
+/* Phones: icons only, one row, above the fixed bottom navigation. */
+@media (max-width: 780px) {
+  .meet-controls {
+    bottom: 64px;
+  }
+}
+
+@media (max-width: 480px) {
+  .meet-control {
+    min-width: 56px;
+    padding: 0 12px;
+  }
+
+  .meet-control-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
 }
