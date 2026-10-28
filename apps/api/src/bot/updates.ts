@@ -53,70 +53,42 @@ const langOf = (from: TgUser): Lang =>
 
 const COMMAND = /^\/([A-Za-z]+)(?:@[A-Za-z0-9_]+)?(?:\s|$)/
 
-export function parseBotUpdate(update: unknown): BotAction {
-  if (!update || typeof update !== 'object') return { type: 'ignore' }
-  const { message, callback_query: callback } = update as TelegramUpdate
+const IGNORE: BotAction = { type: 'ignore' }
 
-  const data = callback?.data ?? ''
-  if (callback?.from?.id && callback.id && !callback.from.is_bot) {
-    const from = callback.from
-    if (data.startsWith(CONFIRM_PREFIX)) {
-      return {
-        type: 'confirm_handoff',
-        handoffId: normalizeHandoffId(data.slice(CONFIRM_PREFIX.length)),
-        telegramUserId: String(from.id),
-        callbackQueryId: callback.id,
-      }
+function parseCallback(
+  callback: NonNullable<TelegramUpdate['callback_query']>,
+): BotAction {
+  const { from, id, data = '' } = callback
+  if (!from?.id || !id || from.is_bot) return IGNORE
+  if (data.startsWith(CONFIRM_PREFIX)) {
+    return {
+      type: 'confirm_handoff',
+      handoffId: normalizeHandoffId(data.slice(CONFIRM_PREFIX.length)),
+      telegramUserId: String(from.id),
+      callbackQueryId: id,
     }
-    if (data === CONSENT_DATA) {
-      return {
-        type: 'consent',
-        callbackQueryId: callback.id,
-        telegramUserId: String(from.id),
-        chatId: from.id as number,
-        lang: langOf(from),
-      }
-    }
-    return { type: 'ignore' }
   }
-
-  const from = message?.from
-  if (!from?.id || from.is_bot) return { type: 'ignore' }
-  // Private chats only: a command or answer sent in a group is never acted on.
-  if (message?.chat?.id !== undefined && message.chat.id !== from.id) {
-    return { type: 'ignore' }
-  }
-  const who: Who = {
+  if (data !== CONSENT_DATA) return IGNORE
+  return {
+    type: 'consent',
+    callbackQueryId: id,
     telegramUserId: String(from.id),
     chatId: from.id,
     lang: langOf(from),
   }
+}
 
-  const contact = message?.contact
-  if (contact) {
-    // Only the sender's own contact card counts, never a forwarded one.
-    return contact.user_id === from.id && contact.phone_number
-      ? { type: 'answer', text: contact.phone_number, ...who }
-      : { type: 'ignore' }
-  }
-
-  const text = message?.text?.trim() ?? ''
-  const command = COMMAND.exec(text)
-  if (!command) {
-    // Slash lookalikes such as `/start<id>` are never an answer.
-    return text && !text.startsWith('/')
-      ? { type: 'answer', text, ...who }
-      : { type: 'ignore' }
-  }
-
-  const name = command[1]?.toLowerCase()
+function parseCommand(
+  name: string,
+  rest: string,
+  who: Who,
+  from: TgUser,
+): BotAction {
   if (name === 'revoke' || name === 'chiqish') {
     return { type: 'revoke_all', ...who }
   }
-  if (name !== 'start') return { type: 'ignore' }
-
-  const payload = text.slice(command[0].length).trim().split(/\s+/)[0] ?? ''
-  const route = classifyStartPayload(payload)
+  if (name !== 'start') return IGNORE
+  const route = classifyStartPayload(rest.split(/\s+/)[0] ?? '')
   if (route.kind === 'handoff') {
     return {
       type: 'bind_handoff',
@@ -131,4 +103,56 @@ export function parseBotUpdate(update: unknown): BotAction {
     level: route.level,
     ...who,
   }
+}
+
+function parseText(rawText: string | undefined, who: Who, from: TgUser) {
+  const text = rawText?.trim() ?? ''
+  const command = COMMAND.exec(text)
+  if (command) {
+    const rest = text.slice(command[0].length).trim()
+    return parseCommand(command[1]?.toLowerCase() ?? '', rest, who, from)
+  }
+  // Slash lookalikes such as `/start<id>` are never an answer.
+  return text && !text.startsWith('/')
+    ? ({ type: 'answer', text, ...who } satisfies BotAction)
+    : IGNORE
+}
+
+// Only the sender's own contact card counts, never a forwarded one.
+function parseContact(
+  contact: NonNullable<NonNullable<TelegramUpdate['message']>['contact']>,
+  who: Who,
+  from: TgUser,
+): BotAction {
+  return contact.user_id === from.id && contact.phone_number
+    ? { type: 'answer', text: contact.phone_number, ...who }
+    : IGNORE
+}
+
+// Private chats only: a command or answer sent in a group is never acted on.
+const isPrivate = (chatId: number | undefined, from: TgUser) =>
+  chatId === undefined || chatId === from.id
+
+function parseMessage(
+  message: NonNullable<TelegramUpdate['message']>,
+): BotAction {
+  const from = message.from
+  if (!from?.id || from.is_bot || !isPrivate(message.chat?.id, from)) {
+    return IGNORE
+  }
+  const who: Who = {
+    telegramUserId: String(from.id),
+    chatId: from.id,
+    lang: langOf(from),
+  }
+  return message.contact
+    ? parseContact(message.contact, who, from)
+    : parseText(message.text, who, from)
+}
+
+export function parseBotUpdate(update: unknown): BotAction {
+  if (!update || typeof update !== 'object') return IGNORE
+  const { message, callback_query: callback } = update as TelegramUpdate
+  if (callback) return parseCallback(callback)
+  return message ? parseMessage(message) : IGNORE
 }
