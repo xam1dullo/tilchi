@@ -1,29 +1,17 @@
-import {
-  Link,
-  createFileRoute,
-  useNavigate,
-  useRouteContext,
-} from '@tanstack/react-router'
+import { Link, createFileRoute, useRouteContext } from '@tanstack/react-router'
 import { Outlet } from '@tanstack/react-router'
-import { botLink, tgLinkProps } from '@tilchi/content'
 import { LocaleSwitch } from '../components/locale-switch'
+import { LoginScreen } from '../components/login-screen'
 import { PreviewSwitch } from '../components/preview-switch'
-import { TelegramGlyph } from '../components/telegram-glyph'
 import { messages } from '../lib/i18n'
-import type { Locale } from '../lib/locale'
 import { navForRole } from '../lib/nav'
 import { isPreviewUser, keepAppSearch, parsePreviewRole } from '../lib/preview'
 import { resolveAppSession, type SessionUser } from '../lib/session'
 
-const handoffs = ['waiting', 'expired', 'confirmed'] as const
-type Handoff = (typeof handoffs)[number]
-
 export const Route = createFileRoute('/app')({
-  validateSearch: (search: Record<string, unknown>) => {
-    const value = search.handoff
-    const handoff = handoffs.find((item) => item === value)
-    return { handoff, preview: parsePreviewRole(search.preview) ?? undefined }
-  },
+  validateSearch: (search: Record<string, unknown>) => ({
+    preview: parsePreviewRole(search.preview) ?? undefined,
+  }),
   beforeLoad: async ({ search }) => {
     const session = await resolveAppSession(search.preview)
     const previewRole =
@@ -38,8 +26,7 @@ export const Route = createFileRoute('/app')({
 function AppLayout() {
   const { session, previewRole } = Route.useRouteContext()
   const { locale } = useRouteContext({ from: '__root__' })
-  const { handoff } = Route.useSearch()
-  if (!session) return <SignIn locale={locale} handoff={handoff} />
+  if (!session) return <LoginScreen locale={locale} />
   const copy = messages(locale)
   const items = navForRole(session.role)
   const search = keepAppSearch(previewRole)
@@ -93,49 +80,6 @@ function AppLayout() {
         ))}
       </nav>
     </div>
-  )
-}
-
-function SignIn({
-  locale,
-  handoff,
-}: {
-  locale: Locale
-  handoff: Handoff | undefined
-}) {
-  const copy = messages(locale)
-  const navigate = useNavigate()
-  const note =
-    handoff === 'waiting'
-      ? copy.waiting
-      : handoff === 'expired'
-        ? copy.expired
-        : handoff === 'confirmed'
-          ? copy.confirmed
-          : null
-  return (
-    <section className="sign-in">
-      <h1>{copy.signInTitle}</h1>
-      <a className="btn btn-ink" {...tgLinkProps(botLink('', ''))}>
-        <TelegramGlyph />
-        {copy.signInButton}
-      </a>
-      <p className="hint">{copy.signInHint}</p>
-      {note ? <p className="handoff">{note}</p> : null}
-      {handoff === 'expired' ? (
-        <p>
-          <button
-            className="btn btn-outline"
-            type="button"
-            onClick={() => {
-              void navigate({ to: '/app', search: keepAppSearch(undefined) })
-            }}
-          >
-            {copy.retry}
-          </button>
-        </p>
-      ) : null}
-    </section>
   )
 }
 

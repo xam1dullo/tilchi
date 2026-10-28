@@ -54,3 +54,46 @@ export async function apiFetch<T>(
   if (!response.ok) throw new ApiError(response.status, body)
   return body
 }
+
+/** status null: no HTTP answer at all (offline, blocked or aborted). */
+export type AuthResult =
+  | { ok: true; body: unknown }
+  | { ok: false; status: number | null }
+
+/**
+ * Browser-only. Reads the status before the body, so an HTML error page from
+ * a proxy still has a status, and never throws.
+ */
+async function authPost(
+  path: string,
+  body?: unknown,
+  signal?: AbortSignal,
+): Promise<AuthResult> {
+  const json =
+    body === undefined
+      ? {}
+      : {
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(body),
+        }
+  try {
+    const response = await fetch(path, {
+      method: 'POST',
+      credentials: 'include',
+      ...json,
+      signal,
+    })
+    if (!response.ok) return { ok: false, status: response.status }
+    return { ok: true, body: await response.json().catch(() => null) }
+  } catch {
+    return { ok: false, status: null }
+  }
+}
+
+export const startLogin = () => authPost('/auth/start')
+
+export const confirmLogin = (handoffId: string, signal: AbortSignal) =>
+  authPost('/auth/confirm', { handoffId }, signal)
+
+export const miniAppLogin = (initData: string) =>
+  authPost('/auth/miniapp', { initData })
