@@ -38,7 +38,7 @@ describeWithDatabase('GroupsService', (current) => {
       name: 'A1',
       capacity: 12,
       kind: 'adult',
-      createdBy: teacher,
+      teacherId: teacher,
       memberIds: [teacher],
       learnerCount: 0,
     })

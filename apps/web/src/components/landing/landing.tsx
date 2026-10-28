@@ -12,11 +12,19 @@ import { messages } from '../../lib/i18n'
 import { LocaleSwitch } from '../locale-switch'
 import { TelegramGlyph } from '../telegram-glyph'
 
-function Head({ eyebrow, title }: { eyebrow: string; title: string }) {
+function Head({
+  eyebrow,
+  title,
+  id,
+}: {
+  eyebrow: string
+  title: string
+  id: string
+}) {
   return (
     <header className="l-head">
       <p className="eyebrow">{eyebrow}</p>
-      <h2>{title}</h2>
+      <h2 id={id}>{title}</h2>
     </header>
   )
 }
@@ -66,8 +74,8 @@ function Segments({ copy }: { copy: Copy }) {
   const { segments } = copy
   return (
     <section className="l-section" aria-labelledby="l-seg">
-      <Head eyebrow={segments.eyebrow} title={segments.title} />
-      <ul className="l-cards" id="l-seg">
+      <Head id="l-seg" eyebrow={segments.eyebrow} title={segments.title} />
+      <ul className="l-cards">
         {segments.cards.map((card) => (
           <li key={card.segment} className="l-card">
             <p className="tag">{card.age}</p>
@@ -108,8 +116,8 @@ function Teacher({ copy }: { copy: Copy }) {
           <dl className="l-stats">
             {t.facts.map((fact) => (
               <div key={fact.k}>
-                <dd className="stat">{fact.v}</dd>
                 <dt>{fact.k}</dt>
+                <dd className="stat">{fact.v}</dd>
               </div>
             ))}
           </dl>
@@ -123,8 +131,8 @@ function Method({ copy }: { copy: Copy }) {
   const { method } = copy
   return (
     <section className="l-section" aria-labelledby="l-method">
-      <Head eyebrow={method.eyebrow} title={method.title} />
-      <ol className="l-steps" id="l-method">
+      <Head id="l-method" eyebrow={method.eyebrow} title={method.title} />
+      <ol className="l-steps">
         {method.steps.map((step) => (
           <li key={step.n}>
             <span className="stat l-n">{step.n}</span>
@@ -142,8 +150,8 @@ function Courses({ copy }: { copy: Copy }) {
   const { courses, segmentLabels, levelLabels } = copy
   return (
     <section className="l-section" id="programs" aria-labelledby="l-courses">
-      <Head eyebrow={courses.eyebrow} title={courses.title} />
-      <ul className="l-courses" id="l-courses">
+      <Head id="l-courses" eyebrow={courses.eyebrow} title={courses.title} />
+      <ul className="l-courses">
         {courses.items.map((course) => (
           <li key={course.id} className="l-course">
             <h3>{course.name}</h3>
@@ -182,8 +190,8 @@ function Courses({ copy }: { copy: Copy }) {
 function Faq({ copy }: { copy: Copy }) {
   return (
     <section className="l-section" id="faq" aria-labelledby="l-faq">
-      <Head eyebrow={copy.faq.eyebrow} title={copy.faq.title} />
-      <div className="l-faq" id="l-faq">
+      <Head id="l-faq" eyebrow={copy.faq.eyebrow} title={copy.faq.title} />
+      <div className="l-faq">
         {copy.faq.items.map((item) => (
           <details key={item.q}>
             <summary>{item.q}</summary>

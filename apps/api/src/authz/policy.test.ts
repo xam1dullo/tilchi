@@ -10,7 +10,7 @@ const group: Group = {
   name: 'A1',
   capacity: 12,
   kind: 'adult',
-  createdBy: 'owner',
+  teacherId: 'owner',
   memberIds: ['owner', 'other-teacher', 'learner'],
   learnerCount: 1,
 }
@@ -37,6 +37,14 @@ describe('can', () => {
     for (const action of MANAGE) {
       expect(can(owner, action, group), action).toBe(true)
       expect(can(admin, action, group), action).toBe(true)
+    }
+  })
+
+  it('manages by the assigned teacher, not by who created the group', () => {
+    const assigned = { ...group, teacherId: 'other-teacher' }
+    for (const action of MANAGE) {
+      expect(can(visiting, action, assigned), action).toBe(true)
+      expect(can(owner, action, assigned), action).toBe(false)
     }
   })
 
@@ -70,6 +78,9 @@ describe('can', () => {
     expect(can(owner, 'group.create')).toBe(true)
     expect(can(admin, 'group.create')).toBe(true)
     expect(can(learner, 'group.create')).toBe(false)
+    expect(can(admin, 'teacher.list')).toBe(true)
+    expect(can(owner, 'teacher.list')).toBe(false)
+    expect(can(learner, 'teacher.list')).toBe(false)
     expect(can(admin, 'group.addMember')).toBe(true)
     expect(can(owner, 'group.addMember')).toBe(false)
   })

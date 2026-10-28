@@ -59,6 +59,37 @@ describe('landing copy', () => {
     expect(text).not.toContain('2026-yil avgust')
   })
 
+  it('makes no Zoom claim', () => {
+    expect(JSON.stringify(landing)).not.toMatch(/zoom/i)
+  })
+
+  it('makes no parent-role or payment-flow claims (v1 has neither)', () => {
+    const text = JSON.stringify(landing)
+    expect(text).not.toMatch(/ota-ona|родител|parent/i)
+    expect(text).not.toMatch(/uzcard|humo|чек|receipt|\bcheki?\b/i)
+    expect(text).not.toMatch(/ежемесячн|monthly|oylik/i)
+  })
+
+  it('promises groups of up to 12, not 5', () => {
+    for (const locale of contentLocales) {
+      const copy = landing[locale]
+      expect(copy.trust.some((t) => t.dt === '12')).toBe(true)
+      expect(copy.trust.some((t) => t.dt === '5')).toBe(false)
+      expect(copy.courses.items[0]?.desc).toContain('12')
+    }
+  })
+
+  it('maps legacy program cards to segments by icon, not position', () => {
+    const byTitle = Object.fromEntries(
+      landing.uz.segments.cards.map((c) => [c.title, c.segment]),
+    )
+    expect(byTitle).toEqual({
+      Bolalar: 'bolalar',
+      IELTS: 'ielts',
+      Kattalar: 'kattalar',
+    })
+  })
+
   it('has no exclamation marks', () => {
     expect(JSON.stringify(landing)).not.toContain('!')
   })

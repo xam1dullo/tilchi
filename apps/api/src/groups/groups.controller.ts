@@ -13,7 +13,10 @@ export class GroupsController {
     const groups = await this.groups.listForUser(actor.userId, actor.role)
     return {
       groups: groups.map((group) => groupView(actor, group)),
-      can: { createGroup: can(actor, 'group.create') },
+      can: {
+        createGroup: can(actor, 'group.create'),
+        assignTeacher: can(actor, 'teacher.list'),
+      },
     }
   }
 
@@ -25,7 +28,12 @@ export class GroupsController {
       typeof (body as { name?: unknown }).name === 'string'
         ? (body as { name: string }).name
         : 'Group'
-    return this.groups.create({ name, actor })
+    const teacherId = (body as { teacherId?: unknown } | null)?.teacherId
+    return this.groups.create({
+      name,
+      actor,
+      teacherId: typeof teacherId === 'string' ? teacherId : undefined,
+    })
   }
 
   @Get(':groupId')

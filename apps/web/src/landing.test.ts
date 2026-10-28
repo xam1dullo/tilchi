@@ -31,6 +31,20 @@ describe.each(locales)('landing in %s', (locale) => {
     }
   })
 
+  it('points every aria-labelledby at an existing h2/h1', () => {
+    const ids = [...html.matchAll(/aria-labelledby="([^"]+)"/g)].map(
+      (m) => m[1] as string,
+    )
+    expect(ids.length).toBeGreaterThan(5)
+    for (const id of ids) {
+      expect(html).toMatch(new RegExp(`<h[12] id="${id}"`))
+    }
+  })
+
+  it('orders each stat term before its value', () => {
+    expect(html).toMatch(/<dt>IELTS<\/dt><dd class="stat">/)
+  })
+
   it('shows no CELTA and no price numbers', () => {
     expect(html).not.toMatch(/celta/i)
     expect(html).not.toMatch(/\d[\s ]\d{3}|so'm|сум/i)

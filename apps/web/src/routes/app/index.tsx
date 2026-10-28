@@ -7,16 +7,31 @@ import {
 } from '@tanstack/react-router'
 import { useState } from 'react'
 import { apiFetch } from '../../lib/api'
-import { groupsView, type GroupRecord } from '../../lib/classroom'
+import {
+  createGroupBody,
+  createGroupError,
+  groupsView,
+  type CreateGroupForm,
+  type GroupRecord,
+  type Teacher,
+} from '../../lib/classroom'
+import { CreateGroupFormView } from '../../components/create-group-form'
 import { messages, type Copy } from '../../lib/i18n'
 import { keepAppSearch } from '../../lib/preview'
 
 export const Route = createFileRoute('/app/')({
   loader: async ({ context }) => {
-    return apiFetch<{ groups: GroupRecord[]; can: { createGroup: boolean } }>(
-      '/api/groups',
-      { previewRole: context.previewRole },
-    )
+    const { previewRole } = context
+    const list = await apiFetch<{
+      groups: GroupRecord[]
+      can: { createGroup: boolean; assignTeacher: boolean }
+    }>('/api/groups', { previewRole })
+    const { teachers } = list.can.assignTeacher
+      ? await apiFetch<{ teachers: Teacher[] }>('/api/teachers', {
+          previewRole,
+        })
+      : { teachers: [] }
+    return { ...list, teachers }
   },
   component: GroupsPage,
 })
@@ -24,7 +39,7 @@ export const Route = createFileRoute('/app/')({
 function GroupsPage() {
   const { locale } = useRouteContext({ from: '__root__' })
   const { previewRole } = useRouteContext({ from: '/app' })
-  const { groups, can } = Route.useLoaderData()
+  const { groups, can, teachers } = Route.useLoaderData()
   const copy = messages(locale)
   const view = groupsView({ groups, can })
   const search = keepAppSearch(previewRole)
@@ -36,7 +51,12 @@ function GroupsPage() {
           <h2>{view.empty ? copy.emptyTitle : copy.groups}</h2>
         </div>
         {view.canCreate ? (
-          <CreateGroupForm previewRole={previewRole} label={copy.createGroup} />
+          <CreateGroup
+            previewRole={previewRole}
+            copy={copy}
+            assignTeacher={can.assignTeacher}
+            teachers={teachers}
+          />
         ) : null}
       </div>
       {view.empty ? (
@@ -80,45 +100,53 @@ export function EmptyGroups({ copy }: { copy: Copy }) {
   )
 }
 
-function CreateGroupForm({
+function CreateGroup({
   previewRole,
-  label,
+  copy,
+  assignTeacher,
+  teachers,
 }: {
   previewRole: 'learner' | 'teacher' | 'admin' | null
-  label: string
+  copy: Copy
+  assignTeacher: boolean
+  teachers: Teacher[]
 }) {
   const router = useRouter()
   const [name, setName] = useState('')
+  const [teacherId, setTeacherId] = useState('')
   const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<ReturnType<
+    typeof createGroupError
+  > | null>(null)
+  const form: CreateGroupForm = {
+    name,
+    teacherId,
+    assignTeacher,
+    teachers,
+    busy,
+  }
   return (
-    <form
-      className="classroom-form"
-      onSubmit={(event) => {
-        event.preventDefault()
+    <CreateGroupFormView
+      copy={copy}
+      form={form}
+      error={error}
+      onName={setName}
+      onTeacher={setTeacherId}
+      onSubmit={() => {
         setBusy(true)
+        setError(null)
         void apiFetch('/api/groups', {
           method: 'POST',
           previewRole,
-          body: JSON.stringify({ name }),
+          body: JSON.stringify(createGroupBody(form)),
         })
-          .then(() => router.invalidate())
+          .then(() => {
+            setName('')
+            return router.invalidate()
+          })
+          .catch((caught: unknown) => setError(createGroupError(caught)))
           .finally(() => setBusy(false))
       }}
-    >
-      <label>
-        <span className="sr-only">{label}</span>
-        <input
-          name="name"
-          value={name}
-          onChange={(event) => setName(event.target.value)}
-          placeholder={label}
-          autoComplete="off"
-          required
-        />
-      </label>
-      <button className="btn btn-primary" type="submit" disabled={busy}>
-        {label}
-      </button>
-    </form>
+    />
   )
 }

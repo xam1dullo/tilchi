@@ -37,8 +37,7 @@ type Ctx = {
   group: string
   lesson: string
   target: string
-  /** A notification that belongs to `member`. */
-  notification: string
+  teacher: string
 }
 
 /** Expected status per caller, in the order of WHO. */
@@ -66,8 +65,15 @@ const ROWS: Row[] = [
     handler: 'GroupsController.create',
     method: 'POST',
     path: () => '/api/groups',
-    body: () => ({ name: 'New' }),
+    body: (c) => ({ name: 'New', teacherId: c.teacher }),
     expect: [401, 403, 403, 201, 201, 201],
+  },
+  {
+    name: 'list teachers',
+    handler: 'TeachersController.list',
+    method: 'GET',
+    path: () => '/api/teachers',
+    expect: [401, 403, 403, 403, 403, 200],
   },
   {
     name: 'get group',
@@ -333,7 +339,7 @@ describe.skipIf(!hasTestDatabase)('route x role matrix', () => {
           group,
           lesson: row.lesson ? await freshLesson(row.lesson) : '',
           target: ids.target,
-          notification: await freshNotification(),
+          teacher: ids.owner,
         }
         const headers: Record<string, string> = {
           'content-type': 'application/json',
@@ -383,7 +389,98 @@ describe.skipIf(!hasTestDatabase)('route x role matrix', () => {
     })
     expect(((await list.json()) as { can: unknown }).can).toEqual({
       createGroup: false,
+      assignTeacher: false,
     })
+  })
+
+  it('lets an admin name the teacher, who then manages that group', async () => {
+    const create = (teacherId: string) =>
+      fetch(`${base}/api/groups`, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          cookie: '__Host-tilchi_sid=admin',
+        },
+        body: JSON.stringify({ name: 'Assigned', teacherId }),
+      })
+    expect((await create(ids.member)).status).toBe(400)
+    expect((await create(ids.admin)).status).toBe(400)
+    const made = await create(ids.other)
+    expect(made.status).toBe(201)
+    const { id } = (await made.json()) as { id: string }
+    const lesson = await fetch(`${base}/api/groups/${id}/lessons`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        cookie: '__Host-tilchi_sid=other',
+      },
+      body: JSON.stringify({ scheduledAt: '2030-01-01T10:00:00Z' }),
+    })
+    expect(lesson.status).toBe(201)
+    const creatorOnly = await fetch(`${base}/api/groups/${id}/lessons`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        cookie: '__Host-tilchi_sid=owner',
+      },
+      body: JSON.stringify({ scheduledAt: '2030-01-01T10:00:00Z' }),
+    })
+    expect(creatorOnly.status).toBe(404)
+  })
+
+  it('refuses an admin without an active teacher, and lists only id and name', async () => {
+    const post = (body: unknown) =>
+      fetch(`${base}/api/groups`, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          cookie: '__Host-tilchi_sid=admin',
+        },
+        body: JSON.stringify(body),
+      })
+    for (const body of [{ name: 'X' }, { name: 'X', teacherId: 'nope' }]) {
+      const res = await post(body)
+      expect(res.status).toBe(400)
+      expect(await res.json()).toMatchObject({ error: 'teacher_required' })
+    }
+    const list = await fetch(`${base}/api/teachers`, {
+      headers: { cookie: '__Host-tilchi_sid=admin' },
+    })
+    const { teachers } = (await list.json()) as {
+      teachers: Record<string, unknown>[]
+    }
+    expect(teachers.map((t) => Object.keys(t).sort())).toEqual(
+      teachers.map(() => ['id', 'name']),
+    )
+    expect(teachers.map((t) => t.id)).toEqual(
+      expect.arrayContaining([ids.owner, ids.other]),
+    )
+    expect(teachers.map((t) => t.id)).not.toContain(ids.member)
+  })
+
+  it('keeps the meet ticket session-only: no preview fallback', async () => {
+    const demo = {
+      nodeEnv: process.env.NODE_ENV,
+      flag: process.env.TILCHI_DEMO,
+    }
+    process.env.NODE_ENV = 'test'
+    process.env.TILCHI_DEMO = '1'
+    try {
+      const preview = { 'x-tilchi-preview-role': 'teacher' }
+      const groups = await fetch(`${base}/api/groups`, { headers: preview })
+      expect(groups.status).toBe(200)
+      for (const cookie of [undefined, '__Host-tilchi_sid=bogus']) {
+        const res = await fetch(`${base}/api/meet/ticket`, {
+          method: 'POST',
+          headers: cookie ? { ...preview, cookie } : preview,
+        })
+        expect(res.status).toBe(401)
+      }
+    } finally {
+      process.env.NODE_ENV = demo.nodeEnv
+      if (demo.flag === undefined) delete process.env.TILCHI_DEMO
+      else process.env.TILCHI_DEMO = demo.flag
+    }
   })
 
   it('refuses a bearer token on a protected route', async () => {

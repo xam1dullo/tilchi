@@ -13,7 +13,7 @@ export type Group = {
   name: string
   capacity: number
   kind: GroupKind
-  createdBy: string
+  teacherId: string
   memberIds: string[]
   learnerCount: number
 }
@@ -23,14 +23,14 @@ export type LearnerGroup = Omit<Group, 'memberIds'>
 /** Learners only: the teacher and admins do not count (PRD Q11). */
 export const GROUP_CAPACITY = 12
 
-/** The API still calls the teacher who owns a group its creator. */
+/** A group is managed by its assigned teacher (groups.teacher_id). */
 function toGroup(record: GroupRecord): Group {
   return {
     id: record.id,
     name: record.name,
     capacity: GROUP_CAPACITY,
     kind: record.kind,
-    createdBy: record.teacherId,
+    teacherId: record.teacherId,
     memberIds: record.memberIds,
     learnerCount: record.learnerCount,
   }
@@ -46,13 +46,15 @@ export class GroupsService {
     @Inject(GroupsRepository) private readonly groups: GroupsRepository,
   ) {}
 
-  async create(input: { name: string; actor: Actor }) {
+  /** A teacher teaches their own group; an admin must name the teacher. */
+  async create(input: { name: string; actor: Actor; teacherId?: string }) {
     authorize(input.actor, 'group.create')
-    return this.ensure({
-      id: uuidv7(),
-      name: input.name,
-      actorId: input.actor.userId,
-    })
+    const teacherId =
+      input.actor.role === 'admin' ? input.teacherId : input.actor.userId
+    if (!teacherId || !(await this.groups.isTeacher(teacherId))) {
+      throw new HttpException({ error: 'teacher_required' }, 400)
+    }
+    return this.ensure({ id: uuidv7(), name: input.name, actorId: teacherId })
   }
 
   async addMember(input: { groupId: string; userId: string; actor: Actor }) {

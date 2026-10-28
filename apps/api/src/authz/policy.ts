@@ -7,11 +7,12 @@ export type Actor = {
   name: string | null
 }
 
-/** What a Group rule needs to know: who teaches it and who is in it. */
-export type GroupScope = { createdBy: string; memberIds: string[] }
+/** What a Group rule needs: its assigned teacher (groups.teacher_id) and members. */
+export type GroupScope = { teacherId: string; memberIds: string[] }
 
 export type Action =
   | 'group.create'
+  | 'teacher.list'
   | 'group.view'
   | 'group.addMember'
   | 'group.seeMembers'
@@ -31,7 +32,7 @@ const sees = (actor: Actor, group: GroupScope) =>
 
 const manages = (actor: Actor, group: GroupScope) =>
   actor.role === 'admin' ||
-  (actor.role === 'teacher' && group.createdBy === actor.userId)
+  (actor.role === 'teacher' && group.teacherId === actor.userId)
 
 /**
  * The PRD permission matrix (Users, Roles & Permissions), the only place that
@@ -39,7 +40,9 @@ const manages = (actor: Actor, group: GroupScope) =>
  */
 export function can(actor: Actor, action: Action, group?: GroupScope): boolean {
   if (action === 'group.create') return isManager(actor)
-  if (action === 'group.addMember') return actor.role === 'admin'
+  if (action === 'group.addMember' || action === 'teacher.list') {
+    return actor.role === 'admin'
+  }
   if (!group) return false
   if (action === 'group.view' || action === 'meeting.join') {
     return sees(actor, group)
