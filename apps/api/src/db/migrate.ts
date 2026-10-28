@@ -1,29 +1,16 @@
-import { existsSync } from 'node:fs'
-import { join } from 'node:path'
-import { drizzle } from 'drizzle-orm/node-postgres'
-import { migrate } from 'drizzle-orm/node-postgres/migrator'
-import { Pool } from 'pg'
+import { runMigrations } from './migrations'
 
-// dist/db/migrate.js -> <app>/drizzle, both in the repo and in the image.
-const migrationsFolder = join(__dirname, '..', '..', 'drizzle')
+/** `node dist/db/migrate.js`: apply every committed migration, or exit non-zero. */
+export const finished = run(process.env)
 
-async function main() {
-  const url = process.env.DATABASE_URL
-  if (!url) throw new Error('DATABASE_URL is required')
-  if (!existsSync(join(migrationsFolder, 'meta', '_journal.json'))) {
-    console.log('migrate: no migrations generated yet')
-    return
-  }
-  const pool = new Pool({ connectionString: url })
+async function run(env: NodeJS.ProcessEnv) {
   try {
-    await migrate(drizzle(pool), { migrationsFolder })
+    const url = env.DATABASE_URL?.trim()
+    if (!url) throw new Error('DATABASE_URL is required')
+    await runMigrations(url)
     console.log('migrate: done')
-  } finally {
-    await pool.end()
+  } catch (error) {
+    console.error('migrate: failed', error)
+    process.exitCode = 1
   }
 }
-
-main().catch((error: unknown) => {
-  console.error(error)
-  process.exit(1)
-})

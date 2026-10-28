@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { productionConfigErrors } from './config'
+import { databaseUrl, productionConfigErrors } from './config'
 
 const good = {
   NODE_ENV: 'production',
@@ -58,5 +58,35 @@ describe('productionConfigErrors', () => {
     })
     expect(errors.length).toBeGreaterThan(0)
     expect(errors.join()).not.toContain(secret)
+  })
+})
+
+describe('databaseUrl', () => {
+  const url = 'postgres://u:p@postgres:5432/tilchi'
+
+  it('returns the configured url, trimmed', () => {
+    expect(
+      databaseUrl({ NODE_ENV: 'production', DATABASE_URL: ` ${url} ` }),
+    ).toBe(url)
+  })
+
+  it('fails boot with a message that names the variable, outside tests', () => {
+    for (const NODE_ENV of ['production', 'development', undefined]) {
+      for (const DATABASE_URL of [undefined, '', '   ']) {
+        expect(() => databaseUrl({ NODE_ENV, DATABASE_URL })).toThrow(
+          /DATABASE_URL is required/,
+        )
+      }
+    }
+  })
+
+  it('lets a test boot without one, pointed at nothing real', () => {
+    const placeholder = databaseUrl({ NODE_ENV: 'test' })
+    expect(new URL(placeholder).hostname).toBe('127.0.0.1')
+    expect(new URL(placeholder).port).toBe('1')
+  })
+
+  it('prefers a configured url in tests', () => {
+    expect(databaseUrl({ NODE_ENV: 'test', DATABASE_URL: url })).toBe(url)
   })
 })

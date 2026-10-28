@@ -1,4 +1,4 @@
-import { HttpException, Injectable } from '@nestjs/common'
+import { HttpException, Inject, Injectable } from '@nestjs/common'
 import { createHash, randomBytes } from 'node:crypto'
 import {
   type Handoff,
@@ -19,10 +19,12 @@ import {
   type Role,
 } from './policy'
 import { uuidv7 } from '../id'
-import { createKvFromEnv, type Kv } from '../redis/kv'
+import { KV, type Kv } from '../redis/kv'
 import { verifyInitData } from './init-data'
-import { type User, UserStore } from '../users/user-store'
+import { SessionsRepository } from '../users/sessions.repository'
+import { type User, UsersRepository } from '../users/users.repository'
 
+/** What the Redis cache holds for five minutes: enough to answer a read. */
 type SessionRecord = {
   userId: string
   role: Role
@@ -35,21 +37,11 @@ const SESSION_ABSOLUTE_TTL_MS = 90 * 24 * 60 * 60 * 1000
 
 @Injectable()
 export class AuthService {
-  private readonly kv: Kv
-  private readonly users: UserStore
-
-  constructor() {
-    this.kv = createKvFromEnv()
-    this.users = new UserStore()
-  }
-
-  static forTest(kv: Kv, users = new UserStore()) {
-    const service = new AuthService()
-    const mutable = service as unknown as { kv: Kv; users: UserStore }
-    mutable.kv = kv
-    mutable.users = users
-    return service
-  }
+  constructor(
+    @Inject(KV) private readonly kv: Kv,
+    @Inject(UsersRepository) private readonly users: UsersRepository,
+    @Inject(SessionsRepository) private readonly sessions: SessionsRepository,
+  ) {}
 
   async start(input: { ip: string; context: string; telegramKey?: string }) {
     await this.hit(`rate:ip:${input.ip}`, AUTH_START_IP_LIMIT, 'ip')
@@ -134,7 +126,10 @@ export class AuthService {
     if (!(await this.kv.take(this.handoffKey(handoff.id)))) {
       throw new HttpException({ error: 'handoff_expired' }, 410)
     }
-    const user = this.users.upsertTelegram(claim.telegramUserId, claim.name)
+    const user = await this.users.upsertTelegram(
+      claim.telegramUserId,
+      claim.name,
+    )
     return this.openSession(user, now)
   }
 
@@ -151,7 +146,7 @@ export class AuthService {
       Math.floor(now / 1000),
     )
     if (!verified) throw new HttpException({ error: 'invalid_init_data' }, 401)
-    const user = this.users.upsertTelegram(
+    const user = await this.users.upsertTelegram(
       verified.telegramUserId,
       verified.name,
     )
@@ -165,6 +160,7 @@ export class AuthService {
     }
   }
 
+  /** Postgres is the truth; the cache is only filled after the row exists. */
   private async openSession(user: User, now: number) {
     const token = randomBytes(32).toString('base64url')
     const secretHash = hash(token)
@@ -175,53 +171,68 @@ export class AuthService {
       expiresAt: now + SESSION_TTL_MS,
       absoluteExpiresAt: now + SESSION_ABSOLUTE_TTL_MS,
     }
-    await this.kv.set(
-      `session:cache:${secretHash}`,
-      JSON.stringify(record),
-      SESSION_CACHE_TTL_SECONDS,
-    )
-    await this.kv.set(
-      `session:${secretHash}`,
-      JSON.stringify(record),
-      SESSION_TTL_MS / 1000,
-    )
+    await this.sessions.insert({
+      userId: user.id,
+      tokenHash: secretHash,
+      now: new Date(now),
+      idleExpiresAt: new Date(record.expiresAt),
+      absoluteExpiresAt: new Date(record.absoluteExpiresAt),
+    })
+    await this.cacheSession(secretHash, record)
     return { token, maxAgeSeconds: SESSION_TTL_MS / 1000, user, secretHash }
   }
 
+  /**
+   * A warm read is answered from Redis. A cold one asks Postgres, which also
+   * slides the idle expiry, and refills the cache. So sliding is not exact to
+   * the request: it lands at most once per cache lifetime.
+   */
   async read(token: string | undefined, now = Date.now()) {
     if (!token) return null
     const secretHash = hash(token)
-    const cached = await this.kv.get(`session:cache:${secretHash}`)
-    const raw = cached ?? (await this.kv.get(`session:${secretHash}`))
-    if (!raw) return null
-    const session = JSON.parse(raw) as SessionRecord
-    if (session.expiresAt <= now || session.absoluteExpiresAt <= now) {
-      await this.logout(token)
-      return null
+    const cached = await this.cachedSession(secretHash, now)
+    if (cached) return actorOf(cached)
+    const live = await this.sessions.touch(
+      secretHash,
+      new Date(now),
+      SESSION_TTL_MS,
+    )
+    if (!live) return null
+    const user = await this.users.get(live.userId)
+    if (!user) return null
+    const record: SessionRecord = {
+      userId: user.id,
+      role: user.role,
+      name: user.name,
+      expiresAt: live.expiresAt.getTime(),
+      absoluteExpiresAt: live.absoluteExpiresAt.getTime(),
     }
-    session.expiresAt = Math.min(
-      now + SESSION_TTL_MS,
-      session.absoluteExpiresAt,
-    )
-    const ttl = Math.max(1, Math.ceil((session.expiresAt - now) / 1000))
-    await this.kv.set(
-      `session:cache:${secretHash}`,
-      JSON.stringify(session),
-      SESSION_CACHE_TTL_SECONDS,
-    )
-    await this.kv.set(`session:${secretHash}`, JSON.stringify(session), ttl)
-    return { userId: session.userId, role: session.role, name: session.name }
+    await this.cacheSession(secretHash, record)
+    return actorOf(record)
   }
 
-  async logout(token: string | undefined) {
+  /** Ends this one session. Revoke first, then forget the cached copy. */
+  async logout(token: string | undefined, now = Date.now()) {
     if (!token) return
     const secretHash = hash(token)
-    await this.kv.del(`session:cache:${secretHash}`)
-    await this.kv.del(`session:${secretHash}`)
+    await this.sessions.revoke(secretHash, new Date(now))
+    await this.kv.del(sessionCacheKey(secretHash))
   }
 
-  userStore() {
-    return this.users
+  private cacheSession(secretHash: string, record: SessionRecord) {
+    return this.kv.set(
+      sessionCacheKey(secretHash),
+      JSON.stringify(record),
+      SESSION_CACHE_TTL_SECONDS,
+    )
+  }
+
+  private async cachedSession(secretHash: string, now: number) {
+    const raw = await this.kv.get(sessionCacheKey(secretHash))
+    if (!raw) return null
+    const record = JSON.parse(raw) as SessionRecord
+    const live = record.expiresAt > now && record.absoluteExpiresAt > now
+    return live ? record : null
   }
 
   private async readHandoff(id: string) {
@@ -268,4 +279,12 @@ export function normalizeHandoffId(value: string) {
 
 function hash(value: string) {
   return createHash('sha256').update(value).digest('hex')
+}
+
+function sessionCacheKey(secretHash: string) {
+  return `session:cache:${secretHash}`
+}
+
+function actorOf(record: SessionRecord) {
+  return { userId: record.userId, role: record.role, name: record.name }
 }

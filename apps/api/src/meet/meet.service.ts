@@ -18,16 +18,16 @@ export class MeetService {
     apiKey: string
     apiSecret: string
   }) {
-    const lesson = this.lessons.get(input.lessonId)
+    const lesson = await this.lessons.get(input.lessonId)
     if (!lesson) throw new HttpException({ error: 'not_found' }, 404)
-    const group = this.groups.get(lesson.groupId)
+    const group = await this.groups.get(lesson.groupId)
     if (!group || !canSeeGroup(input.actor, group)) {
       throw new HttpException({ error: 'not_found' }, 404)
     }
     if (lesson.status !== 'live') {
       throw new HttpException({ error: 'lesson_not_live' }, 409)
     }
-    const meeting = this.lessons.meetingForLesson(lesson.id)
+    const meeting = await this.lessons.meetingForLesson(lesson.id)
     if (!meeting) throw new HttpException({ error: 'meeting_missing' }, 500)
     if (!input.apiKey || !input.apiSecret) {
       throw new HttpException(

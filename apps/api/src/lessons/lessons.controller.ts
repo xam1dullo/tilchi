@@ -30,7 +30,7 @@ export class LessonsController {
     @Headers(PREVIEW_HEADER) previewRole: string | undefined,
   ) {
     await this.visibleGroup(groupId, cookie, authorization, previewRole)
-    return { lessons: this.lessons.listForGroup(groupId) }
+    return { lessons: await this.lessons.listForGroup(groupId) }
   }
 
   @Post('groups/:groupId/lessons')
@@ -67,7 +67,7 @@ export class LessonsController {
     @Headers('authorization') authorization: string | undefined,
     @Headers(PREVIEW_HEADER) previewRole: string | undefined,
   ) {
-    const lesson = this.lessons.get(lessonId)
+    const lesson = await this.lessons.get(lessonId)
     if (!lesson) throw new HttpException({ error: 'not_found' }, 404)
     const group = await this.visibleGroup(
       lesson.groupId,
@@ -78,7 +78,7 @@ export class LessonsController {
     return {
       lesson,
       group,
-      meeting: this.lessons.meetingForLesson(lesson.id),
+      meeting: await this.lessons.meetingForLesson(lesson.id),
     }
   }
 
@@ -89,7 +89,7 @@ export class LessonsController {
     @Headers('authorization') authorization: string | undefined,
     @Headers(PREVIEW_HEADER) previewRole: string | undefined,
   ) {
-    const lesson = this.lessons.get(lessonId)
+    const lesson = await this.lessons.get(lessonId)
     if (!lesson) throw new HttpException({ error: 'not_found' }, 404)
     const actor = await this.managedGroup(
       lesson.groupId,
@@ -107,7 +107,7 @@ export class LessonsController {
     @Headers('authorization') authorization: string | undefined,
     @Headers(PREVIEW_HEADER) previewRole: string | undefined,
   ) {
-    const lesson = this.lessons.get(lessonId)
+    const lesson = await this.lessons.get(lessonId)
     if (!lesson) throw new HttpException({ error: 'not_found' }, 404)
     const actor = await this.managedGroup(
       lesson.groupId,
@@ -138,7 +138,7 @@ export class LessonsController {
     previewRole: string | undefined,
   ) {
     const actor = await this.actor(cookie, authorization, previewRole)
-    const group = this.groups.get(groupId)
+    const group = await this.groups.get(groupId)
     if (!group || !canSeeGroup(actor, group)) {
       throw new HttpException({ error: 'not_found' }, 404)
     }
@@ -152,7 +152,7 @@ export class LessonsController {
     previewRole: string | undefined,
   ) {
     const actor = await this.actor(cookie, authorization, previewRole)
-    const group = this.groups.get(groupId)
+    const group = await this.groups.get(groupId)
     if (!group || !canSeeGroup(actor, group)) {
       throw new HttpException({ error: 'not_found' }, 404)
     }

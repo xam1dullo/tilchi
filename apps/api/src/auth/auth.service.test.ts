@@ -1,10 +1,25 @@
+import { eq } from 'drizzle-orm'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { users } from '../db/schema'
 import { createMemoryKv, type Kv } from '../redis/kv'
-import { UserStore } from '../users/user-store'
+import { describeWithDatabase, type TestDatabase } from '../test/postgres'
+import { SessionsRepository } from '../users/sessions.repository'
+import { UsersRepository } from '../users/users.repository'
 import { AuthService, normalizeHandoffId } from './auth.service'
-import { HANDOFF_TTL_MS, HANDOFF_WRITE_ATTEMPTS } from './policy'
+import {
+  HANDOFF_TTL_MS,
+  HANDOFF_WRITE_ATTEMPTS,
+  SESSION_CACHE_TTL_SECONDS,
+  SESSION_TTL_MS,
+} from './policy'
 
-const make = () => AuthService.forTest(createMemoryKv(), new UserStore())
+const DAY = 24 * 60 * 60 * 1000
+
+function build(db: TestDatabase, kv: Kv = createMemoryKv()) {
+  const sessions = new SessionsRepository(db.database)
+  const usersRepo = new UsersRepository(db.database)
+  return { auth: new AuthService(kv, usersRepo, sessions), sessions, usersRepo }
+}
 
 /**
  * A Kv that hands the next handoff read its value, then runs the `meanwhile`
@@ -12,7 +27,7 @@ const make = () => AuthService.forTest(createMemoryKv(), new UserStore())
  * sits in while another request finishes: it holds a snapshot that is already
  * stale by the time it writes.
  */
-function racing() {
+function racing(db: TestDatabase) {
   const base = createMemoryKv()
   let pending: (() => Promise<void>) | null = null
   const kv: Kv = {
@@ -29,7 +44,7 @@ function racing() {
   }
   return {
     kv,
-    auth: AuthService.forTest(kv, new UserStore()),
+    auth: build(db, kv).auth,
     meanwhile(run: () => Promise<unknown>) {
       pending = async () => {
         await run()
@@ -54,6 +69,16 @@ async function confirmed(
   return { id, secret }
 }
 
+/** A signed-in session for a Telegram user, opened at `now`. */
+async function login(
+  auth: AuthService,
+  telegramUserId = '42',
+  now = Date.now(),
+) {
+  const { id, secret } = await confirmed(auth, telegramUserId)
+  return auth.confirm(id, secret, now)
+}
+
 const outcome = (promise: Promise<unknown>) =>
   promise.then(
     () => 'ok',
@@ -62,7 +87,9 @@ const outcome = (promise: Promise<unknown>) =>
 
 afterEach(() => vi.unstubAllEnvs())
 
-describe('AuthService handoff', () => {
+describeWithDatabase('AuthService handoff', (current) => {
+  const make = () => build(current()).auth
+
   it('never opens a session before the bot confirmed, even for the right browser', async () => {
     const auth = make()
     const { id, secret } = await begin(auth)
@@ -76,7 +103,7 @@ describe('AuthService handoff', () => {
   })
 
   it('opens a hashed cookie session for the bound telegram user', async () => {
-    const auth = make()
+    const { auth, usersRepo } = build(current())
     const { id, secret } = await confirmed(auth)
     const opened = await auth.confirm(id, secret)
     expect(opened.secretHash).toMatch(/^[a-f0-9]{64}$/)
@@ -87,7 +114,7 @@ describe('AuthService handoff', () => {
       name: 'Ada',
       role: 'learner',
     })
-    expect(auth.userStore().get(opened.user.id)?.telegramUserId).toBe('42')
+    expect((await usersRepo.get(opened.user.id))?.telegramUserId).toBe('42')
   })
 
   it('releases the session only to the browser that started the handoff', async () => {
@@ -163,9 +190,9 @@ describe('AuthService handoff', () => {
   })
 })
 
-describe('AuthService handoff races', () => {
+describeWithDatabase('AuthService handoff races', (current) => {
   it('does not bring a consumed handoff back from a late confirm tap', async () => {
-    const { auth, meanwhile } = racing()
+    const { auth, meanwhile } = racing(current())
     const { id, secret } = await begin(auth)
     await auth.bindTelegram(id, '42', 'Ada')
 
@@ -181,7 +208,7 @@ describe('AuthService handoff races', () => {
   })
 
   it('does not bring a consumed handoff back from a late bind by someone else', async () => {
-    const { auth, meanwhile } = racing()
+    const { auth, meanwhile } = racing(current())
     const { id, secret } = await begin(auth)
 
     meanwhile(async () => {
@@ -196,7 +223,7 @@ describe('AuthService handoff races', () => {
   })
 
   it('keeps the first bound user when a second bind raced the first', async () => {
-    const { auth, meanwhile } = racing()
+    const { auth, meanwhile } = racing(current())
     const { id, secret } = await begin(auth)
 
     meanwhile(() => auth.bindTelegram(id, '1', 'Alice'))
@@ -208,7 +235,7 @@ describe('AuthService handoff races', () => {
   })
 
   it('applies a confirm tap on top of a newer write instead of clobbering it', async () => {
-    const { auth, meanwhile } = racing()
+    const { auth, meanwhile } = racing(current())
     const { id, secret } = await begin(auth)
     await auth.bindTelegram(id, '42', 'Ada')
 
@@ -222,16 +249,13 @@ describe('AuthService handoff races', () => {
   it('fails closed when every write attempt loses the race', async () => {
     const base = createMemoryKv()
     let attempts = 0
-    const auth = AuthService.forTest(
-      {
-        ...base,
-        async cas() {
-          attempts += 1
-          return false
-        },
+    const { auth } = build(current(), {
+      ...base,
+      async cas() {
+        attempts += 1
+        return false
       },
-      new UserStore(),
-    )
+    })
     const { id, secret } = await begin(auth)
 
     expect(await auth.bindTelegram(id, '42', 'Ada')).toBeNull()
@@ -240,6 +264,121 @@ describe('AuthService handoff races', () => {
     await expect(auth.confirm(id, secret)).rejects.toMatchObject({
       status: 409,
     })
+  })
+})
+
+describeWithDatabase('AuthService sessions in Postgres', (current) => {
+  it('survives a restart: a service with a cold cache still knows the session', async () => {
+    const opened = await login(build(current()).auth)
+    const restarted = build(current(), createMemoryKv()).auth
+    expect(await restarted.read(opened.token)).toEqual({
+      userId: opened.user.id,
+      role: 'learner',
+      name: 'Ada',
+    })
+  })
+
+  it('serves a read from the cache without asking Postgres', async () => {
+    const { auth, sessions } = build(current())
+    const touch = vi.spyOn(sessions, 'touch')
+    const opened = await login(auth)
+    await auth.read(opened.token)
+    await auth.read(opened.token)
+    expect(touch).not.toHaveBeenCalled()
+  })
+
+  it('asks Postgres once when the cache is cold, then serves from the cache', async () => {
+    const opened = await login(build(current()).auth)
+    const cold = build(current(), createMemoryKv())
+    const touch = vi.spyOn(cold.sessions, 'touch')
+    expect(await cold.auth.read(opened.token)).not.toBeNull()
+    expect(await cold.auth.read(opened.token)).not.toBeNull()
+    expect(touch).toHaveBeenCalledTimes(1)
+  })
+
+  it('caches a read for five minutes, then asks Postgres again', async () => {
+    let clock = Date.now()
+    const { auth, sessions } = build(
+      current(),
+      createMemoryKv(() => clock),
+    )
+    const touch = vi.spyOn(sessions, 'touch')
+    const opened = await login(auth, '42', clock)
+    clock += (SESSION_CACHE_TTL_SECONDS - 1) * 1000
+    await auth.read(opened.token, clock)
+    expect(touch).not.toHaveBeenCalled()
+    clock += 2000
+    await auth.read(opened.token, clock)
+    expect(touch).toHaveBeenCalledTimes(1)
+  })
+
+  it('logout revokes the session for every instance and clears the cache', async () => {
+    const shared = createMemoryKv()
+    const { auth } = build(current(), shared)
+    const opened = await login(auth)
+    expect(await auth.read(opened.token)).not.toBeNull()
+    await auth.logout(opened.token)
+    expect(await auth.read(opened.token)).toBeNull()
+    expect(await build(current()).auth.read(opened.token)).toBeNull()
+    expect(await shared.get(`session:cache:${opened.secretHash}`)).toBeNull()
+  })
+
+  it('logout ends only this device', async () => {
+    const { auth } = build(current())
+    const phone = await login(auth, '42')
+    const laptop = await login(auth, '42')
+    expect(phone.user.id).toBe(laptop.user.id)
+    await auth.logout(phone.token)
+    expect(await auth.read(phone.token)).toBeNull()
+    expect((await auth.read(laptop.token))?.userId).toBe(laptop.user.id)
+  })
+
+  it('ignores a logout without a token or with a token it never issued', async () => {
+    const { auth } = build(current())
+    await expect(auth.logout(undefined)).resolves.toBeUndefined()
+    await expect(auth.logout('never-issued')).resolves.toBeUndefined()
+    expect(await auth.read(undefined)).toBeNull()
+    expect(await auth.read('never-issued')).toBeNull()
+  })
+
+  it('slides the idle window and stops at the 90-day cap', async () => {
+    const start = Date.now()
+    let clock = start
+    const { auth } = build(
+      current(),
+      createMemoryKv(() => clock),
+    )
+    const opened = await login(auth, '42', clock)
+    for (const day of [29, 58, 87]) {
+      clock = start + day * DAY
+      expect(await auth.read(opened.token, clock)).not.toBeNull()
+    }
+    clock = start + 91 * DAY
+    expect(await auth.read(opened.token, clock)).toBeNull()
+  })
+
+  it('ends a session left idle for 30 days', async () => {
+    const start = Date.now()
+    let clock = start
+    const { auth } = build(
+      current(),
+      createMemoryKv(() => clock),
+    )
+    const opened = await login(auth, '42', clock)
+    clock = start + SESSION_TTL_MS - 1
+    expect(await auth.read(opened.token, clock)).not.toBeNull()
+    clock = start + 2 * SESSION_TTL_MS
+    expect(await auth.read(opened.token, clock)).toBeNull()
+  })
+
+  it('refuses the session of a deleted user', async () => {
+    const { auth } = build(current())
+    const opened = await login(auth)
+    await current()
+      .database.db.update(users)
+      .set({ deletedAt: new Date() })
+      .where(eq(users.id, opened.user.id))
+    expect(await build(current()).auth.read(opened.token)).toBeNull()
   })
 })
 

@@ -1,16 +1,22 @@
-import { describe, expect, it } from 'vitest'
+import { expect, it } from 'vitest'
+import { describeWithDatabase } from '../test/postgres'
+import { UsersRepository } from '../users/users.repository'
+import { GroupsRepository } from '../groups/groups.repository'
+import { LessonsRepository } from '../lessons/lessons.repository'
 import { DEMO_LEARNER, DEMO_TEACHER } from '../demo/policy'
 import { seedClassroom } from '../demo/seed'
 import { GroupsService } from '../groups/groups.service'
 import { LessonsService } from '../lessons/lessons.service'
 import { MeetService } from './meet.service'
 
-describe('MeetService', () => {
+describeWithDatabase('MeetService', (current) => {
   it('mints a room token for a live member and never embeds a session secret', async () => {
-    const groups = new GroupsService()
-    const lessons = new LessonsService(groups)
+    const db = current().database
+    const users = new UsersRepository(db)
+    const groups = new GroupsService(new GroupsRepository(db))
+    const lessons = new LessonsService(groups, new LessonsRepository(db))
     const meet = new MeetService(groups, lessons)
-    const { lesson } = seedClassroom({ groups, lessons })
+    const { lesson } = await seedClassroom({ users, groups, lessons })
     const sessionSecret = 'session-secret-value'
     await expect(
       meet.tokenForLesson({
@@ -20,7 +26,7 @@ describe('MeetService', () => {
         apiSecret: 'devsecret',
       }),
     ).rejects.toMatchObject({ status: 409 })
-    lessons.start({ lessonId: lesson.id, role: 'teacher' })
+    await lessons.start({ lessonId: lesson.id, role: 'teacher' })
     const issued = await meet.tokenForLesson({
       lessonId: lesson.id,
       actor: DEMO_LEARNER,
@@ -41,11 +47,13 @@ describe('MeetService', () => {
   })
 
   it('refuses strangers and missing LiveKit credentials', async () => {
-    const groups = new GroupsService()
-    const lessons = new LessonsService(groups)
+    const db = current().database
+    const users = new UsersRepository(db)
+    const groups = new GroupsService(new GroupsRepository(db))
+    const lessons = new LessonsService(groups, new LessonsRepository(db))
     const meet = new MeetService(groups, lessons)
-    const { lesson } = seedClassroom({ groups, lessons })
-    lessons.start({ lessonId: lesson.id, role: 'teacher' })
+    const { lesson } = await seedClassroom({ users, groups, lessons })
+    await lessons.start({ lessonId: lesson.id, role: 'teacher' })
     await expect(
       meet.tokenForLesson({
         lessonId: lesson.id,
