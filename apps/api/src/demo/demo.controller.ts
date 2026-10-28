@@ -7,7 +7,9 @@ import {
   parsePreviewRole,
   processDemoEnv,
 } from './policy'
+import { Public } from '../http/actor'
 
+@Public()
 @Controller('api/demo')
 export class DemoController {
   @Get('preview')

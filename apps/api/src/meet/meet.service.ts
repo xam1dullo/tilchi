@@ -1,7 +1,5 @@
 import { HttpException, Inject, Injectable } from '@nestjs/common'
-import type { Actor } from '../groups/access'
-import { canManageGroup, canSeeGroup } from '../groups/access'
-import { GroupsService } from '../groups/groups.service'
+import { type Actor, authorize } from '../authz/policy'
 import { LessonsService } from '../lessons/lessons.service'
 import { AttendanceRepository } from './attendance.repository'
 import { mintLivekitToken } from './livekit'
@@ -10,7 +8,6 @@ import { RoomAdmin } from './room-admin'
 @Injectable()
 export class MeetService {
   constructor(
-    @Inject(GroupsService) private readonly groups: GroupsService,
     @Inject(LessonsService) private readonly lessons: LessonsService,
     @Inject(AttendanceRepository)
     private readonly attendance: AttendanceRepository,
@@ -28,9 +25,7 @@ export class MeetService {
       input.lessonId,
       input.actor,
     )
-    if (!canManageGroup(input.actor, group)) {
-      throw new HttpException({ error: 'forbidden' }, 403)
-    }
+    authorize(input.actor, 'meeting.moderate', group)
     if (input.action === 'mute') {
       await this.rooms.mute(meeting.livekitRoom, input.targetUserId)
     } else {
@@ -45,10 +40,11 @@ export class MeetService {
     apiKey: string
     apiSecret: string
   }) {
-    const { lesson, meeting } = await this.liveMeeting(
+    const { lesson, group, meeting } = await this.liveMeeting(
       input.lessonId,
       input.actor,
     )
+    authorize(input.actor, 'meeting.join', group)
     if (!input.apiKey || !input.apiSecret) {
       throw new HttpException(
         {
@@ -82,11 +78,7 @@ export class MeetService {
 
   /** The live Lesson and its Meeting, for someone who can see the Group. */
   private async liveMeeting(lessonId: string, actor: Actor) {
-    const lesson = await this.lessons.get(lessonId)
-    const group = lesson && (await this.groups.get(lesson.groupId))
-    if (!lesson || !group || !canSeeGroup(actor, group)) {
-      throw new HttpException({ error: 'not_found' }, 404)
-    }
+    const { lesson, group } = await this.lessons.visible(actor, lessonId)
     if (lesson.status !== 'live') {
       throw new HttpException({ error: 'lesson_not_live' }, 409)
     }

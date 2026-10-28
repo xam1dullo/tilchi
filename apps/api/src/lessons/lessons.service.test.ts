@@ -6,6 +6,7 @@ import { describeWithDatabase } from '../test/postgres'
 import { UsersRepository } from '../users/users.repository'
 import { LessonsRepository } from './lessons.repository'
 import { LessonsService, parseScheduledAt } from './lessons.service'
+import { actorOf } from '../test/actors'
 
 const AT = '2026-11-01T09:00:00+05:00'
 
@@ -51,8 +52,7 @@ describeWithDatabase('LessonsService', (current) => {
     })
     const group = await parts.groups.create({
       name: 'A1',
-      actorId: teacher.id,
-      role: 'teacher',
+      actor: actorOf('teacher', teacher.id),
     })
     return { ...parts, teacher, group }
   }
@@ -68,7 +68,7 @@ describeWithDatabase('LessonsService', (current) => {
     const lesson = await lessons.create({
       groupId: group.id,
       scheduledAt: AT,
-      role: 'teacher',
+      actor: actorOf('admin'),
     })
     expect(lesson).toEqual({
       id: expect.any(String),
@@ -80,7 +80,7 @@ describeWithDatabase('LessonsService', (current) => {
     expect(await lessons.meetingForLesson(lesson.id)).toBeNull()
     const started = await lessons.start({
       lessonId: lesson.id,
-      role: 'teacher',
+      actor: actorOf('admin'),
     })
     expect(started.lesson.status).toBe('live')
     expect(started.lesson.meetingId).toBe(started.meeting.id)
@@ -91,7 +91,10 @@ describeWithDatabase('LessonsService', (current) => {
       openedAt: expect.stringMatching(/Z$/),
       closedAt: null,
     })
-    const ended = await lessons.end({ lessonId: lesson.id, role: 'teacher' })
+    const ended = await lessons.end({
+      lessonId: lesson.id,
+      actor: actorOf('admin'),
+    })
     expect(ended.status).toBe('ended')
     expect(ended.meetingId).toBe(started.meeting.id)
     expect((await lessons.meetingForLesson(lesson.id))?.closedAt).toMatch(/Z$/)
@@ -103,15 +106,18 @@ describeWithDatabase('LessonsService', (current) => {
     const lesson = await lessons.create({
       groupId: group.id,
       scheduledAt: AT,
-      role: 'teacher',
+      actor: actorOf('admin'),
     })
     const runs = await Promise.all(
       Array.from({ length: 4 }, () =>
-        lessons.start({ lessonId: lesson.id, role: 'admin' }),
+        lessons.start({ lessonId: lesson.id, actor: actorOf('admin') }),
       ),
     )
     expect(new Set(runs.map((run) => run.meeting.id)).size).toBe(1)
-    const again = await lessons.start({ lessonId: lesson.id, role: 'teacher' })
+    const again = await lessons.start({
+      lessonId: lesson.id,
+      actor: actorOf('admin'),
+    })
     expect(again.meeting).toEqual(runs[0].meeting)
   })
 
@@ -120,13 +126,13 @@ describeWithDatabase('LessonsService', (current) => {
     const lesson = await lessons.create({
       groupId: group.id,
       scheduledAt: AT,
-      role: 'teacher',
+      actor: actorOf('admin'),
     })
-    await lessons.start({ lessonId: lesson.id, role: 'teacher' })
-    await lessons.end({ lessonId: lesson.id, role: 'teacher' })
+    await lessons.start({ lessonId: lesson.id, actor: actorOf('admin') })
+    await lessons.end({ lessonId: lesson.id, actor: actorOf('admin') })
     const closed = (await lessons.meetingForLesson(lesson.id))?.closedAt
     await new Promise((resolve) => setTimeout(resolve, 5))
-    await lessons.end({ lessonId: lesson.id, role: 'admin' })
+    await lessons.end({ lessonId: lesson.id, actor: actorOf('admin') })
     expect((await lessons.meetingForLesson(lesson.id))?.closedAt).toBe(closed)
   })
 
@@ -135,43 +141,54 @@ describeWithDatabase('LessonsService', (current) => {
     const lesson = await lessons.create({
       groupId: group.id,
       scheduledAt: AT,
-      role: 'teacher',
+      actor: actorOf('admin'),
     })
     expect(
-      await outcome(lessons.end({ lessonId: lesson.id, role: 'teacher' })),
+      await outcome(
+        lessons.end({ lessonId: lesson.id, actor: actorOf('admin') }),
+      ),
     ).toBe('409 lesson_not_live')
-    await lessons.start({ lessonId: lesson.id, role: 'teacher' })
-    await lessons.end({ lessonId: lesson.id, role: 'teacher' })
+    await lessons.start({ lessonId: lesson.id, actor: actorOf('admin') })
+    await lessons.end({ lessonId: lesson.id, actor: actorOf('admin') })
     expect(
-      await outcome(lessons.start({ lessonId: lesson.id, role: 'teacher' })),
+      await outcome(
+        lessons.start({ lessonId: lesson.id, actor: actorOf('admin') }),
+      ),
     ).toBe('409 lesson_closed')
   })
 
   it('keeps learners out of create, start and end', async () => {
-    const { lessons, group } = await classroom()
+    const { lessons, group, users, groups } = await classroom()
+    const member = await users.ensure({
+      id: uuidv7(),
+      role: 'learner',
+      name: 'L',
+    })
+    await groups.putMember(group.id, member.id)
+    const actor = actorOf('learner', member.id)
     const lesson = await lessons.create({
       groupId: group.id,
       scheduledAt: AT,
-      role: 'admin',
+      actor: actorOf('admin'),
     })
     expect(
       await outcome(
-        lessons.create({ groupId: group.id, scheduledAt: AT, role: 'learner' }),
+        lessons.create({ groupId: group.id, scheduledAt: AT, actor }),
       ),
     ).toBe('403 forbidden')
-    expect(
-      await outcome(lessons.start({ lessonId: lesson.id, role: 'learner' })),
-    ).toBe('403 forbidden')
-    expect(
-      await outcome(lessons.end({ lessonId: lesson.id, role: 'learner' })),
-    ).toBe('403 forbidden')
+    expect(await outcome(lessons.start({ lessonId: lesson.id, actor }))).toBe(
+      '403 forbidden',
+    )
+    expect(await outcome(lessons.end({ lessonId: lesson.id, actor }))).toBe(
+      '403 forbidden',
+    )
     expect((await lessons.get(lesson.id))?.status).toBe('scheduled')
   })
 
   it('refuses a missing group, a bad time, and lessons that do not exist', async () => {
     const { lessons, group } = await classroom()
     const create = (groupId: string, scheduledAt: string) =>
-      outcome(lessons.create({ groupId, scheduledAt, role: 'teacher' }))
+      outcome(lessons.create({ groupId, scheduledAt, actor: actorOf('admin') }))
     expect(await create(uuidv7(), AT)).toBe('404 not_found')
     expect(await create('not-a-uuid', AT)).toBe('404 not_found')
     expect(await create(group.id, '')).toBe('400 invalid_scheduled_at')
@@ -179,12 +196,12 @@ describeWithDatabase('LessonsService', (current) => {
       '400 invalid_scheduled_at',
     )
     for (const lessonId of [uuidv7(), 'not-a-uuid']) {
-      expect(await outcome(lessons.start({ lessonId, role: 'admin' }))).toBe(
-        '404 not_found',
-      )
-      expect(await outcome(lessons.end({ lessonId, role: 'admin' }))).toBe(
-        '404 not_found',
-      )
+      expect(
+        await outcome(lessons.start({ lessonId, actor: actorOf('admin') })),
+      ).toBe('404 not_found')
+      expect(
+        await outcome(lessons.end({ lessonId, actor: actorOf('admin') })),
+      ).toBe('404 not_found')
       expect(await lessons.get(lessonId)).toBeNull()
       expect(await lessons.meetingForLesson(lessonId)).toBeNull()
     }
@@ -221,25 +238,24 @@ describeWithDatabase('LessonsService', (current) => {
     const { lessons, groups, teacher, group } = await classroom()
     const other = await groups.create({
       name: 'B1',
-      actorId: teacher.id,
-      role: 'teacher',
+      actor: actorOf('teacher', teacher.id),
     })
     const later = await lessons.create({
       groupId: group.id,
       scheduledAt: '2026-11-03T09:00:00+05:00',
-      role: 'teacher',
+      actor: actorOf('admin'),
     })
     const sooner = await lessons.create({
       groupId: group.id,
       scheduledAt: '2026-11-02T09:00:00+05:00',
-      role: 'teacher',
+      actor: actorOf('admin'),
     })
     await lessons.create({
       groupId: other.id,
       scheduledAt: AT,
-      role: 'teacher',
+      actor: actorOf('admin'),
     })
-    await lessons.start({ lessonId: sooner.id, role: 'teacher' })
+    await lessons.start({ lessonId: sooner.id, actor: actorOf('admin') })
     const listed = await lessons.listForGroup(group.id)
     expect(listed.map((lesson) => lesson.id)).toEqual([sooner.id, later.id])
     expect(listed.map((lesson) => lesson.status)).toEqual(['live', 'scheduled'])

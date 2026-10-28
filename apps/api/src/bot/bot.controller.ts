@@ -11,7 +11,9 @@ import { confirmAnswer, confirmPrompt, expiredNotice } from './replies'
 import { RegistrationService } from './registration.service'
 import { type BotAction, parseBotUpdate } from './updates'
 import { decideWebhook } from './webhook-guard'
+import { Public } from '../http/actor'
 
+@Public()
 @Controller('bot')
 export class BotController {
   constructor(

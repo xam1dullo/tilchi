@@ -1,6 +1,6 @@
 import { HttpException, Inject, Injectable } from '@nestjs/common'
 import { uuidv7 } from '../id'
-import type { Role } from '../auth/policy'
+import { type Action, type Actor, authorize } from '../authz/policy'
 import { GroupsService } from '../groups/groups.service'
 import { LessonEvents } from './lesson-events'
 import { LessonsRepository, type ChangeResult } from './lessons.repository'
@@ -17,12 +17,6 @@ export function parseScheduledAt(value: string) {
   return Number.isNaN(date.getTime()) || year < 1 || year > 9999 ? null : date
 }
 
-function requireManager(role: Role) {
-  if (role !== 'teacher' && role !== 'admin') {
-    throw new HttpException({ error: 'forbidden' }, 403)
-  }
-}
-
 @Injectable()
 export class LessonsService {
   constructor(
@@ -32,9 +26,27 @@ export class LessonsService {
     private readonly events: LessonEvents = new LessonEvents(),
   ) {}
 
-  async create(input: { groupId: string; scheduledAt: string; role: Role }) {
-    requireManager(input.role)
-    return this.write({ ...input, id: uuidv7() })
+  async create(input: { groupId: string; scheduledAt: string; actor: Actor }) {
+    const group = await this.groups.visible(input.actor, input.groupId)
+    authorize(input.actor, 'lesson.create', group)
+    return this.write({
+      groupId: input.groupId,
+      scheduledAt: input.scheduledAt,
+      id: uuidv7(),
+    })
+  }
+
+  /** The lesson and its group, for an actor who may see the group; 404 otherwise. */
+  async visible(actor: Actor, lessonId: string) {
+    const lesson = await this.lessons.get(lessonId)
+    if (!lesson) throw new HttpException({ error: 'not_found' }, 404)
+    return { lesson, group: await this.groups.visible(actor, lesson.groupId) }
+  }
+
+  private async managed(actor: Actor, lessonId: string, action: Action) {
+    const seen = await this.visible(actor, lessonId)
+    authorize(actor, action, seen.group)
+    return seen
   }
 
   /** Returns the lesson with this id, creating it only when there is none. */
@@ -70,8 +82,8 @@ export class LessonsService {
     return this.lessons.get(id)
   }
 
-  async start(input: { lessonId: string; role: Role }) {
-    requireManager(input.role)
+  async start(input: { lessonId: string; actor: Actor }) {
+    await this.managed(input.actor, input.lessonId, 'lesson.start')
     const started = await this.lessons.start(input.lessonId, new Date())
     if (started.kind === 'not_found') {
       throw new HttpException({ error: 'not_found' }, 404)
@@ -82,8 +94,8 @@ export class LessonsService {
     return { lesson: started.lesson, meeting: started.meeting }
   }
 
-  async end(input: { lessonId: string; role: Role }) {
-    requireManager(input.role)
+  async end(input: { lessonId: string; actor: Actor }) {
+    await this.managed(input.actor, input.lessonId, 'lesson.end')
     const ended = await this.lessons.end(input.lessonId, new Date())
     if (ended.kind === 'not_found') {
       throw new HttpException({ error: 'not_found' }, 404)
@@ -94,8 +106,8 @@ export class LessonsService {
     return ended.lesson
   }
 
-  async cancel(input: { lessonId: string; role: Role }) {
-    requireManager(input.role)
+  async cancel(input: { lessonId: string; actor: Actor }) {
+    await this.managed(input.actor, input.lessonId, 'lesson.cancel')
     const result = this.settled(
       await this.lessons.cancel(input.lessonId, new Date()),
     )
@@ -113,9 +125,9 @@ export class LessonsService {
   async reschedule(input: {
     lessonId: string
     scheduledAt: string
-    role: Role
+    actor: Actor
   }) {
-    requireManager(input.role)
+    await this.managed(input.actor, input.lessonId, 'lesson.reschedule')
     const scheduledAt = parseScheduledAt(input.scheduledAt)
     if (!scheduledAt) {
       throw new HttpException({ error: 'invalid_scheduled_at' }, 400)

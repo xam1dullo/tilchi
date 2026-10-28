@@ -1,9 +1,10 @@
 import { expect, it } from 'vitest'
-import type { AuthService } from '../auth/auth.service'
+import type { Actor } from '../authz/policy'
 import { GroupsRepository } from '../groups/groups.repository'
 import { GroupsService } from '../groups/groups.service'
 import { uuidv7 } from '../id'
 import type { RoomAdmin } from '../meet/room-admin'
+import { actorOf } from '../test/actors'
 import { describeWithDatabase } from '../test/postgres'
 import { UsersRepository } from '../users/users.repository'
 import { LessonsController } from './lessons.controller'
@@ -26,34 +27,24 @@ describeWithDatabase('LessonsController group serialization', (current) => {
     })
     const group = await groups.create({
       name: 'A1',
-      actorId: teacher.id,
-      role: 'teacher',
+      actor: actorOf('teacher', teacher.id),
     })
     await groups.putMember(group.id, learner.id)
-    const actors = new Map([
-      ['teacher', { userId: teacher.id, role: 'teacher', name: 'T' }],
-      ['learner', { userId: learner.id, role: 'learner', name: 'L' }],
-    ])
-    const auth = {
-      read: async (token: string | undefined) =>
-        actors.get(token ?? '') ?? null,
-    } as unknown as AuthService
     const lessons = {
-      get: async () => ({ id: 'l1', groupId: group.id }),
+      visible: async (actor: Actor) => ({
+        lesson: { id: 'l1', groupId: group.id, status: 'scheduled' },
+        group: await groups.visible(actor, group.id),
+      }),
       meetingForLesson: async () => null,
     } as unknown as LessonsService
-    const controller = new LessonsController(
-      auth,
-      groups,
-      lessons,
-      {} as RoomAdmin,
-    )
-    const detail = (who: string) =>
-      controller.get('l1', `__Host-tilchi_sid=${who}`, undefined, undefined)
+    const controller = new LessonsController(groups, lessons, {} as RoomAdmin)
+    const detail = (actor: Actor) => controller.get('l1', actor)
+    const learnerActor = actorOf('learner', learner.id)
+    const teacherActor = actorOf('teacher', teacher.id)
 
-    const asLearner = await detail('learner')
+    const asLearner = await detail(learnerActor)
     expect(asLearner.group).not.toHaveProperty('memberIds')
     expect(asLearner.group).toMatchObject({ learnerCount: 1 })
-    expect((await detail('teacher')).group).toHaveProperty('memberIds')
+    expect((await detail(teacherActor)).group).toHaveProperty('memberIds')
   })
 })

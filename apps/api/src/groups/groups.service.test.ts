@@ -7,6 +7,7 @@ import { describeWithDatabase } from '../test/postgres'
 import { UsersRepository } from '../users/users.repository'
 import { GroupsRepository } from './groups.repository'
 import { GROUP_CAPACITY, GroupsService } from './groups.service'
+import { actorOf } from '../test/actors'
 
 describeWithDatabase('GroupsService', (current) => {
   const users = () => new UsersRepository(current().database)
@@ -30,8 +31,7 @@ describeWithDatabase('GroupsService', (current) => {
     ])
     const group = await groups().create({
       name: 'A1',
-      actorId: teacher,
-      role: 'teacher',
+      actor: actorOf('teacher', teacher),
     })
     expect(group).toEqual({
       id: expect.any(String),
@@ -48,14 +48,14 @@ describeWithDatabase('GroupsService', (current) => {
         groups().addMember({
           groupId: group.id,
           userId: learner,
-          role: 'teacher',
+          actor: actorOf('teacher'),
         }),
       ),
     ).toBe('403 forbidden')
     const withMember = await groups().addMember({
       groupId: group.id,
       userId: learner,
-      role: 'admin',
+      actor: actorOf('admin'),
     })
     expect(withMember.memberIds).toEqual([teacher, learner])
     expect(withMember.learnerCount).toBe(1)
@@ -67,7 +67,7 @@ describeWithDatabase('GroupsService', (current) => {
     const learner = await person('learner')
     expect(
       await outcome(
-        groups().create({ name: 'Nope', actorId: learner, role: 'learner' }),
+        groups().create({ name: 'Nope', actor: actorOf('learner', learner) }),
       ),
     ).toBe('403 forbidden')
   })
@@ -75,7 +75,7 @@ describeWithDatabase('GroupsService', (current) => {
   it('trims the name, caps it at 80 characters, and never stores a blank one', async () => {
     const teacher = await person('teacher')
     const make = (name: string) =>
-      groups().create({ name, actorId: teacher, role: 'teacher' })
+      groups().create({ name, actor: actorOf('teacher', teacher) })
     expect((await make('  A1  ')).name).toBe('A1')
     expect((await make('x'.repeat(100))).name).toBe('x'.repeat(80))
     expect((await make('   ')).name).toBe('Group')
@@ -105,8 +105,7 @@ describeWithDatabase('GroupsService', (current) => {
     const teacher = await person('teacher')
     const group = await groups().create({
       name: 'A1',
-      actorId: teacher,
-      role: 'teacher',
+      actor: actorOf('teacher', teacher),
     })
     expect(await groups().get(uuidv7())).toBeNull()
     expect(await groups().get('not-a-uuid')).toBeNull()
@@ -131,11 +130,10 @@ describeWithDatabase('GroupsService', (current) => {
     ])
     const group = await groups().create({
       name: 'A1',
-      actorId: teacher,
-      role: 'teacher',
+      actor: actorOf('teacher', teacher),
     })
     const add = (groupId: string, userId: string) =>
-      outcome(groups().addMember({ groupId, userId, role: 'admin' }))
+      outcome(groups().addMember({ groupId, userId, actor: actorOf('admin') }))
     expect(await add(uuidv7(), learner)).toBe('404 not_found')
     expect(await add('not-a-uuid', learner)).toBe('404 not_found')
     expect(await add(group.id, uuidv7())).toBe('404 user_not_found')
@@ -153,8 +151,7 @@ describeWithDatabase('GroupsService', (current) => {
     ])
     const group = await groups().create({
       name: 'A1',
-      actorId: teacher,
-      role: 'teacher',
+      actor: actorOf('teacher', teacher),
     })
     await groups().putMember(group.id, learner)
     const again = await groups().putMember(group.id, learner)
@@ -168,8 +165,7 @@ describeWithDatabase('GroupsService', (current) => {
     ])
     const group = await groups().create({
       name: 'A1',
-      actorId: teacher,
-      role: 'teacher',
+      actor: actorOf('teacher', teacher),
     })
     const learners = await Promise.all(
       Array.from({ length: GROUP_CAPACITY + 1 }, () => person('learner')),
@@ -191,8 +187,7 @@ describeWithDatabase('GroupsService', (current) => {
     const teacher = await person('teacher')
     const group = await groups().create({
       name: 'A1',
-      actorId: teacher,
-      role: 'teacher',
+      actor: actorOf('teacher', teacher),
     })
     const learners = await Promise.all(
       Array.from({ length: GROUP_CAPACITY + 4 }, () => person('learner')),
@@ -209,8 +204,7 @@ describeWithDatabase('GroupsService', (current) => {
       const teacher = await person('teacher')
       const group = await groups().create({
         name: 'Kids',
-        actorId: teacher,
-        role: 'teacher',
+        actor: actorOf('teacher', teacher),
       })
       await current()
         .database.db.update(groupsTable)
@@ -256,8 +250,7 @@ describeWithDatabase('GroupsService', (current) => {
       const teacher = await person('teacher')
       const group = await groups().create({
         name: 'A1',
-        actorId: teacher,
-        role: 'teacher',
+        actor: actorOf('teacher', teacher),
       })
       expect(
         await outcome(groups().putMember(group.id, await person('learner'))),
