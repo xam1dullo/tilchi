@@ -41,4 +41,26 @@ export const ru = {
   members: 'Участники',
   noLessons: 'Уроков пока нет.',
   leaveMeet: 'Выйти',
+  meetConnecting: 'Подключаемся к встрече…',
+  meetReconnecting: 'Связь прервалась. Переподключаемся…',
+  meetWeakNetwork:
+    'Связь слабая, видео отключено. Чтобы вернуть его, нажмите Только звук.',
+  meetMicBlocked:
+    'Нет доступа к микрофону. Разрешите доступ в настройках браузера и попробуйте снова.',
+  meetCameraBlocked:
+    'Нет доступа к камере. Разрешите доступ в настройках браузера и попробуйте снова.',
+  meetFailForbidden: 'Вы не можете войти в эту встречу.',
+  meetFailNotLive: 'Урок сейчас не идёт. Возможно, он уже завершён.',
+  meetFailUnconfigured: 'Видеосвязь на сервере ещё не настроена.',
+  meetFailUnavailable: 'Не удалось подключиться к встрече. Попробуйте снова.',
+  meetFailDropped: 'Вы отключились от встречи. Возможно, урок завершён.',
+  meetControls: 'Управление встречей',
+  meetParticipants: 'Участники',
+  meetMic: 'Микрофон',
+  meetCamera: 'Камера',
+  meetAudioOnly: 'Только звук',
+  meetEnableSound: 'Включить звук',
+  meetYou: 'вы',
+  meetMicOff: 'микрофон выключен',
+  meetSpeaking: 'говорит',
 }
