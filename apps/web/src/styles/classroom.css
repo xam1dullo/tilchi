@@ -54,6 +54,7 @@
 }
 
 .classroom-row a {
+  transition: transform var(--dur-press) var(--ease);
   display: flex;
   flex: 1;
   align-items: center;
@@ -66,6 +67,18 @@
 .classroom-row span {
   color: var(--muted);
   font-size: var(--fs-sm);
+}
+
+@media (hover: hover) {
+  .classroom-row a:hover strong {
+    text-decoration: underline;
+    text-underline-offset: 4px;
+  }
+}
+
+.classroom-row a::after {
+  content: "→";
+  color: var(--muted);
 }
 
 .lesson-row {
@@ -101,7 +114,10 @@
 }
 
 .preview-switch button {
+  min-width: 44px;
   min-height: 44px;
+  padding: 0 8px;
+  transition: transform var(--dur-press) var(--ease);
   border: 0;
   background: transparent;
   color: var(--ink-2);
@@ -117,6 +133,22 @@
 .meet-page h2 {
   margin: 0 0 8px;
   font-size: var(--fs-h2);
+  line-height: 1.05;
+}
+
+/* Wayfinding: a 44px way back above the title. */
+.meet-back {
+  margin: 0 0 8px;
+}
+
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  font: 600 var(--fs-ui) / 1 var(--font-sans);
+  color: var(--ink-2);
+  text-underline-offset: 4px;
 }
 
 /* Meeting: the page stays light; only the video tiles are ink-dark. */
@@ -148,8 +180,13 @@
 }
 
 .meet-notice[data-tone="alert"] {
+  border-inline-start: 3px solid var(--danger);
   background: var(--danger-soft);
   color: var(--danger);
+}
+
+.meet-notice[data-tone="status"] {
+  border-inline-start: 3px solid var(--line-strong);
 }
 
 .meet-grid {
@@ -277,8 +314,15 @@
   cursor: pointer;
 }
 
-.meet-control:hover:not(:disabled) {
-  background: var(--bg-alt);
+.meet-control {
+  -webkit-tap-highlight-color: transparent;
+  transition: transform var(--dur-press) var(--ease);
+}
+
+@media (hover: hover) {
+  .meet-control:hover:not(:disabled) {
+    background: var(--bg-alt);
+  }
 }
 
 .meet-control[aria-pressed="true"] {
@@ -297,14 +341,22 @@
   box-shadow: inset 0 0 0 1px var(--danger);
 }
 
-.meet-leave:hover:not(:disabled) {
-  background: var(--danger-soft);
+@media (hover: hover) {
+  .meet-leave:hover:not(:disabled) {
+    background: var(--danger-soft);
+  }
 }
 
 /* Phones: icons only, one row, above the fixed bottom navigation. */
 @media (max-width: 780px) {
   .meet-controls {
     bottom: 64px;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .meet-label {
+    background: var(--meet-bg);
   }
 }
 

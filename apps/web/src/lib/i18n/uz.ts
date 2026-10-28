@@ -72,4 +72,6 @@ export const uz = {
   meetYou: 'siz',
   meetMicOff: "mikrofon o'chiq",
   meetSpeaking: 'gapirmoqda',
+  navMain: 'Asosiy navigatsiya',
+  openApp: 'Kirish',
 }

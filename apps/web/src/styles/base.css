@@ -32,6 +32,19 @@ h3 {
   text-wrap: balance;
 }
 
+/* Tracking tightens as size grows; small text keeps its natural spacing. */
+h1 {
+  letter-spacing: -0.035em;
+}
+
+h2 {
+  letter-spacing: -0.028em;
+}
+
+h3 {
+  letter-spacing: -0.015em;
+}
+
 h1 em,
 h2 em {
   font-style: italic;
@@ -93,17 +106,34 @@ a {
   font: 600 var(--fs-sm) / 1.2 var(--font-sans);
   text-decoration: none;
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
   transition:
-    transform var(--dur-fast) var(--ease),
+    transform var(--dur-press) var(--ease),
     background var(--dur-fast) var(--ease);
 }
 
-.btn:hover {
-  transform: translateY(-1px);
+@media (hover: hover) {
+  .btn:hover {
+    transform: translateY(-1px);
+  }
 }
 
-.btn:active {
-  transform: scale(0.98);
+/* Pressed state lands on pointer-down: same scale and 100ms for every control. */
+.btn:active,
+.locale-switch button:active,
+.preview-switch button:active,
+.user-menu button:active,
+.meet-control:active:not(:disabled),
+.app-nav a:active,
+.app-sheet a:active,
+.classroom-row a:active {
+  transform: scale(0.97);
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: progress;
+  transform: none;
 }
 
 .btn-primary {
@@ -223,12 +253,100 @@ a {
   }
 }
 
+/* Feedback kinds share one shape: tinted ground, a 3px edge, ink text.
+   Status is neutral, done is green, warn is amber, error is red. */
+.notice {
+  margin: 16px 0 0;
+  padding: 12px 16px;
+  border-radius: var(--r-md);
+  border-inline-start: 3px solid var(--line-strong);
+  background: var(--bg-alt);
+  color: var(--ink);
+  font-size: var(--fs-sm);
+}
+
+.notice[data-tone="done"] {
+  border-color: var(--success);
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+}
+
+.notice[data-tone="warn"] {
+  border-color: var(--warn);
+  background: var(--warn-soft);
+  color: var(--warn);
+}
+
+.notice[data-tone="error"] {
+  border-color: var(--danger);
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+/* A waiting dot: opacity only. */
+.notice[data-tone="status"][data-live="true"]::before {
+  content: "";
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-inline-end: 10px;
+  border-radius: var(--r-full);
+  background: var(--accent);
+  animation: pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  50% {
+    opacity: 0.25;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .skeleton {
-    animation: none;
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
   }
 
-  .btn {
-    transition: none;
+  .btn:active,
+  .locale-switch button:active,
+  .preview-switch button:active,
+  .user-menu button:active,
+  .meet-control:active:not(:disabled),
+  .app-nav a:active,
+  .app-sheet a:active,
+  .classroom-row a:active {
+    transform: none;
+  }
+}
+
+/* No translucency or blend layers for people who asked for less. */
+@media (prefers-reduced-transparency: reduce) {
+  .grain {
+    display: none;
+  }
+
+  .app-topbar {
+    background: var(--bg);
+  }
+}
+
+/* More contrast: solid hairlines and a stronger ring. */
+@media (prefers-contrast: more) {
+  :root {
+    --line: var(--ink-2);
+    --line-strong: var(--ink);
+    --muted: var(--ink-2);
+  }
+
+  :focus-visible {
+    outline-width: 3px;
+  }
+
+  .btn-outline,
+  .meet-control {
+    box-shadow: inset 0 0 0 2px var(--ink);
   }
 }

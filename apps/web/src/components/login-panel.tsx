@@ -37,14 +37,19 @@ function body({ state, copy, onBegin }: Props) {
       )
     case 'verifying':
       return (
-        <p className="handoff" role="status">
+        <p className="notice" data-tone="status" data-live="true" role="status">
           {copy.loginVerifying}
         </p>
       )
     case 'waiting':
       return (
         <>
-          <p className="handoff" role="status">
+          <p
+            className="notice"
+            data-tone="status"
+            data-live="true"
+            role="status"
+          >
             {copy.waiting}
           </p>
           <div className="panel-actions">
@@ -57,14 +62,14 @@ function body({ state, copy, onBegin }: Props) {
       )
     case 'confirmed':
       return (
-        <p className="handoff" role="status">
+        <p className="notice" data-tone="done" role="status">
           {copy.confirmed}
         </p>
       )
     case 'failed':
       return (
         <>
-          <p className="handoff login-error" role="alert">
+          <p className="notice" data-tone="error" role="alert">
             {copy[failureCopy[state.reason]]}
           </p>
           <div className="panel-actions">

@@ -69,4 +69,6 @@ export const ru = {
   meetYou: 'вы',
   meetMicOff: 'микрофон выключен',
   meetSpeaking: 'говорит',
+  navMain: 'Основная навигация',
+  openApp: 'Войти',
 }

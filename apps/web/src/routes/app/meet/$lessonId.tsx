@@ -34,17 +34,18 @@ function MeetPage() {
   const copy = messages(locale)
   const search = keepAppSearch(previewRole)
   return (
-    <section className="meet-page">
-      <p className="eyebrow">
+    <section className="meet-page" aria-labelledby="meet-title">
+      <p className="meet-back">
         <Link
+          className="back-link"
           to="/app/groups/$groupId"
           params={{ groupId: group.id }}
           search={search}
         >
-          {copy.backToGroup}
+          <span aria-hidden="true">←</span> {copy.backToGroup}
         </Link>
       </p>
-      <h2>{copy.meetTitle}</h2>
+      <h2 id="meet-title">{copy.meetTitle}</h2>
       <p className="hint">{group.name}</p>
       <MeetEntry
         key={lessonId}
