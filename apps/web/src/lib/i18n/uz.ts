@@ -30,6 +30,13 @@ export const uz = {
     "Kirish hozir ishlamayapti. Birozdan so'ng qayta urinib ko'ring.",
   createGroup: 'Guruh ochish',
   groupName: 'Guruh nomi',
+  teacherLabel: "O'qituvchi",
+  teacherPlaceholder: "O'qituvchini tanlang",
+  teachersEmpty:
+    "Hali o'qituvchi yo'q. Guruh ochishdan oldin o'qituvchi qo'shing.",
+  teacherRequired: "Guruh uchun faol o'qituvchini tanlang.",
+  createGroupFailed:
+    "Guruh ochilmadi. Maydonlarni tekshirib, qayta urinib ko'ring.",
   scheduleLesson: 'Dars rejalashtirish',
   scheduledAt: 'Vaqt',
   startLesson: 'Darsni boshlash',

@@ -27,6 +27,12 @@ export const ru = {
   loginUnavailable: 'Вход сейчас недоступен. Повторите чуть позже.',
   createGroup: 'Создать группу',
   groupName: 'Название группы',
+  teacherLabel: 'Преподаватель',
+  teacherPlaceholder: 'Выберите преподавателя',
+  teachersEmpty:
+    'Преподавателей пока нет. Добавьте преподавателя, прежде чем создавать группу.',
+  teacherRequired: 'Выберите действующего преподавателя для группы.',
+  createGroupFailed: 'Не удалось создать группу. Проверьте поля и повторите.',
   scheduleLesson: 'Запланировать урок',
   scheduledAt: 'Время',
   startLesson: 'Начать урок',

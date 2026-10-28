@@ -27,6 +27,12 @@ export const en = {
   loginUnavailable: 'Sign-in is unavailable right now. Try again shortly.',
   createGroup: 'Create a group',
   groupName: 'Group name',
+  teacherLabel: 'Teacher',
+  teacherPlaceholder: 'Choose a teacher',
+  teachersEmpty: 'No teachers yet. Add a teacher before creating a group.',
+  teacherRequired: 'Choose an active teacher for this group.',
+  createGroupFailed:
+    'Could not create the group. Check the fields and try again.',
   scheduleLesson: 'Schedule a lesson',
   scheduledAt: 'Time',
   startLesson: 'Start lesson',

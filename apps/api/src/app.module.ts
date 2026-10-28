@@ -10,6 +10,7 @@ import { Database } from './db/database'
 import { DemoController } from './demo/demo.controller'
 import { DemoSeedService } from './demo/demo-seed.service'
 import { GroupsController } from './groups/groups.controller'
+import { TeachersController } from './groups/teachers.controller'
 import { GroupsService } from './groups/groups.service'
 import { GroupsRepository } from './groups/groups.repository'
 import { HealthController } from './health/health.controller'
@@ -34,6 +35,7 @@ import { UsersRepository } from './users/users.repository'
     BotController,
     DemoController,
     GroupsController,
+    TeachersController,
     LessonsController,
     MeetController,
     LivekitWebhookController,

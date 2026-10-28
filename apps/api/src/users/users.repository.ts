@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common'
-import { and, eq, isNull, lt, or, sql } from 'drizzle-orm'
+import { and, asc, eq, isNull, lt, or, sql } from 'drizzle-orm'
 import type { Role } from '../auth/policy'
 import type { Field, Registration } from '../bot/registration'
 import { Database } from '../db/database'
@@ -179,6 +179,15 @@ export class UsersRepository {
       .from(users)
       .where(and(eq(users.id, id), isNull(users.deletedAt)))
     return row ? toUser(row) : null
+  }
+
+  /** Active teachers for the admin's group form: id and display name only. */
+  async listTeachers(): Promise<{ id: string; name: string | null }[]> {
+    return this.database.db
+      .select({ id: users.id, name: users.name })
+      .from(users)
+      .where(and(eq(users.role, 'teacher'), isNull(users.deletedAt)))
+      .orderBy(asc(users.name), asc(users.id))
   }
 
   /** A user with a fixed id, created once and never rewritten (demo seed). */

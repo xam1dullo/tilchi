@@ -59,3 +59,40 @@ export function tashkentInputToIso(value: string) {
   const date = new Date(`${value}${value.length === 16 ? ':00' : ''}+05:00`)
   return Number.isNaN(date.getTime()) ? null : date.toISOString()
 }
+
+export type Teacher = { id: string; name: string | null }
+
+export type CreateGroupForm = {
+  name: string
+  teacherId: string
+  /** Admins must pick a teacher; teachers create under their own name. */
+  assignTeacher: boolean
+  teachers: Teacher[]
+  busy: boolean
+}
+
+/** What the create form shows and allows; the component only paints this. */
+export function createGroupView(form: CreateGroupForm) {
+  const noTeachers = form.assignTeacher && form.teachers.length === 0
+  const picked =
+    !form.assignTeacher || form.teachers.some((t) => t.id === form.teacherId)
+  return {
+    showTeacher: form.assignTeacher && !noTeachers,
+    noTeachers,
+    canSubmit: !form.busy && !noTeachers && picked && form.name.trim() !== '',
+  }
+}
+
+/** The request body: only an admin sends a teacherId. */
+export function createGroupBody(form: CreateGroupForm) {
+  return form.assignTeacher
+    ? { name: form.name, teacherId: form.teacherId }
+    : { name: form.name }
+}
+
+/** Copy key for a failed create; anything but teacher_required is generic. */
+export function createGroupError(error: unknown) {
+  return error instanceof Error && error.message === 'teacher_required'
+    ? ('teacherRequired' as const)
+    : ('createGroupFailed' as const)
+}
