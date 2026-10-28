@@ -6,6 +6,36 @@ const hex = '01a17ecc6cf37882b3be7d39ce083092'
 const dashed = '01a17ecc-6cf3-7882-b3be-7d39ce083092'
 
 describe('parseBotUpdate', () => {
+  it('ignores command lookalikes and handoffs sent in group chats', () => {
+    for (const text of [`/starter ${hex}`, `/start${hex}`]) {
+      expect(
+        parseBotUpdate({
+          message: { text, from: { id: 99 }, chat: { id: 99 } },
+        }),
+      ).toEqual({ type: 'ignore' })
+    }
+    expect(
+      parseBotUpdate({
+        message: {
+          text: `/start ${hex}`,
+          from: { id: 99 },
+          chat: { id: -100 },
+        },
+      }),
+    ).toEqual({ type: 'ignore' })
+  })
+
+  it('accepts a bot-addressed start command in a private chat', () => {
+    expect(
+      parseBotUpdate({
+        message: {
+          text: `/start@tilchiuz_bot ${hex}`,
+          from: { id: 99 },
+          chat: { id: 99 },
+        },
+      }),
+    ).toMatchObject({ type: 'bind_handoff', handoffId: dashed })
+  })
   it('binds a /start handoff payload to the telegram user', () => {
     const action = parseBotUpdate({
       message: {

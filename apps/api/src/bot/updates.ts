@@ -50,10 +50,14 @@ export function parseBotUpdate(update: unknown): BotAction {
 
   const text = message?.text?.trim() ?? ''
   const from = message?.from
-  if (!text.startsWith('/start') || !from?.id || from.is_bot) {
+  const command = /^\/start(?:@[A-Za-z0-9_]+)?(?:\s|$)/.exec(text)
+  if (!command || !from?.id || from.is_bot) {
     return { type: 'ignore' }
   }
-  const payload = text.slice('/start'.length).trim().split(/\s+/)[0] ?? ''
+  if (message?.chat?.id !== undefined && message.chat.id !== from.id) {
+    return { type: 'ignore' }
+  }
+  const payload = text.slice(command[0].length).trim().split(/\s+/)[0] ?? ''
   if (!payload) return { type: 'ignore' }
   return {
     type: 'bind_handoff',
