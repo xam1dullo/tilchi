@@ -9,11 +9,11 @@ cp .env.example .env
 docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
 ```
 
-Open http://localhost. nginx sends `/` and `/app` to Start, and `/api`, `/auth`, and `/bot` to Nest. Postgres, Redis, LiveKit, and coturn come up with the same files.
+Open http://localhost. nginx sends `/` and `/app` to Start, `/api`, `/auth`, `/bot`, and `/ws/canvas` to Nest, and `/rtc` to LiveKit. Postgres, Redis, LiveKit, and coturn come up with the same files. The path contract lives in `docker/nginx/locations.conf`.
 
-`docker-compose.yml` is the production shape: secrets use `${VAR:?required}` and LiveKit signaling (`7880`) stays on the compose network (nginx proxies `/rtc/`). `docker-compose.dev.yml` supplies local defaults only.
+`docker-compose.yml` is the production shape: secrets use `${VAR:?required}` and LiveKit signaling (`7880`) stays on the compose network (nginx proxies `/rtc/`). `docker-compose.dev.yml` supplies local defaults only. Production adds `docker-compose.prod.yml`.
 
-`TELEGRAM_BOT_TOKEN` in `.env.example` is an empty placeholder. Do not commit a real token. Production reads `/etc/tilchi.env` on the VPS.
+`TELEGRAM_BOT_TOKEN` in `.env.example` is a local placeholder, not a real token. Production reads `/etc/tilchi.env` on the VPS.
 
 The session cookie is `__Host-tilchi_sid`. A login needs the Telegram bot to bind a handoff and the user to tap confirm, and only the browser that started it can claim it, once. An unconfirmed handoff cannot create a session, and production refuses confirm until `TELEGRAM_WEBHOOK_SECRET` is set. Browsers only store the host cookie over HTTPS, so local HTTP will not keep a login. `GET /api/health` returns `{ "ok": true, "service": "tilchi-api" }`.
 
@@ -43,4 +43,6 @@ docker compose -f docker-compose.yml -f docker-compose.dev.yml config
 
 ## Deploy
 
-Images build on `main` and push to GHCR tagged with the git SHA. Nothing migrates or deploys on that push. The deploy job is `workflow_dispatch` only, requires the GitHub `production` environment, and currently refuses to SSH.
+Images build on `main` and push to GHCR, tagged with the git SHA. Nothing migrates or deploys on that push. The deploy job is `workflow_dispatch` only, requires the GitHub `production` environment, and is held: it exits before any SSH.
+
+On the VPS, `scripts/vps-deploy.sh <sha>` pulls the images, migrates, and runs `docker compose up -d` with `docker-compose.prod.yml` and `/etc/tilchi.env`. Rollback is the same command with the previous SHA. See `docs/adr/0010-docker-vps.md`.
