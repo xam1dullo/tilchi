@@ -38,6 +38,7 @@ type Ctx = {
   lesson: string
   target: string
   teacher: string
+  notification: string
 }
 
 /** Expected status per caller, in the order of WHO. */
@@ -340,6 +341,7 @@ describe.skipIf(!hasTestDatabase)('route x role matrix', () => {
           lesson: row.lesson ? await freshLesson(row.lesson) : '',
           target: ids.target,
           teacher: ids.owner,
+          notification: await freshNotification(),
         }
         const headers: Record<string, string> = {
           'content-type': 'application/json',
