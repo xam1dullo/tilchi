@@ -27,7 +27,7 @@ export class GroupsController {
     @Headers(PREVIEW_HEADER) previewRole: string | undefined,
   ) {
     const actor = await this.actor(cookie, authorization, previewRole)
-    return { groups: this.groups.listForUser(actor.userId, actor.role) }
+    return { groups: await this.groups.listForUser(actor.userId, actor.role) }
   }
 
   @Post()
@@ -59,7 +59,7 @@ export class GroupsController {
     @Headers(PREVIEW_HEADER) previewRole: string | undefined,
   ) {
     const actor = await this.actor(cookie, authorization, previewRole)
-    const group = this.groups.get(groupId)
+    const group = await this.groups.get(groupId)
     if (!group || !canSeeGroup(actor, group)) {
       throw new HttpException({ error: 'not_found' }, 404)
     }

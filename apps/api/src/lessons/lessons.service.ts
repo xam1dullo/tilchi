@@ -1,129 +1,98 @@
-import { HttpException, Injectable } from '@nestjs/common'
+import { HttpException, Inject, Injectable } from '@nestjs/common'
 import { uuidv7 } from '../id'
 import type { Role } from '../auth/policy'
 import { GroupsService } from '../groups/groups.service'
+import { LessonsRepository } from './lessons.repository'
 
-export type LessonStatus = 'scheduled' | 'live' | 'ended' | 'cancelled'
+export type { Lesson, LessonStatus, Meeting } from './lessons.repository'
 
-export type Lesson = {
-  id: string
-  groupId: string
-  scheduledAt: string
-  status: LessonStatus
-  meetingId: string | null
+/**
+ * A valid instant Postgres can store. Years outside 1..9999 parse in
+ * JavaScript but would reach the database as an error, so they are refused here.
+ */
+export function parseScheduledAt(value: string) {
+  const date = new Date(value)
+  const year = date.getUTCFullYear()
+  return Number.isNaN(date.getTime()) || year < 1 || year > 9999 ? null : date
 }
 
-export type Meeting = {
-  id: string
-  lessonId: string
-  livekitRoom: string
-  openedAt: string | null
-  closedAt: string | null
+function requireManager(role: Role) {
+  if (role !== 'teacher' && role !== 'admin') {
+    throw new HttpException({ error: 'forbidden' }, 403)
+  }
 }
 
 @Injectable()
 export class LessonsService {
-  private readonly lessons = new Map<string, Lesson>()
-  private readonly meetings = new Map<string, Meeting>()
+  constructor(
+    @Inject(GroupsService) private readonly groups: GroupsService,
+    @Inject(LessonsRepository) private readonly lessons: LessonsRepository,
+  ) {}
 
-  constructor(private readonly groups: GroupsService) {}
-
-  create(input: { groupId: string; scheduledAt: string; role: Role }) {
-    if (input.role !== 'teacher' && input.role !== 'admin') {
-      throw new HttpException({ error: 'forbidden' }, 403)
-    }
-    if (!this.groups.get(input.groupId))
-      throw new HttpException({ error: 'not_found' }, 404)
-    return this.writeLesson({
-      id: uuidv7(),
-      groupId: input.groupId,
-      scheduledAt: input.scheduledAt,
-    })
+  async create(input: { groupId: string; scheduledAt: string; role: Role }) {
+    requireManager(input.role)
+    return this.write({ ...input, id: uuidv7() })
   }
 
-  ensure(input: { id: string; groupId: string; scheduledAt: string }) {
-    const existing = this.lessons.get(input.id)
-    if (existing) return existing
-    if (!this.groups.get(input.groupId))
-      throw new HttpException({ error: 'not_found' }, 404)
-    return this.writeLesson(input)
+  /** Returns the lesson with this id, creating it only when there is none. */
+  async ensure(input: { id: string; groupId: string; scheduledAt: string }) {
+    return (await this.lessons.get(input.id)) ?? this.write(input)
   }
 
-  private writeLesson(input: {
+  private async write(input: {
     id: string
     groupId: string
     scheduledAt: string
   }) {
-    const scheduled = new Date(input.scheduledAt)
-    if (Number.isNaN(scheduled.getTime())) {
+    if (!(await this.groups.get(input.groupId))) {
+      throw new HttpException({ error: 'not_found' }, 404)
+    }
+    const scheduledAt = parseScheduledAt(input.scheduledAt)
+    if (!scheduledAt) {
       throw new HttpException({ error: 'invalid_scheduled_at' }, 400)
     }
-    const lesson: Lesson = {
+    const created = await this.lessons.insert({
       id: input.id,
       groupId: input.groupId,
-      scheduledAt: scheduled.toISOString(),
-      status: 'scheduled',
-      meetingId: null,
-    }
-    this.lessons.set(lesson.id, lesson)
-    return lesson
+      scheduledAt,
+    })
+    return created ?? this.existing(input.id)
   }
 
   listForGroup(groupId: string) {
-    return [...this.lessons.values()].filter(
-      (lesson) => lesson.groupId === groupId,
-    )
+    return this.lessons.listForGroup(groupId)
   }
 
   get(id: string) {
-    return this.lessons.get(id) ?? null
+    return this.lessons.get(id)
   }
 
-  start(input: { lessonId: string; role: Role }) {
-    if (input.role !== 'teacher' && input.role !== 'admin') {
-      throw new HttpException({ error: 'forbidden' }, 403)
+  async start(input: { lessonId: string; role: Role }) {
+    requireManager(input.role)
+    const started = await this.lessons.start(input.lessonId, new Date())
+    if (started.kind === 'not_found') {
+      throw new HttpException({ error: 'not_found' }, 404)
     }
-    const lesson = this.lessons.get(input.lessonId)
-    if (!lesson) throw new HttpException({ error: 'not_found' }, 404)
-    if (lesson.status === 'ended' || lesson.status === 'cancelled') {
+    if (started.kind === 'closed') {
       throw new HttpException({ error: 'lesson_closed' }, 409)
     }
-    if (!lesson.meetingId) {
-      const meeting: Meeting = {
-        id: uuidv7(),
-        lessonId: lesson.id,
-        livekitRoom: `lesson-${lesson.id}`,
-        openedAt: new Date().toISOString(),
-        closedAt: null,
-      }
-      this.meetings.set(meeting.id, meeting)
-      lesson.meetingId = meeting.id
-    }
-    lesson.status = 'live'
-    const meeting = lesson.meetingId
-      ? this.meetings.get(lesson.meetingId)
-      : undefined
-    if (!meeting) throw new HttpException({ error: 'meeting_missing' }, 500)
-    return { lesson, meeting }
+    return { lesson: started.lesson, meeting: started.meeting }
   }
 
-  end(input: { lessonId: string; role: Role }) {
-    if (input.role !== 'teacher' && input.role !== 'admin') {
-      throw new HttpException({ error: 'forbidden' }, 403)
-    }
-    const lesson = this.lessons.get(input.lessonId)
-    if (!lesson) throw new HttpException({ error: 'not_found' }, 404)
-    lesson.status = 'ended'
-    if (lesson.meetingId) {
-      const meeting = this.meetings.get(lesson.meetingId)
-      if (meeting) meeting.closedAt = new Date().toISOString()
-    }
-    return lesson
+  async end(input: { lessonId: string; role: Role }) {
+    requireManager(input.role)
+    const ended = await this.lessons.end(input.lessonId, new Date())
+    if (!ended) throw new HttpException({ error: 'not_found' }, 404)
+    return ended
   }
 
   meetingForLesson(lessonId: string) {
-    const lesson = this.lessons.get(lessonId)
-    if (!lesson?.meetingId) return null
-    return this.meetings.get(lesson.meetingId) ?? null
+    return this.lessons.meetingForLesson(lessonId)
+  }
+
+  private async existing(id: string) {
+    const lesson = await this.lessons.get(id)
+    if (!lesson) throw new HttpException({ error: 'not_found' }, 404)
+    return lesson
   }
 }

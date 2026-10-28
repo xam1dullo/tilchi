@@ -7,9 +7,11 @@ import { DemoController } from './demo/demo.controller'
 import { DemoSeedService } from './demo/demo-seed.service'
 import { GroupsController } from './groups/groups.controller'
 import { GroupsService } from './groups/groups.service'
+import { GroupsRepository } from './groups/groups.repository'
 import { HealthController } from './health/health.controller'
 import { LessonsController } from './lessons/lessons.controller'
 import { LessonsService } from './lessons/lessons.service'
+import { LessonsRepository } from './lessons/lessons.repository'
 import { MeetController } from './meet/meet.controller'
 import { MeetService } from './meet/meet.service'
 import { KV, createKvFromEnv } from './redis/kv'
@@ -33,6 +35,8 @@ import { UsersRepository } from './users/users.repository'
     UsersRepository,
     SessionsRepository,
     AuthService,
+    GroupsRepository,
+    LessonsRepository,
     GroupsService,
     LessonsService,
     MeetService,

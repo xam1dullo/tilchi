@@ -1,6 +1,7 @@
-import { HttpException, Injectable } from '@nestjs/common'
+import { HttpException, Inject, Injectable } from '@nestjs/common'
 import { uuidv7 } from '../id'
 import type { Role } from '../auth/policy'
+import { type GroupRecord, GroupsRepository } from './groups.repository'
 
 export type Group = {
   id: string
@@ -10,78 +11,88 @@ export type Group = {
   memberIds: string[]
 }
 
-const MAX = 12
+/** Members including the teacher. PRD Q11 (12 learners) lands with 3b-6. */
+export const GROUP_CAPACITY = 12
+
+/** The API still calls the teacher who owns a group its creator. */
+function toGroup(record: GroupRecord): Group {
+  return {
+    id: record.id,
+    name: record.name,
+    capacity: GROUP_CAPACITY,
+    createdBy: record.teacherId,
+    memberIds: record.memberIds,
+  }
+}
+
+function cleanName(name: string) {
+  return name.trim().slice(0, 80) || 'Group'
+}
 
 @Injectable()
 export class GroupsService {
-  private readonly groups = new Map<string, Group>()
-  private readonly membership = new Map<string, Set<string>>()
+  constructor(
+    @Inject(GroupsRepository) private readonly groups: GroupsRepository,
+  ) {}
 
-  create(input: { name: string; actorId: string; role: Role }) {
+  async create(input: { name: string; actorId: string; role: Role }) {
     if (input.role !== 'teacher' && input.role !== 'admin') {
       throw new HttpException({ error: 'forbidden' }, 403)
     }
-    const group: Group = {
+    return this.ensure({
       id: uuidv7(),
-      name: input.name.trim().slice(0, 80) || 'Group',
-      capacity: MAX,
-      createdBy: input.actorId,
-      memberIds: [],
-    }
-    this.groups.set(group.id, group)
-    group.memberIds.push(input.actorId)
-    const set = this.membership.get(input.actorId) ?? new Set<string>()
-    set.add(group.id)
-    this.membership.set(input.actorId, set)
-    return group
+      name: input.name,
+      actorId: input.actorId,
+    })
   }
 
-  addMember(input: { groupId: string; userId: string; role: Role }) {
+  async addMember(input: { groupId: string; userId: string; role: Role }) {
     if (input.role !== 'admin')
       throw new HttpException({ error: 'forbidden' }, 403)
     return this.putMember(input.groupId, input.userId)
   }
 
-  ensure(input: { id: string; name: string; actorId: string }) {
-    const existing = this.groups.get(input.id)
-    if (existing) return existing
-    const group: Group = {
+  /** Creates the group with `actorId` as its first member, or returns it as it is. */
+  async ensure(input: { id: string; name: string; actorId: string }) {
+    const created = await this.groups.insert({
       id: input.id,
-      name: input.name.trim().slice(0, 80) || 'Group',
-      capacity: MAX,
-      createdBy: input.actorId,
-      memberIds: [],
-    }
-    this.groups.set(group.id, group)
-    return this.putMember(group.id, input.actorId)
+      name: cleanName(input.name),
+      teacherId: input.actorId,
+    })
+    if (created) return toGroup(created)
+    return this.existing(input.id)
   }
 
-  putMember(groupId: string, userId: string) {
-    const group = this.groups.get(groupId)
-    if (!group) throw new HttpException({ error: 'not_found' }, 404)
-    if (
-      !group.memberIds.includes(userId) &&
-      group.memberIds.length >= group.capacity
-    ) {
+  async putMember(groupId: string, userId: string) {
+    const added = await this.groups.addMember(groupId, userId, GROUP_CAPACITY)
+    if (added === 'no_group') {
+      throw new HttpException({ error: 'not_found' }, 404)
+    }
+    if (added === 'no_user') {
+      throw new HttpException({ error: 'user_not_found' }, 404)
+    }
+    if (added === 'full') {
       throw new HttpException({ error: 'group_full' }, 409)
     }
-    if (!group.memberIds.includes(userId)) group.memberIds.push(userId)
-    const set = this.membership.get(userId) ?? new Set<string>()
-    set.add(group.id)
-    this.membership.set(userId, set)
+    return this.existing(groupId)
+  }
+
+  async listForUser(userId: string, role?: Role) {
+    const records =
+      role === 'admin'
+        ? await this.groups.listAll()
+        : await this.groups.listForUser(userId)
+    return records.map(toGroup)
+  }
+
+  async get(id: string) {
+    const record = await this.groups.get(id)
+    return record ? toGroup(record) : null
+  }
+
+  private async existing(id: string) {
+    const group = await this.get(id)
+    if (!group) throw new HttpException({ error: 'not_found' }, 404)
     return group
-  }
-
-  listForUser(userId: string, role?: Role) {
-    if (role === 'admin') return [...this.groups.values()]
-    const ids = this.membership.get(userId) ?? new Set<string>()
-    return [...ids].flatMap((id) => {
-      const group = this.groups.get(id)
-      return group ? [group] : []
-    })
-  }
-
-  get(id: string) {
-    return this.groups.get(id) ?? null
   }
 }
