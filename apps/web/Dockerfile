@@ -8,6 +8,7 @@ RUN pnpm install --frozen-lockfile --filter @tilchi/web...
 COPY apps/web apps/web
 COPY packages/content packages/content
 RUN pnpm --filter @tilchi/web build
+# The SSR bundle keeps react, react-dom, and TanStack external.
 RUN pnpm --filter @tilchi/web deploy --prod --legacy /out
 
 FROM node:22-alpine
@@ -16,5 +17,6 @@ ENV NODE_ENV=production
 COPY --from=build /out /app
 COPY --from=build /repo/apps/web/dist ./dist
 COPY --from=build /repo/apps/web/serve.mjs ./serve.mjs
+USER node
 EXPOSE 3000
 CMD ["node", "serve.mjs"]

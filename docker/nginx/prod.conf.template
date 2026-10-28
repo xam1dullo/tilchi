@@ -1,0 +1,41 @@
+# Rendered by the nginx image's envsubst. Only defined env vars
+# (TILCHI_DOMAIN) are substituted; nginx $variables are left alone.
+# Certificates come from certbot on the VPS host (ADR 0010).
+
+server {
+  listen 80 default_server;
+  return 444;
+}
+
+server {
+  listen 443 ssl default_server;
+  ssl_reject_handshake on;
+}
+
+server {
+  listen 80;
+  server_name ${TILCHI_DOMAIN};
+  location /.well-known/acme-challenge/ {
+    root /var/www/certbot;
+  }
+  location / {
+    return 301 https://$host$request_uri;
+  }
+}
+
+server {
+  listen 443 ssl;
+  http2 on;
+  server_name ${TILCHI_DOMAIN};
+
+  ssl_certificate /etc/letsencrypt/live/${TILCHI_DOMAIN}/fullchain.pem;
+  ssl_certificate_key /etc/letsencrypt/live/${TILCHI_DOMAIN}/privkey.pem;
+  ssl_protocols TLSv1.2 TLSv1.3;
+  ssl_session_cache shared:tls:10m;
+
+  add_header Strict-Transport-Security "max-age=31536000" always;
+  add_header X-Content-Type-Options nosniff always;
+  add_header Referrer-Policy strict-origin-when-cross-origin always;
+
+  include /etc/nginx/tilchi/locations.conf;
+}

@@ -2,6 +2,7 @@
 
 Date: 2026-10-27
 Status: accepted
+Source: reconstructed from BUILD-BRIEF-v1. The Mac originals in `tilchi-app` are not ported yet; reconcile when they are.
 
 ## Context
 
@@ -33,9 +34,9 @@ Known residual risk: an attacker can start a handoff and send its deep link to a
 
 The browser receives only the `__Host-tilchi_sid` cookie: HttpOnly, Secure, SameSite=Lax, Path=/. Redis (and later Postgres) store the SHA-256 of the cookie value (`secretHash`), never the raw token. The API rejects an `Authorization: Bearer` session. The web app does not write the session to localStorage or sessionStorage.
 
-`/auth/start` allows 5 requests per minute per IP and 3 per minute per Telegram key. `/auth/miniapp` allows 5 per minute per IP on its own counter, counted before the payload is checked. The IP comes from nginx `X-Real-IP` / Express `req.ip` (trust proxy 1), not from a client-controlled `X-Forwarded-For` list. Counters live in Redis with TTL.
+`/auth/start` allows 5 requests per minute per IP and 3 per minute per Telegram key. `/auth/miniapp` allows 5 per minute per IP on its own counter, counted before the payload is checked. The IP comes from nginx `X-Real-IP` / Express `req.ip` (trust proxy 1), not from a client-controlled `X-Forwarded-For` list. nginx overwrites `X-Forwarded-For` with the TCP peer, so a client cannot choose its own bucket. Counters live in Redis with TTL.
 
-`/bot/webhook` checks `X-Telegram-Bot-Api-Secret-Token` against `TELEGRAM_WEBHOOK_SECRET` with a constant-time compare. If that secret is unset, production refuses the webhook. There is no IP-range bypass.
+`/bot/webhook` checks `X-Telegram-Bot-Api-Secret-Token` against `TELEGRAM_WEBHOOK_SECRET` with a constant-time compare. If that secret is unset, production refuses the webhook, and the API also refuses to boot in production without it (0010). There is no IP-range bypass.
 
 ## Consequences
 

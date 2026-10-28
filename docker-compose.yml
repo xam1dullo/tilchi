@@ -1,30 +1,46 @@
 # Production-shaped stack. Secrets must be set (no silent defaults).
 # Local: docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+# Production adds docker-compose.prod.yml (ghcr images by git SHA, TLS).
+# See docs/adr/0010-docker-vps.md.
+
+x-restart: &restart
+  restart: unless-stopped
 
 services:
   nginx:
+    <<: *restart
     image: nginx:1.27-alpine
     ports:
       - "80:80"
     volumes:
       - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./docker/nginx/locations.conf:/etc/nginx/tilchi/locations.conf:ro
+      - ./docker/nginx/dev.conf.template:/etc/nginx/templates/default.conf.template:ro
     depends_on:
-      - start
-      - nest
-      - livekit
+      start:
+        condition: service_started
+      nest:
+        condition: service_healthy
+      livekit:
+        condition: service_started
 
   start:
+    <<: *restart
     build:
       context: .
       dockerfile: apps/web/Dockerfile
     environment:
       NODE_ENV: production
-      API_INTERNAL_URL: http://nest:3001
+      TZ: Asia/Tashkent
       PORT: "3000"
+      API_INTERNAL_URL: http://nest:3001
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
     expose:
       - "3000"
 
   nest:
+    <<: *restart
     build:
       context: .
       dockerfile: apps/api/Dockerfile
@@ -38,11 +54,21 @@ services:
       TELEGRAM_WEBHOOK_SECRET: ${TELEGRAM_WEBHOOK_SECRET:?set TELEGRAM_WEBHOOK_SECRET}
       LIVEKIT_API_KEY: ${LIVEKIT_API_KEY:?set LIVEKIT_API_KEY}
       LIVEKIT_API_SECRET: ${LIVEKIT_API_SECRET:?set LIVEKIT_API_SECRET}
+      LIVEKIT_PUBLIC_URL: ${LIVEKIT_PUBLIC_URL:-ws://localhost/rtc}
       TELEGRAM_BOT_USERNAME: ${TELEGRAM_BOT_USERNAME:-tilchiuz_bot}
       TELEGRAM_TEACHER_ALLOWLIST: ${TELEGRAM_TEACHER_ALLOWLIST:-}
       TELEGRAM_ADMIN_ALLOWLIST: ${TELEGRAM_ADMIN_ALLOWLIST:-}
     expose:
       - "3001"
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3001/health').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))"
+      interval: 5s
+      timeout: 3s
+      retries: 10
     depends_on:
       postgres:
         condition: service_healthy
@@ -50,6 +76,7 @@ services:
         condition: service_healthy
 
   postgres:
+    <<: *restart
     image: postgres:17-alpine
     environment:
       POSTGRES_USER: ${POSTGRES_USER:?set POSTGRES_USER}
@@ -65,6 +92,7 @@ services:
       retries: 10
 
   redis:
+    <<: *restart
     image: redis:7.4-alpine
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
@@ -73,6 +101,7 @@ services:
       retries: 10
 
   livekit:
+    <<: *restart
     image: livekit/livekit-server:v1.8.4
     entrypoint: ["/bin/sh", "/entrypoint.sh"]
     environment:
@@ -82,12 +111,12 @@ services:
       - ./docker/livekit/entrypoint.sh:/entrypoint.sh:ro
     expose:
       - "7880"
-      - "7881"
     ports:
-      - "7881:7881"
-      - "50000-50020:50000-50020/udp"
+      - "7881:7881/tcp"
+      - "7882:7882/udp"
 
   coturn:
+    <<: *restart
     image: coturn/coturn:4.6.2
     entrypoint: ["/bin/sh", "/entrypoint.sh"]
     environment:
@@ -99,6 +128,7 @@ services:
     ports:
       - "3478:3478/udp"
       - "3478:3478/tcp"
+      - "49160-49200:49160-49200/udp"
 
 volumes:
   pgdata:

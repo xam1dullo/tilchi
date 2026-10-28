@@ -1,0 +1,61 @@
+# Production overlay. Only used on the VPS by scripts/vps-deploy.sh:
+#
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml \
+#     --env-file /etc/tilchi.env up -d --no-build
+#
+# Every secret is `${VAR:?}` so a missing value fails before anything starts.
+# Each service receives only the variables it needs; there is no env_file.
+
+services:
+  nginx:
+    ports:
+      - "443:443"
+    environment:
+      TILCHI_DOMAIN: ${TILCHI_DOMAIN:?set in /etc/tilchi.env}
+    volumes:
+      - ./docker/nginx/prod.conf.template:/etc/nginx/templates/default.conf.template:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - /var/www/certbot:/var/www/certbot:ro
+
+  start:
+    image: ${TILCHI_IMAGE_REPO:-ghcr.io/xam1dullo/tilchi}/web:${TILCHI_SHA:?image tag (git SHA) required}
+    pull_policy: always
+
+  nest:
+    image: ${TILCHI_IMAGE_REPO:-ghcr.io/xam1dullo/tilchi}/api:${TILCHI_SHA:?image tag (git SHA) required}
+    pull_policy: always
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: ${DATABASE_URL:?}
+      REDIS_URL: ${REDIS_URL:?}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:?}
+      TELEGRAM_WEBHOOK_SECRET: ${TELEGRAM_WEBHOOK_SECRET:?}
+      LIVEKIT_PUBLIC_URL: wss://${TILCHI_DOMAIN:?}/rtc
+      LIVEKIT_API_KEY: ${LIVEKIT_API_KEY:?}
+      LIVEKIT_API_SECRET: ${LIVEKIT_API_SECRET:?}
+
+  postgres:
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?}
+      POSTGRES_DB: ${POSTGRES_DB:?}
+
+  redis:
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD:?}"]
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" --no-auth-warning ping"]
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?}
+
+  livekit:
+    environment:
+      LIVEKIT_API_KEY: ${LIVEKIT_API_KEY:?}
+      LIVEKIT_API_SECRET: ${LIVEKIT_API_SECRET:?}
+      LIVEKIT_NODE_IP: ${LIVEKIT_NODE_IP:?public VPS IP}
+
+  coturn:
+    environment:
+      TURN_USER: ${TURN_USER:?}
+      TURN_PASSWORD: ${TURN_PASSWORD:?}
+      TURN_REALM: ${TILCHI_DOMAIN:?}
+      TURN_EXTERNAL_IP: ${LIVEKIT_NODE_IP:?}
