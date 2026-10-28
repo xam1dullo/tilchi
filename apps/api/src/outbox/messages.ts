@@ -1,0 +1,79 @@
+import type { LessonPayload, OutboxEvent } from './events'
+import { TASHKENT_OFFSET_MS } from './quiet-hours'
+
+export type Message = { title: string; body: string; link: string | null }
+
+const pad = (n: number) => String(n).padStart(2, '0')
+
+/** `28.10 19:00`, always Asia/Tashkent, 24-hour. */
+export function tashkentTime(iso: string | undefined) {
+  if (!iso) return ''
+  const d = new Date(new Date(iso).getTime() + TASHKENT_OFFSET_MS)
+  return `${pad(d.getUTCDate())}.${pad(d.getUTCMonth() + 1)} ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`
+}
+
+type Payload = Partial<LessonPayload> & Record<string, unknown>
+
+const groupLink = (p: Payload) =>
+  p.groupId ? `/app/groups/${p.groupId}` : null
+const when = (p: Payload) => tashkentTime(p.scheduledAt)
+
+/**
+ * Message text per event (Uzbek). Least personal data: only times and a link
+ * into the app, never a phone number. The admin alert names the registrant so
+ * the admin can reach them, as before.
+ */
+const RENDER: Partial<Record<OutboxEvent, (p: Payload) => Message>> = {
+  'lesson.scheduled': (p) => ({
+    title: 'Yangi dars',
+    body: `Dars ${when(p)} da boshlanadi.`,
+    link: groupLink(p),
+  }),
+  'lesson.reminder': (p) => ({
+    title: p.lead === '15m' ? 'Dars 15 daqiqadan so‘ng' : 'Dars ertaga',
+    body: `Dars ${when(p)} da boshlanadi.`,
+    link: groupLink(p),
+  }),
+  'lesson.started': (p) => ({
+    title: 'Dars boshlandi',
+    body: 'Darsga kirish uchun havolani bosing.',
+    link: p.lessonId ? `/app/meet/${p.lessonId}` : null,
+  }),
+  'lesson.cancelled': (p) => ({
+    title: 'Dars bekor qilindi',
+    body: `${when(p)} dagi dars bekor qilindi.`,
+    link: groupLink(p),
+  }),
+  'lesson.rescheduled': (p) => ({
+    title: 'Dars vaqti o‘zgardi',
+    body: `${tashkentTime(p.previousScheduledAt)} dagi dars ${when(p)} ga ko‘chirildi.`,
+    link: groupLink(p),
+  }),
+  'sessions.revoked': () => ({
+    title: 'Seanslar tugatildi',
+    body: 'Barcha qurilmalardagi seanslar tugatildi. Qayta kirish uchun Telegram orqali tasdiqlang.',
+    link: null,
+  }),
+  'registration.completed': (p) => ({
+    title: 'New registration',
+    body: [
+      `Name: ${p.name}`,
+      `Level: ${p.level}`,
+      `Source: ${p.source ?? 'direct'}`,
+      `Chat: tg://user?id=${p.telegramUserId}`,
+    ].join('\n'),
+    link: null,
+  }),
+}
+
+export const renderMessage = (
+  event: OutboxEvent,
+  payload: Record<string, unknown>,
+): Message | null => RENDER[event]?.(payload as Payload) ?? null
+
+/** Telegram text: title, body, and the app link when the public app url is known. */
+export function telegramText(message: Message, appUrl: string | undefined) {
+  const link =
+    message.link && appUrl ? `${appUrl.replace(/\/$/, '')}${message.link}` : ''
+  return [message.title, message.body, link].filter(Boolean).join('\n')
+}

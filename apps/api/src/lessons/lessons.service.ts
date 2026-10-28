@@ -2,7 +2,6 @@ import { HttpException, Inject, Injectable } from '@nestjs/common'
 import { uuidv7 } from '../id'
 import { type Action, type Actor, authorize } from '../authz/policy'
 import { GroupsService } from '../groups/groups.service'
-import { LessonEvents } from './lesson-events'
 import { LessonsRepository, type ChangeResult } from './lessons.repository'
 
 export type { Lesson, LessonStatus, Meeting } from './lessons.repository'
@@ -22,8 +21,6 @@ export class LessonsService {
   constructor(
     @Inject(GroupsService) private readonly groups: GroupsService,
     @Inject(LessonsRepository) private readonly lessons: LessonsRepository,
-    @Inject(LessonEvents)
-    private readonly events: LessonEvents = new LessonEvents(),
   ) {}
 
   async create(input: { groupId: string; scheduledAt: string; actor: Actor }) {
@@ -108,18 +105,9 @@ export class LessonsService {
 
   async cancel(input: { lessonId: string; actor: Actor }) {
     await this.managed(input.actor, input.lessonId, 'lesson.cancel')
-    const result = this.settled(
-      await this.lessons.cancel(input.lessonId, new Date()),
-    )
-    if (result.kind === 'changed') {
-      this.events.emit({
-        type: 'lesson.cancelled',
-        lessonId: result.lesson.id,
-        groupId: result.lesson.groupId,
-        scheduledAt: result.lesson.scheduledAt,
-      })
-    }
-    return result.lesson
+    // The notice is queued by the repository, in the cancel transaction.
+    return this.settled(await this.lessons.cancel(input.lessonId, new Date()))
+      .lesson
   }
 
   async reschedule(input: {
@@ -132,19 +120,9 @@ export class LessonsService {
     if (!scheduledAt) {
       throw new HttpException({ error: 'invalid_scheduled_at' }, 400)
     }
-    const result = this.settled(
+    return this.settled(
       await this.lessons.reschedule(input.lessonId, scheduledAt),
-    )
-    if (result.kind === 'changed') {
-      this.events.emit({
-        type: 'lesson.rescheduled',
-        lessonId: result.lesson.id,
-        groupId: result.lesson.groupId,
-        scheduledAt: result.lesson.scheduledAt,
-        previousScheduledAt: result.previousScheduledAt,
-      })
-    }
-    return result.lesson
+    ).lesson
   }
 
   private settled(result: ChangeResult) {

@@ -85,6 +85,9 @@ describeWithDatabase('runMigrations on a real database', (current) => {
       'groups',
       'lessons',
       'meetings',
+      'notifications',
+      'outbox',
+      'outbox_deliveries',
       'sessions',
       'users',
     ])

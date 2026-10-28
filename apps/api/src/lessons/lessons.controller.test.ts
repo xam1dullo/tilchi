@@ -3,7 +3,7 @@ import type { Actor } from '../authz/policy'
 import { GroupsRepository } from '../groups/groups.repository'
 import { GroupsService } from '../groups/groups.service'
 import { uuidv7 } from '../id'
-import type { RoomAdmin } from '../meet/room-admin'
+import type { OutboxWorker } from '../outbox/outbox.worker'
 import { actorOf } from '../test/actors'
 import { describeWithDatabase } from '../test/postgres'
 import { UsersRepository } from '../users/users.repository'
@@ -37,7 +37,11 @@ describeWithDatabase('LessonsController group serialization', (current) => {
       }),
       meetingForLesson: async () => null,
     } as unknown as LessonsService
-    const controller = new LessonsController(groups, lessons, {} as RoomAdmin)
+    const controller = new LessonsController(
+      groups,
+      lessons,
+      {} as OutboxWorker,
+    )
     const detail = (actor: Actor) => controller.get('l1', actor)
     const learnerActor = actorOf('learner', learner.id)
     const teacherActor = actorOf('teacher', teacher.id)
