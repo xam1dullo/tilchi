@@ -10,7 +10,7 @@ import {
 import { AuthService } from '../auth/auth.service'
 import { PREVIEW_HEADER } from '../demo/policy'
 import { requireActor } from '../http/actor'
-import { canSeeGroup } from './access'
+import { canSeeGroup, groupView } from './access'
 import { GroupsService } from './groups.service'
 
 @Controller('api/groups')
@@ -27,7 +27,8 @@ export class GroupsController {
     @Headers(PREVIEW_HEADER) previewRole: string | undefined,
   ) {
     const actor = await this.actor(cookie, authorization, previewRole)
-    return { groups: await this.groups.listForUser(actor.userId, actor.role) }
+    const groups = await this.groups.listForUser(actor.userId, actor.role)
+    return { groups: groups.map((group) => groupView(actor, group)) }
   }
 
   @Post()
@@ -63,7 +64,7 @@ export class GroupsController {
     if (!group || !canSeeGroup(actor, group)) {
       throw new HttpException({ error: 'not_found' }, 404)
     }
-    return group
+    return groupView(actor, group)
   }
 
   @Post(':groupId/members')
