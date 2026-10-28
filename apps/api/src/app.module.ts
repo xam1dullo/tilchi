@@ -10,6 +10,7 @@ import { GroupsService } from './groups/groups.service'
 import { GroupsRepository } from './groups/groups.repository'
 import { HealthController } from './health/health.controller'
 import { LessonsController } from './lessons/lessons.controller'
+import { LessonEvents } from './lessons/lesson-events'
 import { LessonsService } from './lessons/lessons.service'
 import { LessonsRepository } from './lessons/lessons.repository'
 import { MeetController } from './meet/meet.controller'
@@ -38,6 +39,7 @@ import { UsersRepository } from './users/users.repository'
     AuthService,
     GroupsRepository,
     LessonsRepository,
+    LessonEvents,
     GroupsService,
     LessonsService,
     MeetService,

@@ -123,6 +123,49 @@ export class LessonsController {
     return ended
   }
 
+  @Post('lessons/:lessonId/cancel')
+  async cancel(
+    @Param('lessonId') lessonId: string,
+    @Headers('cookie') cookie: string | undefined,
+    @Headers('authorization') authorization: string | undefined,
+    @Headers(PREVIEW_HEADER) previewRole: string | undefined,
+  ) {
+    const lesson = await this.lessons.get(lessonId)
+    if (!lesson) throw new HttpException({ error: 'not_found' }, 404)
+    const actor = await this.managedGroup(
+      lesson.groupId,
+      cookie,
+      authorization,
+      previewRole,
+    )
+    return this.lessons.cancel({ lessonId, role: actor.role })
+  }
+
+  @Post('lessons/:lessonId/reschedule')
+  async reschedule(
+    @Param('lessonId') lessonId: string,
+    @Headers('cookie') cookie: string | undefined,
+    @Headers('authorization') authorization: string | undefined,
+    @Headers(PREVIEW_HEADER) previewRole: string | undefined,
+    @Body() body: unknown,
+  ) {
+    const lesson = await this.lessons.get(lessonId)
+    if (!lesson) throw new HttpException({ error: 'not_found' }, 404)
+    const actor = await this.managedGroup(
+      lesson.groupId,
+      cookie,
+      authorization,
+      previewRole,
+    )
+    const scheduledAt =
+      body &&
+      typeof body === 'object' &&
+      typeof (body as { scheduledAt?: unknown }).scheduledAt === 'string'
+        ? (body as { scheduledAt: string }).scheduledAt
+        : ''
+    return this.lessons.reschedule({ lessonId, scheduledAt, role: actor.role })
+  }
+
   private async actor(
     cookie: string | undefined,
     authorization: string | undefined,
