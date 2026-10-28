@@ -1,7 +1,9 @@
 import { Module } from '@nestjs/common'
 import { AuthController } from './auth/auth.controller'
 import { AuthService } from './auth/auth.service'
+import { BotApi } from './bot/bot-api'
 import { BotController } from './bot/bot.controller'
+import { RegistrationService } from './bot/registration.service'
 import { Database } from './db/database'
 import { DemoController } from './demo/demo.controller'
 import { DemoSeedService } from './demo/demo-seed.service'
@@ -36,6 +38,8 @@ import { UsersRepository } from './users/users.repository'
     UsersRepository,
     SessionsRepository,
     AuthService,
+    BotApi,
+    RegistrationService,
     GroupsRepository,
     LessonsRepository,
     GroupsService,
