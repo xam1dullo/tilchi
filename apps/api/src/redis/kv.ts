@@ -1,5 +1,8 @@
 import Redis from 'ioredis'
 
+/** Nest injection token for the Kv behind handoffs, rate limits and the session cache. */
+export const KV = Symbol('KV')
+
 export type Kv = {
   get(key: string): Promise<string | null>
   set(key: string, value: string, ttlSeconds: number): Promise<void>
