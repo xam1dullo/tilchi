@@ -7,6 +7,7 @@ import {
   Post,
   UnauthorizedException,
 } from '@nestjs/common'
+import { AuthService } from '../auth/auth.service'
 import { SESSION_COOKIE, readCookie } from '../auth/policy'
 import { Actor } from '../http/actor'
 import { MeetService } from './meet.service'
@@ -14,12 +15,18 @@ import { issueMeetTicket } from './ticket'
 
 @Controller('api/meet')
 export class MeetController {
-  constructor(private readonly meet: MeetService) {}
+  constructor(
+    private readonly auth: AuthService,
+    private readonly meet: MeetService,
+  ) {}
 
   @Post('ticket')
-  ticket(@Headers('cookie') cookie: string | undefined) {
+  async ticket(@Headers('cookie') cookie: string | undefined) {
+    // Session-only: the guard's demo/preview fallback must not mint a ticket.
     const token = readCookie(cookie, SESSION_COOKIE)
-    if (!token) throw new UnauthorizedException()
+    if (!token || !(await this.auth.read(token))) {
+      throw new UnauthorizedException()
+    }
     return issueMeetTicket({ sessionToken: token })
   }
 

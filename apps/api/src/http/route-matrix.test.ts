@@ -60,7 +60,8 @@ const ROWS: Row[] = [
     method: 'POST',
     path: () => '/api/groups',
     body: () => ({ name: 'New' }),
-    expect: [401, 403, 403, 201, 201, 201],
+    // an admin must name the teacher, so a bare name is a 400 for them
+    expect: [401, 403, 403, 201, 201, 400],
   },
   {
     name: 'get group',
@@ -347,6 +348,66 @@ describe.skipIf(!hasTestDatabase)('route x role matrix', () => {
     expect(((await list.json()) as { can: unknown }).can).toEqual({
       createGroup: false,
     })
+  })
+
+  it('lets an admin name the teacher, who then manages that group', async () => {
+    const create = (teacherId: string) =>
+      fetch(`${base}/api/groups`, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          cookie: '__Host-tilchi_sid=admin',
+        },
+        body: JSON.stringify({ name: 'Assigned', teacherId }),
+      })
+    expect((await create(ids.member)).status).toBe(400)
+    expect((await create(ids.admin)).status).toBe(400)
+    const made = await create(ids.other)
+    expect(made.status).toBe(201)
+    const { id } = (await made.json()) as { id: string }
+    const lesson = await fetch(`${base}/api/groups/${id}/lessons`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        cookie: '__Host-tilchi_sid=other',
+      },
+      body: JSON.stringify({ scheduledAt: '2030-01-01T10:00:00Z' }),
+    })
+    expect(lesson.status).toBe(201)
+    const creatorOnly = await fetch(`${base}/api/groups/${id}/lessons`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        cookie: '__Host-tilchi_sid=owner',
+      },
+      body: JSON.stringify({ scheduledAt: '2030-01-01T10:00:00Z' }),
+    })
+    expect(creatorOnly.status).toBe(404)
+  })
+
+  it('keeps the meet ticket session-only: no preview fallback', async () => {
+    const demo = {
+      nodeEnv: process.env.NODE_ENV,
+      flag: process.env.TILCHI_DEMO,
+    }
+    process.env.NODE_ENV = 'test'
+    process.env.TILCHI_DEMO = '1'
+    try {
+      const preview = { 'x-tilchi-preview-role': 'teacher' }
+      const groups = await fetch(`${base}/api/groups`, { headers: preview })
+      expect(groups.status).toBe(200)
+      for (const cookie of [undefined, '__Host-tilchi_sid=bogus']) {
+        const res = await fetch(`${base}/api/meet/ticket`, {
+          method: 'POST',
+          headers: cookie ? { ...preview, cookie } : preview,
+        })
+        expect(res.status).toBe(401)
+      }
+    } finally {
+      process.env.NODE_ENV = demo.nodeEnv
+      if (demo.flag === undefined) delete process.env.TILCHI_DEMO
+      else process.env.TILCHI_DEMO = demo.flag
+    }
   })
 
   it('refuses a bearer token on a protected route', async () => {

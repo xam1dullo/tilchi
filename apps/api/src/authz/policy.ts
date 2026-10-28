@@ -7,8 +7,8 @@ export type Actor = {
   name: string | null
 }
 
-/** What a Group rule needs to know: who teaches it and who is in it. */
-export type GroupScope = { createdBy: string; memberIds: string[] }
+/** What a Group rule needs: its assigned teacher (groups.teacher_id) and members. */
+export type GroupScope = { teacherId: string; memberIds: string[] }
 
 export type Action =
   | 'group.create'
@@ -31,7 +31,7 @@ const sees = (actor: Actor, group: GroupScope) =>
 
 const manages = (actor: Actor, group: GroupScope) =>
   actor.role === 'admin' ||
-  (actor.role === 'teacher' && group.createdBy === actor.userId)
+  (actor.role === 'teacher' && group.teacherId === actor.userId)
 
 /**
  * The PRD permission matrix (Users, Roles & Permissions), the only place that

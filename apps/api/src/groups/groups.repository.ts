@@ -57,6 +57,15 @@ export class GroupsRepository {
     })
   }
 
+  async isTeacher(id: string) {
+    if (!isUuid(id)) return false
+    const [row] = await this.database.db
+      .select({ role: users.role })
+      .from(users)
+      .where(and(eq(users.id, id), isNull(users.deletedAt)))
+    return row?.role === 'teacher'
+  }
+
   async get(id: string): Promise<GroupRecord | null> {
     if (!isUuid(id)) return null
     const rows = await this.database.db
