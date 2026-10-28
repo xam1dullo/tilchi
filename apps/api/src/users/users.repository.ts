@@ -15,6 +15,13 @@ export type User = {
   name: string | null
 }
 
+/** A soft-deleted user stays deleted: no login path may bring them back. */
+export class DeletedUserError extends Error {
+  constructor() {
+    super('user is deleted')
+  }
+}
+
 function parseList(value: string | undefined) {
   return new Set(
     (value ?? '')
@@ -154,6 +161,13 @@ export class UsersRepository {
       .where(and(eq(users.telegramId, telegramUserId), isNull(column), fresh))
       .returning()
     return row ? toRegistration(row) : null
+  }
+
+  async softDelete(id: string, now = new Date()) {
+    await this.database.db
+      .update(users)
+      .set({ deletedAt: now })
+      .where(and(eq(users.id, id), isNull(users.deletedAt)))
   }
 
   async get(id: string): Promise<User | null> {

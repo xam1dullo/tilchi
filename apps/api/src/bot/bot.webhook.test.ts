@@ -21,7 +21,9 @@ describe('bot env helpers', () => {
     expect(adminChatIds({ ADMIN_CHAT_IDS: '1, 2,,' })).toEqual(['1', '2'])
     expect(adminChatIds({ ADMIN_CHAT_ID: '5' })).toEqual(['5'])
     // compose passes unset variables through as empty strings
-    expect(adminChatIds({ ADMIN_CHAT_IDS: '', ADMIN_CHAT_ID: '5' })).toEqual(['5'])
+    expect(adminChatIds({ ADMIN_CHAT_IDS: '', ADMIN_CHAT_ID: '5' })).toEqual([
+      '5',
+    ])
     expect(adminChatIds({})).toEqual([])
   })
 })
