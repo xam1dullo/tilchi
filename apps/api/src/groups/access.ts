@@ -13,5 +13,5 @@ export function canSeeGroup(actor: Actor, group: Group) {
 
 export function canManageGroup(actor: Actor, group: Group) {
   if (actor.role === 'admin') return true
-  return actor.role === 'teacher' && group.memberIds.includes(actor.userId)
+  return actor.role === 'teacher' && group.createdBy === actor.userId
 }
