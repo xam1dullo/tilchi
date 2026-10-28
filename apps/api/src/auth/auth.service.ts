@@ -275,6 +275,13 @@ export class AuthService {
     return false
   }
 
+  /** Ends every session of a user on every device. Revoke first, then evict. */
+  async revokeAll(userId: string, now = Date.now()) {
+    const hashes = await this.sessions.revokeAll(userId, new Date(now))
+    await Promise.all(hashes.map((h) => this.kv.del(sessionCacheKey(h))))
+    return hashes.length
+  }
+
   private cacheSession(secretHash: string, record: SessionRecord) {
     return this.kv.set(
       sessionCacheKey(secretHash),

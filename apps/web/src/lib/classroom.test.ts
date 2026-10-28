@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { groupsView, lessonActions } from './classroom'
+import { groupsView, lessonActions, tashkentInputToIso } from './classroom'
 
 describe('groupsView', () => {
   it('keeps the empty state when the session has no groups', () => {
@@ -44,5 +44,27 @@ describe('lessonActions', () => {
     expect(lessonActions({ role: 'learner', status: 'ended' }).canJoin).toBe(
       false,
     )
+  })
+})
+
+describe('tashkentInputToIso', () => {
+  it('reads wall time as Asia/Tashkent, not the device zone', () => {
+    const original = process.env.TZ
+    for (const zone of ['UTC', 'America/Los_Angeles', 'Asia/Tokyo']) {
+      process.env.TZ = zone
+      expect(tashkentInputToIso('2026-11-01T09:00')).toBe(
+        '2026-11-01T04:00:00.000Z',
+      )
+    }
+    process.env.TZ = original
+    expect(tashkentInputToIso('2026-11-01T09:00:30')).toBe(
+      '2026-11-01T04:00:30.000Z',
+    )
+  })
+
+  it('refuses an incomplete or invalid value', () => {
+    for (const value of ['', '2026-11-01', '2026-13-01T09:00', 'x']) {
+      expect(tashkentInputToIso(value)).toBeNull()
+    }
   })
 })

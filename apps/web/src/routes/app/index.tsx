@@ -115,6 +115,7 @@ function CreateGroupForm({
           value={name}
           onChange={(event) => setName(event.target.value)}
           placeholder={label}
+          autoComplete="off"
           required
         />
       </label>

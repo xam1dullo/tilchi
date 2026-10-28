@@ -40,6 +40,7 @@
   --sh-panel: 0 24px 48px -28px rgba(21, 26, 23, 0.25);
   --sh-focus: 0 0 0 3px rgba(23, 90, 59, 0.35);
   --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-press: 100ms;
   --dur-fast: 160ms;
   --dur-med: 240ms;
   --dur-slow: 600ms;

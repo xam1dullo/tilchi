@@ -2,7 +2,8 @@ import { HttpException, Inject, Injectable } from '@nestjs/common'
 import { uuidv7 } from '../id'
 import type { Role } from '../auth/policy'
 import { GroupsService } from '../groups/groups.service'
-import { LessonsRepository } from './lessons.repository'
+import { LessonEvents } from './lesson-events'
+import { LessonsRepository, type ChangeResult } from './lessons.repository'
 
 export type { Lesson, LessonStatus, Meeting } from './lessons.repository'
 
@@ -27,6 +28,8 @@ export class LessonsService {
   constructor(
     @Inject(GroupsService) private readonly groups: GroupsService,
     @Inject(LessonsRepository) private readonly lessons: LessonsRepository,
+    @Inject(LessonEvents)
+    private readonly events: LessonEvents = new LessonEvents(),
   ) {}
 
   async create(input: { groupId: string; scheduledAt: string; role: Role }) {
@@ -84,6 +87,57 @@ export class LessonsService {
     const ended = await this.lessons.end(input.lessonId, new Date())
     if (!ended) throw new HttpException({ error: 'not_found' }, 404)
     return ended
+  }
+
+  async cancel(input: { lessonId: string; role: Role }) {
+    requireManager(input.role)
+    const result = this.settled(
+      await this.lessons.cancel(input.lessonId, new Date()),
+    )
+    if (result.kind === 'changed') {
+      this.events.emit({
+        type: 'lesson.cancelled',
+        lessonId: result.lesson.id,
+        groupId: result.lesson.groupId,
+        scheduledAt: result.lesson.scheduledAt,
+      })
+    }
+    return result.lesson
+  }
+
+  async reschedule(input: {
+    lessonId: string
+    scheduledAt: string
+    role: Role
+  }) {
+    requireManager(input.role)
+    const scheduledAt = parseScheduledAt(input.scheduledAt)
+    if (!scheduledAt) {
+      throw new HttpException({ error: 'invalid_scheduled_at' }, 400)
+    }
+    const result = this.settled(
+      await this.lessons.reschedule(input.lessonId, scheduledAt),
+    )
+    if (result.kind === 'changed') {
+      this.events.emit({
+        type: 'lesson.rescheduled',
+        lessonId: result.lesson.id,
+        groupId: result.lesson.groupId,
+        scheduledAt: result.lesson.scheduledAt,
+        previousScheduledAt: result.previousScheduledAt,
+      })
+    }
+    return result.lesson
+  }
+
+  private settled(result: ChangeResult) {
+    if (result.kind === 'not_found') {
+      throw new HttpException({ error: 'not_found' }, 404)
+    }
+    if (result.kind === 'conflict') {
+      throw new HttpException({ error: 'lesson_not_scheduled' }, 409)
+    }
+    return result
   }
 
   meetingForLesson(lessonId: string) {

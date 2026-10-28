@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm'
 import {
+  bigint,
   check,
   index,
   pgEnum,
@@ -39,6 +40,8 @@ export const users = pgTable('users', {
   goal: text('goal'),
   /** The bot start payload that brought the user in, e.g. `ielts_orta`. */
   source: text('source'),
+  /** Newest Telegram update applied to this registration; replays are refused. */
+  lastUpdateId: bigint('last_update_id', { mode: 'number' }),
   consentAt: tstz('consent_at'),
   consentVersion: text('consent_version'),
   /** Who gave a minor's guardian consent, and when. */

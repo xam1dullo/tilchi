@@ -8,12 +8,16 @@ import {
 } from '@nestjs/common'
 import { AuthService } from '../auth/auth.service'
 import { confirmAnswer, confirmPrompt, expiredNotice } from './replies'
-import { parseBotUpdate } from './updates'
+import { RegistrationService } from './registration.service'
+import { type BotAction, parseBotUpdate } from './updates'
 import { decideWebhook } from './webhook-guard'
 
 @Controller('bot')
 export class BotController {
-  constructor(private readonly auth: AuthService) {}
+  constructor(
+    private readonly auth: AuthService,
+    private readonly registration: RegistrationService,
+  ) {}
 
   @Post('webhook')
   async webhook(
@@ -42,8 +46,9 @@ export class BotController {
             chatId: action.chatId,
             handoffId: action.handoffId,
             context: bound.context,
+            lang: action.lang,
           })
-        : expiredNotice(action.chatId)
+        : expiredNotice(action.chatId, action.lang)
     }
     if (action.type === 'confirm_handoff') {
       const confirmed = await this.auth.confirmTelegram(
@@ -52,6 +57,22 @@ export class BotController {
       )
       return confirmAnswer(action.callbackQueryId, confirmed)
     }
-    return { ok: true, action: 'ignore' }
+    const reply = await this.register(action)
+    return reply ?? { ok: true, action: 'ignore' }
+  }
+
+  private register(action: BotAction) {
+    switch (action.type) {
+      case 'start_registration':
+        return this.registration.start(action)
+      case 'consent':
+        return this.registration.consent(action)
+      case 'answer':
+        return this.registration.answer(action)
+      case 'revoke_all':
+        return this.registration.revokeAll(action)
+      default:
+        return null
+    }
   }
 }
