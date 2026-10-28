@@ -6,6 +6,21 @@ import { runMigrations } from './migrations'
 import * as schema from './schema'
 
 export type Db = NodePgDatabase<typeof schema>
+/** The handle inside `db.transaction(async (tx) => ...)`. */
+export type Tx = Parameters<Parameters<Db['transaction']>[0]>[0]
+export type Executor = Db | Tx
+
+/**
+ * Runs `work` in the caller's transaction when there is one, otherwise in a
+ * new one. This is how a domain write and its outbox rows commit together.
+ */
+export function inTransaction<T>(
+  db: Db,
+  tx: Tx | undefined,
+  work: (tx: Tx) => Promise<T>,
+): Promise<T> {
+  return tx ? work(tx) : db.transaction(work)
+}
 
 /** One pool for the whole API; repositories take `db` from here. */
 export class Database implements OnApplicationShutdown {
