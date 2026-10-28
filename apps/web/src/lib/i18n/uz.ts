@@ -18,6 +18,16 @@ export const uz = {
   locale: 'Til',
   logout: 'Chiqish',
   heroCta: "Telegram'da davom etish",
+  loginOpenTelegram: "Telegram'ni ochish",
+  loginVerifying: 'Telegram orqali tekshirilmoqda.',
+  loginRejected:
+    'Telegram kirishni qabul qilmadi. Shu oynada kirishni qayta boshlang.',
+  loginRateLimited:
+    "Juda ko'p urinish bo'ldi. Bir daqiqadan so'ng qayta urinib ko'ring.",
+  loginNetwork:
+    "Server bilan aloqa yo'q. Internetni tekshirib, qayta urinib ko'ring.",
+  loginUnavailable:
+    "Kirish hozir ishlamayapti. Birozdan so'ng qayta urinib ko'ring.",
   createGroup: 'Guruh ochish',
   groupName: 'Guruh nomi',
   scheduleLesson: 'Dars rejalashtirish',
@@ -40,4 +50,26 @@ export const uz = {
   members: "A'zolar",
   noLessons: "Hali dars yo'q.",
   leaveMeet: 'Chiqish',
+  meetConnecting: 'Uchrashuvga ulanilmoqda…',
+  meetReconnecting: 'Aloqa uzildi. Qayta ulanilmoqda…',
+  meetWeakNetwork:
+    "Aloqa sust, video o'chirildi. Uni qaytarish uchun Faqat ovoz tugmasini bosing.",
+  meetMicBlocked:
+    "Mikrofondan foydalanishga ruxsat yo'q. Brauzer sozlamalarida ruxsat berib, qayta urinib ko'ring.",
+  meetCameraBlocked:
+    "Kameradan foydalanishga ruxsat yo'q. Brauzer sozlamalarida ruxsat berib, qayta urinib ko'ring.",
+  meetFailForbidden: 'Bu uchrashuvga kirish mumkin emas.',
+  meetFailNotLive: "Dars hozir jonli emas. U tugagan bo'lishi mumkin.",
+  meetFailUnconfigured: 'Video aloqa serverda hali sozlanmagan.',
+  meetFailUnavailable: "Uchrashuvga ulanib bo'lmadi. Qayta urinib ko'ring.",
+  meetFailDropped: "Uchrashuvdan uzildingiz. Dars tugagan bo'lishi mumkin.",
+  meetControls: 'Uchrashuv boshqaruvi',
+  meetParticipants: 'Ishtirokchilar',
+  meetMic: 'Mikrofon',
+  meetCamera: 'Kamera',
+  meetAudioOnly: 'Faqat ovoz',
+  meetEnableSound: 'Ovozni yoqish',
+  meetYou: 'siz',
+  meetMicOff: "mikrofon o'chiq",
+  meetSpeaking: 'gapirmoqda',
 }

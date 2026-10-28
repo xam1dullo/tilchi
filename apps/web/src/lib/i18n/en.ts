@@ -18,6 +18,13 @@ export const en = {
   locale: 'Language',
   logout: 'Log out',
   heroCta: 'Continue in Telegram',
+  loginOpenTelegram: 'Open Telegram',
+  loginVerifying: 'Checking your Telegram sign-in.',
+  loginRejected:
+    'Telegram did not accept the sign-in. Start again in this window.',
+  loginRateLimited: 'Too many attempts. Try again in a minute.',
+  loginNetwork: 'Cannot reach the server. Check your connection and try again.',
+  loginUnavailable: 'Sign-in is unavailable right now. Try again shortly.',
   createGroup: 'Create a group',
   groupName: 'Group name',
   scheduleLesson: 'Schedule a lesson',
@@ -40,4 +47,27 @@ export const en = {
   members: 'Members',
   noLessons: 'No lessons yet.',
   leaveMeet: 'Leave',
+  meetConnecting: 'Connecting to the meeting…',
+  meetReconnecting: 'Connection lost. Reconnecting…',
+  meetWeakNetwork:
+    'Your connection is weak, so video is off. Press Audio only to bring it back.',
+  meetMicBlocked:
+    'Microphone access is blocked. Allow it in your browser settings and try again.',
+  meetCameraBlocked:
+    'Camera access is blocked. Allow it in your browser settings and try again.',
+  meetFailForbidden: 'You cannot join this meeting.',
+  meetFailNotLive: 'The lesson is not live. It may have ended.',
+  meetFailUnconfigured: 'Video calls are not set up on the server yet.',
+  meetFailUnavailable: 'Could not connect to the meeting. Try again.',
+  meetFailDropped:
+    'You were disconnected from the meeting. The lesson may have ended.',
+  meetControls: 'Meeting controls',
+  meetParticipants: 'Participants',
+  meetMic: 'Microphone',
+  meetCamera: 'Camera',
+  meetAudioOnly: 'Audio only',
+  meetEnableSound: 'Turn on sound',
+  meetYou: 'you',
+  meetMicOff: 'microphone off',
+  meetSpeaking: 'speaking',
 }

@@ -102,7 +102,7 @@ services:
 
   livekit:
     <<: *restart
-    image: livekit/livekit-server:v1.8.4
+    image: livekit/livekit-server:v1.13.11
     entrypoint: ["/bin/sh", "/entrypoint.sh"]
     environment:
       LIVEKIT_API_KEY: ${LIVEKIT_API_KEY:?set LIVEKIT_API_KEY}

@@ -79,3 +79,16 @@ export async function resolveAppSession(
   if (signedIn) return signedIn
   return loadPreviewUser(searchPreview)
 }
+
+/**
+ * After a login: check the cookie really gave a session, then reload the route
+ * so /app resolves it. false: still signed out, nothing was reloaded.
+ */
+export async function enterApp(
+  router: { invalidate: () => Promise<unknown> },
+  load: () => Promise<SessionUser | null> = loadSession,
+) {
+  if (!(await load())) return false
+  await router.invalidate()
+  return true
+}

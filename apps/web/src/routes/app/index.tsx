@@ -8,7 +8,7 @@ import {
 import { useState } from 'react'
 import { apiFetch } from '../../lib/api'
 import { groupsView, type GroupRecord } from '../../lib/classroom'
-import { messages } from '../../lib/i18n'
+import { messages, type Copy } from '../../lib/i18n'
 import { keepAppSearch } from '../../lib/preview'
 
 export const Route = createFileRoute('/app/')({
@@ -43,17 +43,7 @@ function GroupsPage() {
         ) : null}
       </div>
       {view.empty ? (
-        <div className="empty-panel">
-          <p>{copy.emptyBody}</p>
-          <div className="panel-actions">
-            <a className="btn btn-primary" href="/">
-              {copy.catalog}
-            </a>
-            <a className="btn btn-outline" {...tgLinkProps(botLink('', ''))}>
-              {copy.telegramWrite}
-            </a>
-          </div>
-        </div>
+        <EmptyGroups copy={copy} />
       ) : (
         <ul className="rows classroom-list">
           {view.groups.map((group) => (
@@ -73,6 +63,23 @@ function GroupsPage() {
         </ul>
       )}
     </section>
+  )
+}
+
+/** The course catalog route does not exist yet: this goes to the landing section. */
+export function EmptyGroups({ copy }: { copy: Copy }) {
+  return (
+    <div className="empty-panel">
+      <p>{copy.emptyBody}</p>
+      <div className="panel-actions">
+        <a className="btn btn-primary" href="/#programs">
+          {copy.catalog}
+        </a>
+        <a className="btn btn-outline" {...tgLinkProps(botLink('', ''))}>
+          {copy.telegramWrite}
+        </a>
+      </div>
+    </div>
   )
 }
 
