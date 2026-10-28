@@ -15,7 +15,7 @@ rtc:
 keys:
   ${LIVEKIT_API_KEY}: ${LIVEKIT_API_SECRET}
 room:
-  max_participants: 12
+  max_participants: 14
   empty_timeout: 300
 EOF
 if [ -n "${LIVEKIT_NODE_IP:-}" ]; then

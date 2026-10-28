@@ -4,9 +4,12 @@ import { Database } from '../db/database'
 import { groupMembers, groups, users } from '../db/schema'
 import { isUuid } from '../db/uuid'
 
+export type GroupKind = (typeof groups.$inferSelect)['kind']
+
 export type GroupRecord = {
   id: string
   name: string
+  kind: GroupKind
   teacherId: string
   /** In the order they joined; the teacher is the first member. */
   memberIds: string[]
@@ -16,6 +19,7 @@ export type AddMemberResult =
   | 'added'
   | 'already'
   | 'full'
+  | 'consent_required'
   | 'no_group'
   | 'no_user'
 
@@ -42,7 +46,7 @@ export class GroupsRepository {
       await tx
         .insert(groupMembers)
         .values({ groupId: input.id, userId: input.teacherId })
-      return { ...input, memberIds: [input.teacherId] }
+      return { ...input, kind: 'adult', memberIds: [input.teacherId] }
     })
   }
 
@@ -77,7 +81,8 @@ export class GroupsRepository {
 
   /**
    * The group row is locked while the count is checked, so racing adds queue
-   * up and the capacity holds. Adding someone already in is not an error.
+   * up and the capacity holds. Only learners count towards it, and a learner
+   * joins a kids group only with guardian consent on record. Adding someone already in is not an error.
    */
   async addMember(
     groupId: string,
@@ -88,22 +93,34 @@ export class GroupsRepository {
     if (!isUuid(userId)) return 'no_user'
     return this.database.db.transaction(async (tx) => {
       const [group] = await tx
-        .select({ id: groups.id })
+        .select({ id: groups.id, kind: groups.kind })
         .from(groups)
         .where(and(eq(groups.id, groupId), isNull(groups.deletedAt)))
         .for('update')
       if (!group) return 'no_group'
       const [user] = await tx
-        .select({ id: users.id })
+        .select({
+          id: users.id,
+          role: users.role,
+          consentBy: users.guardianConsentBy,
+          consentAt: users.guardianConsentAt,
+        })
         .from(users)
         .where(and(eq(users.id, userId), isNull(users.deletedAt)))
       if (!user) return 'no_user'
       const members = await tx
-        .select({ userId: groupMembers.userId })
+        .select({ userId: groupMembers.userId, role: users.role })
         .from(groupMembers)
+        .innerJoin(users, eq(users.id, groupMembers.userId))
         .where(eq(groupMembers.groupId, groupId))
       if (members.some((member) => member.userId === userId)) return 'already'
-      if (members.length >= capacity) return 'full'
+      if (user.role === 'learner') {
+        if (group.kind === 'kids' && !(user.consentBy && user.consentAt)) {
+          return 'consent_required'
+        }
+        const learners = members.filter((m) => m.role === 'learner').length
+        if (learners >= capacity) return 'full'
+      }
       await tx.insert(groupMembers).values({ groupId, userId })
       return 'added'
     })
@@ -126,6 +143,7 @@ export class GroupsRepository {
     return rows.map((row) => ({
       id: row.id,
       name: row.name,
+      kind: row.kind,
       teacherId: row.teacherId,
       memberIds: members
         .filter((member) => member.groupId === row.id)

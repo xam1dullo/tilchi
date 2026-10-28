@@ -323,6 +323,29 @@ describeWithDatabase('AuthService sessions in Postgres', (current) => {
     expect(await shared.get(`session:cache:${opened.secretHash}`)).toBeNull()
   })
 
+  it('never lets a cold read re-cache a session revoked mid-read', async () => {
+    const base = createMemoryKv()
+    let meanwhile: (() => Promise<void>) | null = null
+    const kv: Kv = {
+      ...base,
+      async set(key, value, ttl) {
+        if (meanwhile && key.startsWith('session:cache:')) {
+          const run = meanwhile
+          meanwhile = null
+          await run()
+        }
+        return base.set(key, value, ttl)
+      },
+    }
+    const { auth } = build(current(), kv)
+    const opened = await login(auth)
+    await kv.del(`session:cache:${opened.secretHash}`)
+    meanwhile = () => auth.logout(opened.token)
+    expect(await auth.read(opened.token)).toBeNull()
+    expect(await kv.get(`session:cache:${opened.secretHash}`)).toBeNull()
+    expect(await auth.read(opened.token)).toBeNull()
+  })
+
   it('logout ends only this device', async () => {
     const { auth } = build(current())
     const phone = await login(auth, '42')
@@ -387,5 +410,29 @@ describe('normalizeHandoffId', () => {
     expect(normalizeHandoffId('01a17ecc6cf37882b3be7d39ce083092')).toBe(
       '01a17ecc-6cf3-7882-b3be-7d39ce083092',
     )
+  })
+})
+
+describeWithDatabase('AuthService deleted users', (current) => {
+  it('revokes every session and cache entry when a user is deleted', async () => {
+    const shared = createMemoryKv()
+    const { auth } = build(current(), shared)
+    const phone = await login(auth, '42')
+    const laptop = await login(auth, '42')
+    await auth.deleteUser(phone.user.id)
+    for (const opened of [phone, laptop]) {
+      expect(await auth.read(opened.token)).toBeNull()
+      expect(await build(current()).auth.read(opened.token)).toBeNull()
+    }
+  })
+
+  it('refuses a session to a deleted user', async () => {
+    const { auth } = build(current())
+    const opened = await login(auth, '42')
+    await auth.deleteUser(opened.user.id)
+    const again = await confirmed(auth, '42')
+    await expect(auth.confirm(again.id, again.secret)).rejects.toMatchObject({
+      status: 403,
+    })
   })
 })

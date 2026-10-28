@@ -31,6 +31,13 @@ export function roleForTelegram(telegramUserId: string): Role {
   return 'learner'
 }
 
+/** A soft-deleted user stays deleted: no login path may bring them back. */
+export class DeletedUserError extends Error {
+  constructor() {
+    super('user is deleted')
+  }
+}
+
 function toUser(row: typeof users.$inferSelect): User {
   return {
     id: row.id,
@@ -60,9 +67,18 @@ export class UsersRepository {
       .onConflictDoUpdate({
         target: users.telegramId,
         set: { role, name: sql`coalesce(${known}, ${users.name})` },
+        setWhere: isNull(users.deletedAt),
       })
       .returning()
+    if (!row) throw new DeletedUserError()
     return toUser(row)
+  }
+
+  async softDelete(id: string, now = new Date()) {
+    await this.database.db
+      .update(users)
+      .set({ deletedAt: now })
+      .where(and(eq(users.id, id), isNull(users.deletedAt)))
   }
 
   async get(id: string): Promise<User | null> {

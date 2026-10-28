@@ -3,7 +3,11 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { users } from '../db/schema'
 import { uuidv7 } from '../id'
 import { describeWithDatabase } from '../test/postgres'
-import { UsersRepository, roleForTelegram } from './users.repository'
+import {
+  DeletedUserError,
+  UsersRepository,
+  roleForTelegram,
+} from './users.repository'
 
 describe('roleForTelegram', () => {
   afterEach(() => vi.unstubAllEnvs())
@@ -82,6 +86,17 @@ describeWithDatabase('UsersRepository', (current) => {
       .set({ deletedAt: new Date() })
       .where(eq(users.id, user.id))
     expect(await repo().get(user.id)).toBeNull()
+  })
+
+  it('never signs a deleted user back in or revives the row', async () => {
+    const user = await repo().upsertTelegram('42', 'Ada')
+    await repo().softDelete(user.id)
+    await expect(repo().upsertTelegram('42', 'Ada')).rejects.toBeInstanceOf(
+      DeletedUserError,
+    )
+    expect(await repo().get(user.id)).toBeNull()
+    const [row] = await current().database.db.select().from(users)
+    expect(row.deletedAt).not.toBeNull()
   })
 
   it('ensures a fixed-id user once and never rewrites it', async () => {
