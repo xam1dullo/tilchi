@@ -35,10 +35,6 @@
   max-width: 34rem;
 }
 
-.sign-in .hint {
-  margin: 12px 0 0;
-}
-
 .hero {
   padding: clamp(48px, 8vw, 96px) 0;
 }
@@ -113,6 +109,10 @@
 .error-row {
   color: var(--muted);
   font-size: var(--fs-sm);
+}
+
+.sign-in .hint {
+  margin: 12px 0 0;
 }
 
 .error-row {
