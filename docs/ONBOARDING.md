@@ -4,8 +4,8 @@ Tilchi is one pnpm repo. `BUILD-BRIEF-v1.md` is the product contract. `AGENTS.md
 
 ## Tree
 
-- `apps/web` TanStack Start. `/` is the thin Kunduzgi hero. `/app` is the empty classroom, uz/ru/en. Tokens are `apps/web/src/styles/tokens.css`.
-- `apps/api` NestJS and Drizzle. Health, cookie session stub, webhook guard, meet ticket. Schema covers User, Session, Group, Lesson, Meeting. The live session store is still memory.
+- `apps/web` TanStack Start. `/` is the thin Kunduzgi hero. `/app` lists groups, `/app/groups/$groupId` lists lessons, `/app/meet/$lessonId` joins a live room. Tokens are `apps/web/src/styles/tokens.css`.
+- `apps/api` NestJS and Drizzle. Health, cookie session, webhook guard, groups, lessons, LiveKit lesson tokens. Schema covers User, Session, Group, Lesson, Meeting. The live session store is still memory. Non-production demo seed is `TILCHI_DEMO=1`.
 - `packages/content` is pure TypeScript copy. No React.
 - `docker-compose.yml` runs nginx, Start, Nest, Postgres, Redis, LiveKit, and coturn.
 

@@ -13,6 +13,8 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as AppIndexRouteImport } from './routes/app/index'
 import { Route as AppForbiddenRouteImport } from './routes/app/forbidden'
+import { Route as AppGroupsGroupIdRouteImport } from './routes/app/groups/$groupId'
+import { Route as AppMeetLessonIdRouteImport } from './routes/app/meet/$lessonId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -34,17 +36,31 @@ const AppForbiddenRoute = AppForbiddenRouteImport.update({
   path: '/forbidden',
   getParentRoute: () => AppRoute,
 } as any)
+const AppGroupsGroupIdRoute = AppGroupsGroupIdRouteImport.update({
+  id: '/groups/$groupId',
+  path: '/groups/$groupId',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppMeetLessonIdRoute = AppMeetLessonIdRouteImport.update({
+  id: '/meet/$lessonId',
+  path: '/meet/$lessonId',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
   '/app/forbidden': typeof AppForbiddenRoute
   '/app/': typeof AppIndexRoute
+  '/app/groups/$groupId': typeof AppGroupsGroupIdRoute
+  '/app/meet/$lessonId': typeof AppMeetLessonIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/app/forbidden': typeof AppForbiddenRoute
   '/app': typeof AppIndexRoute
+  '/app/groups/$groupId': typeof AppGroupsGroupIdRoute
+  '/app/meet/$lessonId': typeof AppMeetLessonIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -52,13 +68,33 @@ export interface FileRoutesById {
   '/app': typeof AppRouteWithChildren
   '/app/forbidden': typeof AppForbiddenRoute
   '/app/': typeof AppIndexRoute
+  '/app/groups/$groupId': typeof AppGroupsGroupIdRoute
+  '/app/meet/$lessonId': typeof AppMeetLessonIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/app' | '/app/forbidden' | '/app/'
+  fullPaths:
+    | '/'
+    | '/app'
+    | '/app/forbidden'
+    | '/app/'
+    | '/app/groups/$groupId'
+    | '/app/meet/$lessonId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/app/forbidden' | '/app'
-  id: '__root__' | '/' | '/app' | '/app/forbidden' | '/app/'
+  to:
+    | '/'
+    | '/app/forbidden'
+    | '/app'
+    | '/app/groups/$groupId'
+    | '/app/meet/$lessonId'
+  id:
+    | '__root__'
+    | '/'
+    | '/app'
+    | '/app/forbidden'
+    | '/app/'
+    | '/app/groups/$groupId'
+    | '/app/meet/$lessonId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -96,17 +132,35 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppForbiddenRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/groups/$groupId': {
+      id: '/app/groups/$groupId'
+      path: '/groups/$groupId'
+      fullPath: '/app/groups/$groupId'
+      preLoaderRoute: typeof AppGroupsGroupIdRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/meet/$lessonId': {
+      id: '/app/meet/$lessonId'
+      path: '/meet/$lessonId'
+      fullPath: '/app/meet/$lessonId'
+      preLoaderRoute: typeof AppMeetLessonIdRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
 interface AppRouteChildren {
   AppForbiddenRoute: typeof AppForbiddenRoute
   AppIndexRoute: typeof AppIndexRoute
+  AppGroupsGroupIdRoute: typeof AppGroupsGroupIdRoute
+  AppMeetLessonIdRoute: typeof AppMeetLessonIdRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
   AppForbiddenRoute: AppForbiddenRoute,
   AppIndexRoute: AppIndexRoute,
+  AppGroupsGroupIdRoute: AppGroupsGroupIdRoute,
+  AppMeetLessonIdRoute: AppMeetLessonIdRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
@@ -118,12 +172,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}

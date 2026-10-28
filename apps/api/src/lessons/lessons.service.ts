@@ -34,12 +34,32 @@ export class LessonsService {
     }
     if (!this.groups.get(input.groupId))
       throw new HttpException({ error: 'not_found' }, 404)
+    return this.writeLesson({
+      id: uuidv7(),
+      groupId: input.groupId,
+      scheduledAt: input.scheduledAt,
+    })
+  }
+
+  ensure(input: { id: string; groupId: string; scheduledAt: string }) {
+    const existing = this.lessons.get(input.id)
+    if (existing) return existing
+    if (!this.groups.get(input.groupId))
+      throw new HttpException({ error: 'not_found' }, 404)
+    return this.writeLesson(input)
+  }
+
+  private writeLesson(input: {
+    id: string
+    groupId: string
+    scheduledAt: string
+  }) {
     const scheduled = new Date(input.scheduledAt)
     if (Number.isNaN(scheduled.getTime())) {
       throw new HttpException({ error: 'invalid_scheduled_at' }, 400)
     }
     const lesson: Lesson = {
-      id: uuidv7(),
+      id: input.id,
       groupId: input.groupId,
       scheduledAt: scheduled.toISOString(),
       status: 'scheduled',

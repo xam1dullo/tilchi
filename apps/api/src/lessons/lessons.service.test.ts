@@ -19,4 +19,22 @@ describe('LessonsService', () => {
       'ended',
     )
   })
+
+  it('keeps ensure on the same lesson id', () => {
+    const groups = new GroupsService()
+    const group = groups.create({ name: 'A1', actorId: 't1', role: 'teacher' })
+    const lessons = new LessonsService(groups)
+    const first = lessons.ensure({
+      id: 'lesson-1',
+      groupId: group.id,
+      scheduledAt: '2026-11-01T09:00:00+05:00',
+    })
+    const second = lessons.ensure({
+      id: 'lesson-1',
+      groupId: group.id,
+      scheduledAt: '2026-12-01T09:00:00+05:00',
+    })
+    expect(second.id).toBe(first.id)
+    expect(second.scheduledAt).toBe(first.scheduledAt)
+  })
 })

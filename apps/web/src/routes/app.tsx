@@ -7,11 +7,13 @@ import {
 import { Outlet } from '@tanstack/react-router'
 import { botLink, tgLinkProps } from '@tilchi/content'
 import { LocaleSwitch } from '../components/locale-switch'
+import { PreviewSwitch } from '../components/preview-switch'
 import { TelegramGlyph } from '../components/telegram-glyph'
 import { messages } from '../lib/i18n'
 import type { Locale } from '../lib/locale'
 import { navForRole } from '../lib/nav'
-import { loadSession, type SessionUser } from '../lib/session'
+import { isPreviewUser, keepAppSearch, parsePreviewRole } from '../lib/preview'
+import { resolveAppSession, type SessionUser } from '../lib/session'
 
 const handoffs = ['waiting', 'expired', 'confirmed'] as const
 type Handoff = (typeof handoffs)[number]
@@ -20,21 +22,27 @@ export const Route = createFileRoute('/app')({
   validateSearch: (search: Record<string, unknown>) => {
     const value = search.handoff
     const handoff = handoffs.find((item) => item === value)
-    return { handoff }
+    return { handoff, preview: parsePreviewRole(search.preview) ?? undefined }
   },
-  beforeLoad: async () => ({ session: await loadSession() }),
+  beforeLoad: async ({ search }) => {
+    const session = await resolveAppSession(search.preview)
+    const previewRole =
+      search.preview ?? (isPreviewUser(session) ? session?.role : undefined)
+    return { session, previewRole: previewRole ?? null }
+  },
   pendingComponent: SkeletonRows,
   errorComponent: LoadError,
   component: AppLayout,
 })
 
 function AppLayout() {
-  const { session } = Route.useRouteContext()
+  const { session, previewRole } = Route.useRouteContext()
   const { locale } = useRouteContext({ from: '__root__' })
   const { handoff } = Route.useSearch()
   if (!session) return <SignIn locale={locale} handoff={handoff} />
   const copy = messages(locale)
   const items = navForRole(session.role)
+  const search = keepAppSearch(previewRole)
   return (
     <div className="app-shell">
       <header className="app-topbar">
@@ -42,6 +50,9 @@ function AppLayout() {
           tilchi
         </Link>
         <LocaleSwitch locale={locale} />
+        {isPreviewUser(session) || previewRole ? (
+          <PreviewSwitch role={previewRole ?? session.role} copy={copy} />
+        ) : null}
         <div className="user-menu">
           <span>{session.role}</span>
           <button
@@ -64,7 +75,7 @@ function AppLayout() {
           <Link
             key={item.id}
             to={item.to}
-            search={{ handoff: undefined }}
+            search={search}
             activeOptions={{ exact: true }}
           >
             {copy.groups}
@@ -76,7 +87,7 @@ function AppLayout() {
       </div>
       <nav className="app-sheet" aria-label={copy.groups}>
         {items.map((item) => (
-          <Link key={item.id} to={item.to} search={{ handoff: undefined }}>
+          <Link key={item.id} to={item.to} search={search}>
             {copy.groups}
           </Link>
         ))}
@@ -117,7 +128,7 @@ function SignIn({
             className="btn btn-outline"
             type="button"
             onClick={() => {
-              void navigate({ to: '/app', search: { handoff: undefined } })
+              void navigate({ to: '/app', search: keepAppSearch(undefined) })
             }}
           >
             {copy.retry}

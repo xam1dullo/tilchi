@@ -6,20 +6,19 @@ import {
   HttpException,
   Param,
   Post,
-  UnauthorizedException,
 } from '@nestjs/common'
 import { AuthService } from '../auth/auth.service'
-import {
-  SESSION_COOKIE,
-  bearerSessionRejected,
-  readCookie,
-} from '../auth/policy'
+import { PREVIEW_HEADER } from '../demo/policy'
+import { canManageGroup, canSeeGroup } from '../groups/access'
+import { GroupsService } from '../groups/groups.service'
+import { requireActor } from '../http/actor'
 import { LessonsService } from './lessons.service'
 
 @Controller('api')
 export class LessonsController {
   constructor(
     private readonly auth: AuthService,
+    private readonly groups: GroupsService,
     private readonly lessons: LessonsService,
   ) {}
 
@@ -28,8 +27,9 @@ export class LessonsController {
     @Param('groupId') groupId: string,
     @Headers('cookie') cookie: string | undefined,
     @Headers('authorization') authorization: string | undefined,
+    @Headers(PREVIEW_HEADER) previewRole: string | undefined,
   ) {
-    await this.requireSession(cookie, authorization)
+    await this.visibleGroup(groupId, cookie, authorization, previewRole)
     return { lessons: this.lessons.listForGroup(groupId) }
   }
 
@@ -38,16 +38,48 @@ export class LessonsController {
     @Param('groupId') groupId: string,
     @Headers('cookie') cookie: string | undefined,
     @Headers('authorization') authorization: string | undefined,
+    @Headers(PREVIEW_HEADER) previewRole: string | undefined,
     @Body() body: unknown,
   ) {
-    const session = await this.requireSession(cookie, authorization)
+    const actor = await this.managedGroup(
+      groupId,
+      cookie,
+      authorization,
+      previewRole,
+    )
     const scheduledAt =
       body &&
       typeof body === 'object' &&
       typeof (body as { scheduledAt?: unknown }).scheduledAt === 'string'
         ? (body as { scheduledAt: string }).scheduledAt
         : ''
-    return this.lessons.create({ groupId, scheduledAt, role: session.role })
+    return this.lessons.create({
+      groupId,
+      scheduledAt,
+      role: actor.role,
+    })
+  }
+
+  @Get('lessons/:lessonId')
+  async get(
+    @Param('lessonId') lessonId: string,
+    @Headers('cookie') cookie: string | undefined,
+    @Headers('authorization') authorization: string | undefined,
+    @Headers(PREVIEW_HEADER) previewRole: string | undefined,
+  ) {
+    const lesson = this.lessons.get(lessonId)
+    if (!lesson) throw new HttpException({ error: 'not_found' }, 404)
+    const group = await this.visibleGroup(
+      lesson.groupId,
+      cookie,
+      authorization,
+      previewRole,
+    )
+    return {
+      lesson,
+      group,
+      meeting: this.lessons.meetingForLesson(lesson.id),
+    }
   }
 
   @Post('lessons/:lessonId/start')
@@ -55,9 +87,17 @@ export class LessonsController {
     @Param('lessonId') lessonId: string,
     @Headers('cookie') cookie: string | undefined,
     @Headers('authorization') authorization: string | undefined,
+    @Headers(PREVIEW_HEADER) previewRole: string | undefined,
   ) {
-    const session = await this.requireSession(cookie, authorization)
-    return this.lessons.start({ lessonId, role: session.role })
+    const lesson = this.lessons.get(lessonId)
+    if (!lesson) throw new HttpException({ error: 'not_found' }, 404)
+    const actor = await this.managedGroup(
+      lesson.groupId,
+      cookie,
+      authorization,
+      previewRole,
+    )
+    return this.lessons.start({ lessonId, role: actor.role })
   }
 
   @Post('lessons/:lessonId/end')
@@ -65,20 +105,60 @@ export class LessonsController {
     @Param('lessonId') lessonId: string,
     @Headers('cookie') cookie: string | undefined,
     @Headers('authorization') authorization: string | undefined,
+    @Headers(PREVIEW_HEADER) previewRole: string | undefined,
   ) {
-    const session = await this.requireSession(cookie, authorization)
-    return this.lessons.end({ lessonId, role: session.role })
+    const lesson = this.lessons.get(lessonId)
+    if (!lesson) throw new HttpException({ error: 'not_found' }, 404)
+    const actor = await this.managedGroup(
+      lesson.groupId,
+      cookie,
+      authorization,
+      previewRole,
+    )
+    return this.lessons.end({ lessonId, role: actor.role })
   }
 
-  private async requireSession(
+  private async actor(
     cookie: string | undefined,
     authorization: string | undefined,
+    previewRole: string | undefined,
   ) {
-    if (bearerSessionRejected(authorization)) {
-      throw new HttpException({ error: 'cookie_session_required' }, 400)
+    return requireActor({
+      auth: this.auth,
+      cookie,
+      authorization,
+      previewRole,
+    })
+  }
+
+  private async visibleGroup(
+    groupId: string,
+    cookie: string | undefined,
+    authorization: string | undefined,
+    previewRole: string | undefined,
+  ) {
+    const actor = await this.actor(cookie, authorization, previewRole)
+    const group = this.groups.get(groupId)
+    if (!group || !canSeeGroup(actor, group)) {
+      throw new HttpException({ error: 'not_found' }, 404)
     }
-    const session = await this.auth.read(readCookie(cookie, SESSION_COOKIE))
-    if (!session) throw new UnauthorizedException()
-    return session
+    return group
+  }
+
+  private async managedGroup(
+    groupId: string,
+    cookie: string | undefined,
+    authorization: string | undefined,
+    previewRole: string | undefined,
+  ) {
+    const actor = await this.actor(cookie, authorization, previewRole)
+    const group = this.groups.get(groupId)
+    if (!group || !canSeeGroup(actor, group)) {
+      throw new HttpException({ error: 'not_found' }, 404)
+    }
+    if (!canManageGroup(actor, group)) {
+      throw new HttpException({ error: 'forbidden' }, 403)
+    }
+    return actor
   }
 }

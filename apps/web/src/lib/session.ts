@@ -1,5 +1,6 @@
 import { createIsomorphicFn } from '@tanstack/react-start'
 import type { AppRole } from './nav'
+import { parsePreviewRole, previewUser, runtimeEnv } from './preview'
 
 export type SessionUser = {
   userId: string
@@ -7,19 +8,9 @@ export type SessionUser = {
   name?: string | null
 }
 
-function previewRole(): AppRole | null {
-  const role = process.env.TILCHI_PREVIEW_ROLE
-  if (role === 'learner' || role === 'teacher' || role === 'admin') return role
-  return null
-}
-
 export const loadSession = createIsomorphicFn()
   .server(async (): Promise<SessionUser | null> => {
-    if (process.env.NODE_ENV !== 'production') {
-      const role = previewRole()
-      if (role) return { userId: 'preview', role, name: 'Preview' }
-    }
-    const base = process.env.API_INTERNAL_URL ?? 'http://127.0.0.1:3001'
+    const base = runtimeEnv('API_INTERNAL_URL') ?? 'http://127.0.0.1:3001'
     try {
       const { getRequestHeader } = await import('@tanstack/react-start/server')
       const response = await fetch(`${base}/auth/session`, {
@@ -42,3 +33,44 @@ export const loadSession = createIsomorphicFn()
       return null
     }
   })
+
+export const loadPreviewUser = createIsomorphicFn()
+  .server(
+    async (
+      override: AppRole | null | undefined,
+    ): Promise<SessionUser | null> => {
+      if (runtimeEnv('NODE_ENV') === 'production') return null
+      const role =
+        override ?? parsePreviewRole(runtimeEnv('TILCHI_PREVIEW_ROLE'))
+      return role ? previewUser(role) : null
+    },
+  )
+  .client(
+    async (
+      override: AppRole | null | undefined,
+    ): Promise<SessionUser | null> => {
+      try {
+        const response = await fetch('/api/demo/preview', {
+          credentials: 'include',
+        })
+        if (!response.ok) return null
+        const body = (await response.json()) as {
+          enabled?: boolean
+          role?: string | null
+        }
+        if (!body.enabled) return null
+        const role = override ?? parsePreviewRole(body.role)
+        return role ? previewUser(role) : null
+      } catch {
+        return null
+      }
+    },
+  )
+
+export async function resolveAppSession(
+  searchPreview?: AppRole | null,
+): Promise<SessionUser | null> {
+  const signedIn = await loadSession()
+  if (signedIn) return signedIn
+  return loadPreviewUser(searchPreview)
+}

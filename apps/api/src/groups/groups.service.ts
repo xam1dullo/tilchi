@@ -39,22 +39,46 @@ export class GroupsService {
   addMember(input: { groupId: string; userId: string; role: Role }) {
     if (input.role !== 'admin')
       throw new HttpException({ error: 'forbidden' }, 403)
-    const group = this.groups.get(input.groupId)
+    return this.putMember(input.groupId, input.userId)
+  }
+
+  ensure(input: { id: string; name: string; actorId: string }) {
+    const existing = this.groups.get(input.id)
+    if (existing) return existing
+    const group: Group = {
+      id: input.id,
+      name: input.name.trim().slice(0, 80) || 'Group',
+      capacity: MAX,
+      createdBy: input.actorId,
+      memberIds: [],
+    }
+    this.groups.set(group.id, group)
+    return this.putMember(group.id, input.actorId)
+  }
+
+  putMember(groupId: string, userId: string) {
+    const group = this.groups.get(groupId)
     if (!group) throw new HttpException({ error: 'not_found' }, 404)
-    if (group.memberIds.length >= group.capacity) {
+    if (
+      !group.memberIds.includes(userId) &&
+      group.memberIds.length >= group.capacity
+    ) {
       throw new HttpException({ error: 'group_full' }, 409)
     }
-    if (!group.memberIds.includes(input.userId))
-      group.memberIds.push(input.userId)
-    const set = this.membership.get(input.userId) ?? new Set<string>()
+    if (!group.memberIds.includes(userId)) group.memberIds.push(userId)
+    const set = this.membership.get(userId) ?? new Set<string>()
     set.add(group.id)
-    this.membership.set(input.userId, set)
+    this.membership.set(userId, set)
     return group
   }
 
-  listForUser(userId: string) {
+  listForUser(userId: string, role?: Role) {
+    if (role === 'admin') return [...this.groups.values()]
     const ids = this.membership.get(userId) ?? new Set<string>()
-    return [...ids].map((id) => this.groups.get(id)).filter(Boolean)
+    return [...ids].flatMap((id) => {
+      const group = this.groups.get(id)
+      return group ? [group] : []
+    })
   }
 
   get(id: string) {

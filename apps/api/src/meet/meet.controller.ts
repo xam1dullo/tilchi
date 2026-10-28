@@ -12,11 +12,17 @@ import {
   bearerSessionRejected,
   readCookie,
 } from '../auth/policy'
+import { PREVIEW_HEADER } from '../demo/policy'
+import { requireActor } from '../http/actor'
+import { MeetService } from './meet.service'
 import { issueMeetTicket } from './ticket'
 
 @Controller('api/meet')
 export class MeetController {
-  constructor(private readonly auth: AuthService) {}
+  constructor(
+    private readonly auth: AuthService,
+    private readonly meet: MeetService,
+  ) {}
 
   @Post('ticket')
   async ticket(
@@ -35,16 +41,20 @@ export class MeetController {
     @Param('lessonId') lessonId: string,
     @Headers('cookie') cookie: string | undefined,
     @Headers('authorization') authorization: string | undefined,
+    @Headers(PREVIEW_HEADER) previewRole: string | undefined,
   ) {
-    await this.requireSession(cookie, authorization)
-    void lessonId
-    throw new HttpException(
-      {
-        error: 'meet_ticket_not_ready',
-        note: 'LiveKit mint waits on a signed, room-scoped, single-use ticket',
-      },
-      501,
-    )
+    const actor = await requireActor({
+      auth: this.auth,
+      cookie,
+      authorization,
+      previewRole,
+    })
+    return this.meet.tokenForLesson({
+      lessonId,
+      actor,
+      apiKey: process.env.LIVEKIT_API_KEY ?? '',
+      apiSecret: process.env.LIVEKIT_API_SECRET ?? '',
+    })
   }
 
   private async requireSession(
