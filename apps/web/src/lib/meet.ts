@@ -132,11 +132,33 @@ export function mediaPlan(state: MeetState): MediaPlan {
   return { mic: state.mic, camera: state.camera && !isAudioOnly(state) }
 }
 
-/** Peers as tiles. Audio-only hides every video so the room can stop sending it. */
+/**
+ * Peers as tiles. Audio-only hides every video so the room can stop sending
+ * it; an ended meeting shows none, rather than frozen frames of a dead call.
+ */
 export function tilesOf(state: MeetState): Peer[] {
+  if (state.status.kind === 'ended') return []
   return isAudioOnly(state)
     ? state.peers.map((peer) => ({ ...peer, video: null }))
     : state.peers
+}
+
+export type ControlsView = Record<Control, { on: boolean; disabled: boolean }>
+
+/** How each toggle looks: the camera is parked, not removed, in audio-only. */
+export function controlsOf(state: MeetState): ControlsView {
+  const over = state.status.kind === 'ended'
+  const audioOnly = isAudioOnly(state)
+  return {
+    mic: { on: state.mic, disabled: over },
+    camera: { on: state.camera && !audioOnly, disabled: over || audioOnly },
+    audioOnly: { on: audioOnly, disabled: over },
+  }
+}
+
+/** Remount key for a fresh join after a failure. */
+export function nextAttempt(attempt: number): number {
+  return attempt + 1
 }
 
 export type NoticeKey =

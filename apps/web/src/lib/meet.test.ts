@@ -4,11 +4,13 @@ import {
   type MeetEvent,
   type MeetState,
   type Peer,
+  controlsOf,
   initialMeet,
   initialsOf,
   isAudioOnly,
   mediaPlan,
   meetNotices,
+  nextAttempt,
   peerFrom,
   qualityOf,
   reduceMeet,
@@ -218,6 +220,15 @@ describe('tilesOf', () => {
     expect(tiles[0]?.audio).toBe(audio)
     expect(tiles.map((tile) => tile.id)).toEqual(['a', 'b'])
   })
+
+  it('shows no tiles once the meeting has ended, so nothing freezes on screen', () => {
+    const state = run([
+      { type: 'peers', peers: [peer({ id: 'a', video: handle() })] },
+      { type: 'status', status: { kind: 'ended', failure: 'dropped' } },
+    ])
+    expect(state.peers).toHaveLength(1)
+    expect(tilesOf(state)).toEqual([])
+  })
 })
 
 describe('meetNotices', () => {
@@ -377,5 +388,60 @@ describe('initialsOf', () => {
   it('falls back to a question mark for an empty name', () => {
     expect(initialsOf('')).toBe('?')
     expect(initialsOf('   ')).toBe('?')
+  })
+})
+
+describe('controlsOf', () => {
+  it('shows mic, camera and audio-only as the user set them, all usable', () => {
+    expect(controlsOf(initialMeet)).toEqual({
+      mic: { on: true, disabled: false },
+      camera: { on: true, disabled: false },
+      audioOnly: { on: false, disabled: false },
+    })
+    const off = run([
+      { type: 'toggle', control: 'mic' },
+      { type: 'toggle', control: 'camera' },
+    ])
+    expect(controlsOf(off).mic).toEqual({ on: false, disabled: false })
+    expect(controlsOf(off).camera).toEqual({ on: false, disabled: false })
+  })
+
+  it('holds the camera off and locked in audio-only, and leaves the mic alone', () => {
+    const user = run([{ type: 'toggle', control: 'audioOnly' }])
+    expect(controlsOf(user)).toEqual({
+      mic: { on: true, disabled: false },
+      camera: { on: false, disabled: true },
+      audioOnly: { on: true, disabled: false },
+    })
+    const weak = run([{ type: 'quality', quality: 'poor' }])
+    expect(controlsOf(weak).camera).toEqual({ on: false, disabled: true })
+    expect(controlsOf(weak).audioOnly.on).toBe(true)
+  })
+
+  it('locks every toggle once the meeting has ended', () => {
+    const over = run([
+      { type: 'status', status: { kind: 'ended', failure: 'dropped' } },
+    ])
+    expect(controlsOf(over)).toEqual({
+      mic: { on: true, disabled: true },
+      camera: { on: true, disabled: true },
+      audioOnly: { on: false, disabled: true },
+    })
+  })
+
+  it('keeps the controls usable while connecting and reconnecting', () => {
+    const states = [initialMeet, run([status('reconnecting')])]
+    for (const state of states) {
+      const view = controlsOf(state)
+      expect(view.mic.disabled).toBe(false)
+      expect(view.audioOnly.disabled).toBe(false)
+    }
+  })
+})
+
+describe('nextAttempt', () => {
+  it('counts one more join attempt each time', () => {
+    expect(nextAttempt(0)).toBe(1)
+    expect(nextAttempt(41)).toBe(42)
   })
 })
