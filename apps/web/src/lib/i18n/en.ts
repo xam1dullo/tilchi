@@ -70,4 +70,6 @@ export const en = {
   meetYou: 'you',
   meetMicOff: 'microphone off',
   meetSpeaking: 'speaking',
+  navMain: 'Main navigation',
+  openApp: 'Sign in',
 }

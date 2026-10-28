@@ -1,6 +1,7 @@
 import { botLink, site, tgLinkProps } from '@tilchi/content'
 import { createFileRoute, useRouteContext } from '@tanstack/react-router'
 import { LocaleSwitch } from '../components/locale-switch'
+import { messages } from '../lib/i18n'
 
 export const Route = createFileRoute('/')({
   component: Home,
@@ -8,6 +9,7 @@ export const Route = createFileRoute('/')({
 
 function Home() {
   const { locale } = useRouteContext({ from: '__root__' })
+  const copy = messages(locale)
   const year = new Date().getFullYear()
   return (
     <>
@@ -15,7 +17,12 @@ function Home() {
         <a className="logo" href="/">
           tilchi
         </a>
-        <LocaleSwitch locale={locale} />
+        <div className="site-bar-end">
+          <LocaleSwitch locale={locale} />
+          <a className="btn btn-outline btn-compact" href="/app">
+            {copy.openApp}
+          </a>
+        </div>
       </header>
       <section className="hero">
         <p className="eyebrow">Tilchi</p>

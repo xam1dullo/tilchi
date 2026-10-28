@@ -68,6 +68,8 @@ export function MeetEntry({
   return status === 'live' ? (
     <MeetRoom {...room} />
   ) : (
-    <p className="empty-panel">{room.copy.meetWaiting}</p>
+    <p className="notice" data-tone="status" role="status">
+      {room.copy.meetWaiting}
+    </p>
   )
 }

@@ -1,4 +1,4 @@
-import { createFileRoute, useRouteContext } from '@tanstack/react-router'
+import { Link, createFileRoute, useRouteContext } from '@tanstack/react-router'
 import { messages } from '../../lib/i18n'
 
 export const Route = createFileRoute('/app/forbidden')({
@@ -11,7 +11,18 @@ function Forbidden() {
   return (
     <section className="forbidden">
       <h1>{copy.forbiddenTitle}</h1>
-      <p>{copy.forbiddenBody}</p>
+      <p className="notice" data-tone="warn" role="status">
+        {copy.forbiddenBody}
+      </p>
+      <div className="panel-actions">
+        <Link
+          className="btn btn-primary"
+          to="/app"
+          search={{ preview: undefined }}
+        >
+          {copy.groups}
+        </Link>
+      </div>
     </section>
   )
 }
