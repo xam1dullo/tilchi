@@ -95,7 +95,7 @@ export function EmptyGroups({
     <div className="empty-panel">
       <p>{copy.emptyBody}</p>
       <div className="panel-actions">
-        <a className="btn btn-primary" href="/#programs">
+        <a className="btn btn-primary" href="/courses">
           {copy.catalog}
         </a>
         {botUsername && (

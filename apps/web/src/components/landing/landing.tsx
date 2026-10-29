@@ -251,6 +251,7 @@ export function LandingPage({
         </a>
         <nav className="l-nav" aria-label={chrome.navMain}>
           <a href="#programs">{copy.nav.programs}</a>
+          <a href="/courses">{chrome.catalog}</a>
           <a href="#teacher">{copy.nav.teacher}</a>
           <a href="#faq">{copy.nav.faq}</a>
         </nav>

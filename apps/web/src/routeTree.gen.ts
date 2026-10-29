@@ -11,7 +11,9 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppRouteImport } from './routes/app'
+import { Route as CoursesRouteImport } from './routes/courses'
 import { Route as AppIndexRouteImport } from './routes/app/index'
+import { Route as AppCoursesRouteImport } from './routes/app/courses'
 import { Route as AppForbiddenRouteImport } from './routes/app/forbidden'
 import { Route as AppNotificationsRouteImport } from './routes/app/notifications'
 import { Route as AppGroupsGroupIdRouteImport } from './routes/app/groups/$groupId'
@@ -27,9 +29,19 @@ const AppRoute = AppRouteImport.update({
   path: '/app',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CoursesRoute = CoursesRouteImport.update({
+  id: '/courses',
+  path: '/courses',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AppIndexRoute = AppIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCoursesRoute = AppCoursesRouteImport.update({
+  id: '/courses',
+  path: '/courses',
   getParentRoute: () => AppRoute,
 } as any)
 const AppForbiddenRoute = AppForbiddenRouteImport.update({
@@ -56,6 +68,8 @@ const AppMeetLessonIdRoute = AppMeetLessonIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
+  '/courses': typeof CoursesRoute
+  '/app/courses': typeof AppCoursesRoute
   '/app/forbidden': typeof AppForbiddenRoute
   '/app/notifications': typeof AppNotificationsRoute
   '/app/': typeof AppIndexRoute
@@ -64,6 +78,8 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/courses': typeof CoursesRoute
+  '/app/courses': typeof AppCoursesRoute
   '/app/forbidden': typeof AppForbiddenRoute
   '/app/notifications': typeof AppNotificationsRoute
   '/app': typeof AppIndexRoute
@@ -74,6 +90,8 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
+  '/courses': typeof CoursesRoute
+  '/app/courses': typeof AppCoursesRoute
   '/app/forbidden': typeof AppForbiddenRoute
   '/app/notifications': typeof AppNotificationsRoute
   '/app/': typeof AppIndexRoute
@@ -85,6 +103,8 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/app'
+    | '/courses'
+    | '/app/courses'
     | '/app/forbidden'
     | '/app/notifications'
     | '/app/'
@@ -93,6 +113,8 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/courses'
+    | '/app/courses'
     | '/app/forbidden'
     | '/app/notifications'
     | '/app'
@@ -102,6 +124,8 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/app'
+    | '/courses'
+    | '/app/courses'
     | '/app/forbidden'
     | '/app/notifications'
     | '/app/'
@@ -112,6 +136,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppRoute: typeof AppRouteWithChildren
+  CoursesRoute: typeof CoursesRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -130,11 +155,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/courses': {
+      id: '/courses'
+      path: '/courses'
+      fullPath: '/courses'
+      preLoaderRoute: typeof CoursesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/app/': {
       id: '/app/'
       path: '/'
       fullPath: '/app/'
       preLoaderRoute: typeof AppIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/courses': {
+      id: '/app/courses'
+      path: '/courses'
+      fullPath: '/app/courses'
+      preLoaderRoute: typeof AppCoursesRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/forbidden': {
@@ -169,6 +208,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AppRouteChildren {
+  AppCoursesRoute: typeof AppCoursesRoute
   AppForbiddenRoute: typeof AppForbiddenRoute
   AppNotificationsRoute: typeof AppNotificationsRoute
   AppIndexRoute: typeof AppIndexRoute
@@ -177,6 +217,7 @@ interface AppRouteChildren {
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppCoursesRoute: AppCoursesRoute,
   AppForbiddenRoute: AppForbiddenRoute,
   AppNotificationsRoute: AppNotificationsRoute,
   AppIndexRoute: AppIndexRoute,
@@ -189,6 +230,7 @@ const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
+  CoursesRoute: CoursesRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

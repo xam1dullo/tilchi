@@ -45,6 +45,43 @@
   margin: 0;
 }
 
+.catalog-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr));
+  align-items: end;
+  gap: 16px;
+}
+
+.catalog-form label:not(.catalog-publish) {
+  display: grid;
+  gap: 6px;
+}
+
+.catalog-form textarea {
+  min-height: 100px;
+  padding: 12px 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  color: var(--ink);
+  font: 500 var(--fs-sm) / 1.4 var(--font-sans);
+  resize: vertical;
+}
+
+.catalog-form .catalog-publish {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 50px;
+}
+
+.catalog-form .catalog-publish input {
+  min-height: 0;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+}
+
 .classroom-list {
   list-style: none;
   margin: 0;
