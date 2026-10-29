@@ -36,8 +36,18 @@ class FakeStorage {
   presignDownload(key: string) {
     return `http://fake/get/${key}`
   }
-  async exists(key: string) {
-    return this.uploaded.has(key)
+  /** Runs before each copy, to model a request landing mid-submit. */
+  onCopy: () => Promise<void> = async () => {}
+  copies = new Map<string, string>()
+  copyOrder: string[] = []
+  async copy(from: string, to: string) {
+    await this.onCopy()
+    // Real S3 refuses a copy onto itself, and a published copy is final.
+    if (from === to || this.copies.has(to)) throw new Error('bad copy')
+    if (!this.uploaded.has(from)) return false
+    this.copies.set(to, from)
+    this.copyOrder.push(to)
+    return true
   }
 }
 
@@ -110,6 +120,9 @@ describe.skipIf(!hasTestDatabase)('tests, assignments and grading', () => {
     await seedUsers()
     storage.uploaded.clear()
     storage.keys = []
+    storage.copies.clear()
+    storage.copyOrder = []
+    storage.onCopy = async () => {}
     group = (
       await groups.create({
         name: 'G',
@@ -317,7 +330,10 @@ describe.skipIf(!hasTestDatabase)('tests, assignments and grading', () => {
     )
     expect(presign.status).toBe(201)
     expect(presign.body).toMatchObject({ method: 'PUT', expiresIn: 180 })
-    expect(storage.keys).toEqual([`audio/${t.attemptId}/${t.speaking}.webm`])
+    expect(storage.keys).toHaveLength(1)
+    expect(storage.keys[0]).toMatch(
+      new RegExp(`^audio/${t.attemptId}/${t.speaking}/[0-9a-f-]{36}\\.webm$`),
+    )
     storage.uploaded.add(storage.keys[0])
 
     const submit = await call(
@@ -358,7 +374,11 @@ describe.skipIf(!hasTestDatabase)('tests, assignments and grading', () => {
       `/api/attempts/${t.attemptId}/audio/${t.speaking}`,
     )
     expect(play.status).toBe(200)
-    expect(play.body.url).toContain(`audio/${t.attemptId}/${t.speaking}.webm`)
+    // The teacher hears the copy frozen at submit, not the upload key.
+    const [frozen] = storage.copyOrder
+    expect(frozen).toMatch(/^submitted\//)
+    expect(storage.copies.get(frozen)).toBe(storage.keys[0])
+    expect(play.body.url).toBe(`http://fake/get/${frozen}`)
 
     const needScore = await call(
       'teacher',
@@ -409,6 +429,95 @@ describe.skipIf(!hasTestDatabase)('tests, assignments and grading', () => {
     })
     expect(mine.body.questions[0].result).toEqual({ points: 1, max: 1 })
     expect(JSON.stringify(mine.body)).not.toContain('answerKey')
+  })
+
+  it('gives every upload url its own key, so an old url never replaces the take', async () => {
+    const t = await setup()
+    const presign = () =>
+      call('ana', 'POST', `/api/attempts/${t.attemptId}/audio/presign`, {
+        questionId: t.speaking,
+        contentType: 'audio/webm',
+        size: 10,
+      })
+    await presign()
+    await presign()
+    expect(new Set(storage.keys).size).toBe(2)
+    // Only the newest key is the recording; the first url writes elsewhere.
+    storage.uploaded.add(storage.keys[0])
+    const submit = await call(
+      'ana',
+      'POST',
+      `/api/attempts/${t.attemptId}/submit`,
+      { answers: {} },
+    )
+    expect(submit.body.recorded).toEqual([])
+  })
+
+  it('a losing concurrent submit never writes over the winner’s frozen copy', async () => {
+    const t = await setup()
+    await call('ana', 'POST', `/api/attempts/${t.attemptId}/audio/presign`, {
+      questionId: t.speaking,
+      contentType: 'audio/webm',
+      size: 10,
+    })
+    storage.uploaded.add(storage.keys[0])
+    const submit = () =>
+      call('ana', 'POST', `/api/attempts/${t.attemptId}/submit`, {
+        answers: {},
+      })
+    const box: { second?: Awaited<ReturnType<typeof submit>> } = {}
+    storage.onCopy = async () => {
+      storage.onCopy = async () => {}
+      // The second submit runs to the end while the first is mid-copy.
+      box.second = await submit()
+    }
+    const first = await submit()
+    expect(box.second?.status).toBe(201)
+    expect(first.status).toBe(409)
+    const [winner, loser] = storage.copyOrder
+    expect(loser).toBeDefined()
+    expect(loser).not.toBe(winner)
+    const play = await call(
+      'teacher',
+      'GET',
+      `/api/attempts/${t.attemptId}/audio/${t.speaking}`,
+    )
+    expect(play.body.url).toBe(`http://fake/get/${winner}`)
+  })
+
+  it('drops a recording whose url was issued after the copy, before the lock', async () => {
+    const t = await setup()
+    const presign = () =>
+      call('ana', 'POST', `/api/attempts/${t.attemptId}/audio/presign`, {
+        questionId: t.speaking,
+        contentType: 'audio/webm',
+        size: 10,
+      })
+    await presign()
+    storage.uploaded.add(storage.keys[0])
+    let raced = false
+    storage.onCopy = async () => {
+      if (raced) return
+      raced = true
+      // A new url lands while submit copies: the row now names a key that
+      // was never copied, so submit must not keep it.
+      expect((await presign()).status).toBe(201)
+      storage.uploaded.add(storage.keys[1])
+    }
+    const submit = await call(
+      'ana',
+      'POST',
+      `/api/attempts/${t.attemptId}/submit`,
+      { answers: {} },
+    )
+    expect(submit.status).toBe(201)
+    expect(submit.body.recorded).toEqual([])
+    const play = await call(
+      'teacher',
+      'GET',
+      `/api/attempts/${t.attemptId}/audio/${t.speaking}`,
+    )
+    expect(play.status).toBe(404)
   })
 
   it('drops an upload that never finished and grades 0 for it', async () => {

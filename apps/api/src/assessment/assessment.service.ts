@@ -1,5 +1,6 @@
+import { randomUUID } from 'node:crypto'
 import { HttpException, Inject, Injectable } from '@nestjs/common'
-import { and, eq, inArray, isNull } from 'drizzle-orm'
+import { and, eq, isNull } from 'drizzle-orm'
 import { type Actor, authorize, can } from '../authz/policy'
 import {
   assignments,
@@ -15,7 +16,11 @@ import { uuidv7 } from '../id'
 import type { OutboxEntry, TestPayload } from '../outbox/events'
 import { enqueue, enqueueAll } from '../outbox/outbox.repository'
 import { OutboxWorker } from '../outbox/outbox.worker'
-import { ObjectStorage, audioKey } from '../storage/object-storage'
+import {
+  ObjectStorage,
+  audioKey,
+  submittedKey,
+} from '../storage/object-storage'
 import {
   AssessmentRepository,
   type AssignmentRow,
@@ -390,14 +395,23 @@ export class AssessmentService {
     const ctx = await this.context(actor, id, 'owner')
     const test = await this.loadTest(ctx.assignment.testId)
     const answers = parseAnswers(body, test)
-    // An upload that never finished is dropped; only real recordings count.
-    const rows = await this.repo.audioFor(id)
-    const missing: string[] = []
-    for (const row of rows) {
-      if (!(await this.storage.exists(row.objectKey)))
-        missing.push(row.objectKey)
-    }
+    // Freeze each recording under a key no upload url can reach; an upload
+    // that never finished has nothing to copy and is dropped. Copy only while
+    // the attempt is open: a repeat or late submit is refused under the lock
+    // below and must not touch storage.
     const now = new Date()
+    const frozen = new Map<string, string>()
+    const open = acceptsAnswers(ctx.attempt.status, {
+      now,
+      deadline: ctx.assignment.deadline,
+    })
+    const submitId = randomUUID()
+    for (const row of open ? await this.repo.audioFor(id) : []) {
+      if (!row.objectKey.startsWith('audio/')) continue
+      const key = submittedKey(row.objectKey, submitId)
+      if (await this.storage.copy(row.objectKey, key))
+        frozen.set(row.objectKey, key)
+    }
     const next = await this.repo.db.transaction(async (tx) => {
       const locked = await this.repo.lockAttempt(id, tx)
       const step = transition(locked.status, 'submit', {
@@ -414,15 +428,19 @@ export class AssessmentService {
         }
         return step
       }
-      if (missing.length > 0) {
-        await tx
-          .delete(audioObjects)
-          .where(
-            and(
-              eq(audioObjects.attemptId, id),
-              inArray(audioObjects.objectKey, missing),
-            ),
-          )
+      // Re-read under the lock: a url issued after the copies above names a
+      // key that was never frozen, so that recording does not count.
+      for (const row of await this.repo.audioFor(id, tx)) {
+        const key = frozen.get(row.objectKey)
+        const where = and(
+          eq(audioObjects.attemptId, id),
+          eq(audioObjects.questionId, row.questionId),
+        )
+        if (key) {
+          await tx.update(audioObjects).set({ objectKey: key }).where(where)
+        } else {
+          await tx.delete(audioObjects).where(where)
+        }
       }
       await tx
         .update(attempts)
@@ -453,7 +471,12 @@ export class AssessmentService {
     if (test.find((q) => q.id === input.questionId)?.type !== 'speaking') {
       return fail(400, 'not_speaking_question')
     }
-    const objectKey = audioKey(id, input.questionId, input.contentType)
+    const objectKey = audioKey(
+      id,
+      input.questionId,
+      input.contentType,
+      randomUUID(),
+    )
     // The state check and the row write share one lock, so a submit that wins
     // the race leaves the recording untouched.
     const refused = await this.repo.db.transaction(async (tx) => {
