@@ -101,11 +101,12 @@ describe('handleAsk', () => {
       cookie: `theme=dark; __Host-tilchi_sid=${A}`,
       'X-Tilchi-Preview-Role': 'teacher',
     })
-    expect(calls[0]?.url).toBe('http://api/api/lessons/l1')
-    expect(calls[0]?.headers.get('cookie')).toBe(`__Host-tilchi_sid=${A}`)
-    expect(calls[0]?.headers.get('X-Tilchi-Preview-Role')).toBe('teacher')
-    expect(calls[1]?.url).toBe('http://api/auth/session')
-    expect(calls[1]?.headers.get('cookie')).toBe(`__Host-tilchi_sid=${A}`)
+    const lesson = calls.find((c) => c.url === 'http://api/api/lessons/l1')
+    const session = calls.find((c) => c.url === 'http://api/auth/session')
+    expect(calls).toHaveLength(2)
+    expect(lesson?.headers.get('cookie')).toBe(`__Host-tilchi_sid=${A}`)
+    expect(lesson?.headers.get('X-Tilchi-Preview-Role')).toBe('teacher')
+    expect(session?.headers.get('cookie')).toBe(`__Host-tilchi_sid=${A}`)
   })
 
   it('rejects a bad lesson id and a bad question', async () => {
@@ -179,6 +180,15 @@ describe('handleAsk', () => {
     })
     expect((await ask()).status).toBe(502)
     expect(prompts).toHaveLength(0)
+  })
+
+  it('is 502 when fetch throws synchronously', async () => {
+    const { ask } = setup({
+      fetchImpl: (() => {
+        throw new Error('sync')
+      }) as typeof fetch,
+    })
+    expect((await ask()).status).toBe(502)
   })
 
   it('is 502 when the session lookup fails', async () => {

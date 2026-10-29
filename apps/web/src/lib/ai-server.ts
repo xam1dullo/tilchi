@@ -102,7 +102,10 @@ async function accountKey(
 ): Promise<string | null> {
   try {
     const res = await fetchImpl(`${apiBase}/auth/session`, { headers })
-    if (!res.ok) return null
+    if (!res.ok) {
+      await res.body?.cancel().catch(() => {})
+      return null
+    }
     const body = (await res.json()) as { user?: { userId?: unknown } | null }
     const id = body?.user?.userId
     if (typeof id === 'string' && id !== '') return `user:${id}`
@@ -130,9 +133,10 @@ export async function handleAsk(
   const preview = request.headers.get(PREVIEW_HEADER)
   if (preview) headers.set(PREVIEW_HEADER, preview)
   const fetchImpl = deps.fetchImpl ?? fetch
-  const lesson = fetchImpl(`${deps.apiBase}/api/lessons/${lessonId}`, {
-    headers,
-  })
+  // A fetch that throws synchronously still lands in the 502 below.
+  const lesson = Promise.resolve().then(() =>
+    fetchImpl(`${deps.apiBase}/api/lessons/${lessonId}`, { headers }),
+  )
   // In parallel; never rejects, so an early return leaves nothing unhandled.
   const account = accountKey(
     fetchImpl,
