@@ -26,8 +26,8 @@ describe('audio keys', () => {
   })
 
   it('submitted copies live under a prefix no upload url is ever signed for', () => {
-    expect(submittedKey('audio/att-1/q-1/n1.webm')).toBe(
-      'submitted/att-1/q-1/n1.webm',
+    expect(submittedKey('audio/att-1/q-1/n1.webm', 's1')).toBe(
+      'submitted/s1/att-1/q-1/n1.webm',
     )
   })
 })
@@ -118,7 +118,7 @@ describe.skipIf(!live)('ObjectStorage against a real MinIO', () => {
     const key = audioKey('att3', 'q', 'audio/webm', 'n')
     const upload = storage.presignUpload(key, 'audio/webm', body.length)
     await fetch(upload.url, { method: 'PUT', headers: upload.headers, body })
-    const frozen = submittedKey(key)
+    const frozen = submittedKey(key, 's')
     expect(await storage.copy(key, frozen)).toBe(true)
     const get = await fetch(storage.presignDownload(frozen))
     expect(new Uint8Array(await get.arrayBuffer())).toEqual(body)
@@ -132,7 +132,20 @@ describe.skipIf(!live)('ObjectStorage against a real MinIO', () => {
     const still = await fetch(storage.presignDownload(frozen))
     expect(new Uint8Array(await still.arrayBuffer())).toEqual(body)
     const gone = audioKey('att3', 'q', 'audio/webm', 'never')
-    expect(await storage.copy(gone, submittedKey(gone))).toBe(false)
+    expect(await storage.copy(gone, submittedKey(gone, 's'))).toBe(false)
+  })
+
+  it('throws, rather than dropping recordings, when the bucket is missing', async () => {
+    const lost = new ObjectStorage({
+      ...config,
+      endpoint: live as string,
+      publicUrl: live as string,
+      bucket: `missing-${Date.now()}`,
+      accessKey: process.env.S3_TEST_ACCESS_KEY ?? '',
+      secretKey: process.env.S3_TEST_SECRET_KEY ?? '',
+    })
+    const key = audioKey('a', 'q', 'audio/webm', 'n')
+    await expect(lost.copy(key, submittedKey(key, 's'))).rejects.toThrow()
   })
 
   it('refuses an expired url', async () => {

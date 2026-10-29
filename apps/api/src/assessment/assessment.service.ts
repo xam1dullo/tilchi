@@ -396,14 +396,22 @@ export class AssessmentService {
     const test = await this.loadTest(ctx.assignment.testId)
     const answers = parseAnswers(body, test)
     // Freeze each recording under a key no upload url can reach; an upload
-    // that never finished has nothing to copy and is dropped.
+    // that never finished has nothing to copy and is dropped. Copy only while
+    // the attempt is open: a repeat or late submit is refused under the lock
+    // below and must not touch storage.
+    const now = new Date()
     const frozen = new Map<string, string>()
-    for (const row of await this.repo.audioFor(id)) {
-      const key = submittedKey(row.objectKey)
+    const open = acceptsAnswers(ctx.attempt.status, {
+      now,
+      deadline: ctx.assignment.deadline,
+    })
+    const submitId = randomUUID()
+    for (const row of open ? await this.repo.audioFor(id) : []) {
+      if (!row.objectKey.startsWith('audio/')) continue
+      const key = submittedKey(row.objectKey, submitId)
       if (await this.storage.copy(row.objectKey, key))
         frozen.set(row.objectKey, key)
     }
-    const now = new Date()
     const next = await this.repo.db.transaction(async (tx) => {
       const locked = await this.repo.lockAttempt(id, tx)
       const step = transition(locked.status, 'submit', {

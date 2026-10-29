@@ -39,10 +39,14 @@ class FakeStorage {
   /** Runs before each copy, to model a request landing mid-submit. */
   onCopy: () => Promise<void> = async () => {}
   copies = new Map<string, string>()
+  copyOrder: string[] = []
   async copy(from: string, to: string) {
     await this.onCopy()
+    // Real S3 refuses a copy onto itself, and a published copy is final.
+    if (from === to || this.copies.has(to)) throw new Error('bad copy')
     if (!this.uploaded.has(from)) return false
     this.copies.set(to, from)
+    this.copyOrder.push(to)
     return true
   }
 }
@@ -117,6 +121,7 @@ describe.skipIf(!hasTestDatabase)('tests, assignments and grading', () => {
     storage.uploaded.clear()
     storage.keys = []
     storage.copies.clear()
+    storage.copyOrder = []
     storage.onCopy = async () => {}
     group = (
       await groups.create({
@@ -370,7 +375,8 @@ describe.skipIf(!hasTestDatabase)('tests, assignments and grading', () => {
     )
     expect(play.status).toBe(200)
     // The teacher hears the copy frozen at submit, not the upload key.
-    const frozen = storage.keys[0].replace(/^audio\//, 'submitted/')
+    const [frozen] = storage.copyOrder
+    expect(frozen).toMatch(/^submitted\//)
     expect(storage.copies.get(frozen)).toBe(storage.keys[0])
     expect(play.body.url).toBe(`http://fake/get/${frozen}`)
 
@@ -445,6 +451,38 @@ describe.skipIf(!hasTestDatabase)('tests, assignments and grading', () => {
       { answers: {} },
     )
     expect(submit.body.recorded).toEqual([])
+  })
+
+  it('a losing concurrent submit never writes over the winner’s frozen copy', async () => {
+    const t = await setup()
+    await call('ana', 'POST', `/api/attempts/${t.attemptId}/audio/presign`, {
+      questionId: t.speaking,
+      contentType: 'audio/webm',
+      size: 10,
+    })
+    storage.uploaded.add(storage.keys[0])
+    const submit = () =>
+      call('ana', 'POST', `/api/attempts/${t.attemptId}/submit`, {
+        answers: {},
+      })
+    const box: { second?: Awaited<ReturnType<typeof submit>> } = {}
+    storage.onCopy = async () => {
+      storage.onCopy = async () => {}
+      // The second submit runs to the end while the first is mid-copy.
+      box.second = await submit()
+    }
+    const first = await submit()
+    expect(box.second?.status).toBe(201)
+    expect(first.status).toBe(409)
+    const [winner, loser] = storage.copyOrder
+    expect(loser).toBeDefined()
+    expect(loser).not.toBe(winner)
+    const play = await call(
+      'teacher',
+      'GET',
+      `/api/attempts/${t.attemptId}/audio/${t.speaking}`,
+    )
+    expect(play.body.url).toBe(`http://fake/get/${winner}`)
   })
 
   it('drops a recording whose url was issued after the copy, before the lock', async () => {

@@ -29,9 +29,11 @@ export const audioKey = (
 /**
  * Where a recording is frozen at submit. No upload url is ever signed under
  * this prefix, so a url still valid after submit cannot change what is graded.
+ * Each submit call writes under its own id: a call that loses the race can
+ * never copy over the copy the winner published.
  */
-export const submittedKey = (key: string) =>
-  key.replace(/^audio\//, 'submitted/')
+export const submittedKey = (key: string, submitId: string) =>
+  key.replace(/^audio\//, `submitted/${submitId}/`)
 
 export type Upload = {
   url: string
@@ -104,9 +106,10 @@ export class ObjectStorage implements OnApplicationBootstrap {
       this.sign('PUT', to, this.config.endpoint, 60, headers),
       { method: 'PUT', headers },
     )
-    if (res.status === 404) return false
     // S3 may answer 200 with an <Error> body when a copy fails midway.
     const text = await res.text()
+    // Only a missing source means "never uploaded"; a missing bucket is a fault.
+    if (res.status === 404 && text.includes('NoSuchKey')) return false
     if (!res.ok || text.includes('<Error>')) {
       throw new Error(`copy object: HTTP ${res.status}`)
     }
