@@ -45,7 +45,7 @@ const SUFFIX =
   '(?:ni|ga|da|dan|ning|dagi|dir|lar|mi|cha|gacha|dek|day|lik|siz|ku|chi)?'
 // A quoted example is one clause: a sentence end, a line break or a , ; :
 // before the closer means the quote does not cover the phrase.
-const SENTENCE_END = /[,;:]|[.?!…。！？](?=[\s\p{L}])|[\n\r\u0085\u2028\u2029]/u
+const SENTENCE_END = /[,;:]|[.?!…。！？](?=[^.?!…。！？])|[\n\r\u0085\u2028\u2029]/u
 
 function quotedExampleAt(text: string, at: number): boolean {
   const open = OPENS_HERE.exec(text.slice(0, at))?.[1]
