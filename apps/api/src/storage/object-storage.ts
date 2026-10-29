@@ -15,12 +15,23 @@ export const AUDIO_TYPES = {
 export type AudioType = keyof typeof AUDIO_TYPES
 export const MAX_AUDIO_BYTES = 10 * 1024 * 1024
 
-/** Keys carry only ids: no names, phone numbers or other personal data. */
+/**
+ * Keys carry only ids: no names, phone numbers or other personal data. Every
+ * upload url gets its own nonce, so an old url never writes the current key.
+ */
 export const audioKey = (
   attemptId: string,
   questionId: string,
   type: AudioType,
-) => `audio/${attemptId}/${questionId}.${AUDIO_TYPES[type]}`
+  nonce: string,
+) => `audio/${attemptId}/${questionId}/${nonce}.${AUDIO_TYPES[type]}`
+
+/**
+ * Where a recording is frozen at submit. No upload url is ever signed under
+ * this prefix, so a url still valid after submit cannot change what is graded.
+ */
+export const submittedKey = (key: string) =>
+  key.replace(/^audio\//, 'submitted/')
 
 export type Upload = {
   url: string
@@ -85,14 +96,21 @@ export class ObjectStorage implements OnApplicationBootstrap {
     return this.sign('GET', key, this.config.publicUrl, PLAYBACK_TTL_SECONDS)
   }
 
-  /** True when the object was really uploaded. */
-  async exists(key: string): Promise<boolean> {
-    const res = await fetch(this.sign('HEAD', key, this.config.endpoint, 60), {
-      method: 'HEAD',
-    })
-    if (res.ok) return true
+  /** Server-side copy; false when the source was never uploaded. */
+  async copy(from: string, to: string): Promise<boolean> {
+    const source = `/${[this.config.bucket, ...from.split('/')].map(encodeURIComponent).join('/')}`
+    const headers = { 'x-amz-copy-source': source }
+    const res = await fetch(
+      this.sign('PUT', to, this.config.endpoint, 60, headers),
+      { method: 'PUT', headers },
+    )
     if (res.status === 404) return false
-    throw new Error(`head object: HTTP ${res.status}`)
+    // S3 may answer 200 with an <Error> body when a copy fails midway.
+    const text = await res.text()
+    if (!res.ok || text.includes('<Error>')) {
+      throw new Error(`copy object: HTTP ${res.status}`)
+    }
+    return true
   }
 
   private sign(

@@ -1,5 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { ObjectStorage, UPLOAD_TTL_SECONDS, audioKey } from './object-storage'
+import {
+  ObjectStorage,
+  UPLOAD_TTL_SECONDS,
+  audioKey,
+  submittedKey,
+} from './object-storage'
 
 const config = {
   endpoint: 'http://minio:9000',
@@ -11,9 +16,19 @@ const config = {
 }
 
 describe('audio keys', () => {
-  it('hold ids only, no personal data', () => {
-    expect(audioKey('att-1', 'q-1', 'audio/webm')).toBe('audio/att-1/q-1.webm')
-    expect(audioKey('att-1', 'q-1', 'audio/mp4')).toBe('audio/att-1/q-1.mp4')
+  it('hold ids only, no personal data, and a fresh nonce per upload', () => {
+    expect(audioKey('att-1', 'q-1', 'audio/webm', 'n1')).toBe(
+      'audio/att-1/q-1/n1.webm',
+    )
+    expect(audioKey('att-1', 'q-1', 'audio/mp4', 'n2')).toBe(
+      'audio/att-1/q-1/n2.mp4',
+    )
+  })
+
+  it('submitted copies live under a prefix no upload url is ever signed for', () => {
+    expect(submittedKey('audio/att-1/q-1/n1.webm')).toBe(
+      'submitted/att-1/q-1/n1.webm',
+    )
   })
 })
 
@@ -59,12 +74,14 @@ describe.skipIf(!live)('ObjectStorage against a real MinIO', () => {
     secretKey: process.env.S3_TEST_SECRET_KEY ?? '',
   })
   const body = new Uint8Array(2048).fill(7)
+  const stored = async (key: string) =>
+    (await fetch(storage.presignDownload(key))).status === 200
 
   it('creates the bucket twice without error, uploads, finds and serves', async () => {
     await storage.ensureBucket()
     await storage.ensureBucket()
-    const key = audioKey('att', 'q', 'audio/webm')
-    expect(await storage.exists(key)).toBe(false)
+    const key = audioKey('att', 'q', 'audio/webm', 'n')
+    expect(await stored(key)).toBe(false)
     const upload = storage.presignUpload(key, 'audio/webm', body.length)
     const put = await fetch(upload.url, {
       method: 'PUT',
@@ -72,14 +89,14 @@ describe.skipIf(!live)('ObjectStorage against a real MinIO', () => {
       body,
     })
     expect(put.status).toBe(200)
-    expect(await storage.exists(key)).toBe(true)
+    expect(await stored(key)).toBe(true)
     const get = await fetch(storage.presignDownload(key))
     expect(get.status).toBe(200)
     expect(new Uint8Array(await get.arrayBuffer())).toEqual(body)
   })
 
   it('refuses an upload bigger than the declared size or of another type', async () => {
-    const key = audioKey('att2', 'q', 'audio/webm')
+    const key = audioKey('att2', 'q', 'audio/webm', 'n')
     const upload = storage.presignUpload(key, 'audio/webm', 10)
     const big = await fetch(upload.url, {
       method: 'PUT',
@@ -93,7 +110,29 @@ describe.skipIf(!live)('ObjectStorage against a real MinIO', () => {
       body: new Uint8Array(10),
     })
     expect(wrongType.status).toBe(403)
-    expect(await storage.exists(key)).toBe(false)
+    expect(await stored(key)).toBe(false)
+  })
+
+  it('copies an uploaded object, and reports a missing one', async () => {
+    await storage.ensureBucket()
+    const key = audioKey('att3', 'q', 'audio/webm', 'n')
+    const upload = storage.presignUpload(key, 'audio/webm', body.length)
+    await fetch(upload.url, { method: 'PUT', headers: upload.headers, body })
+    const frozen = submittedKey(key)
+    expect(await storage.copy(key, frozen)).toBe(true)
+    const get = await fetch(storage.presignDownload(frozen))
+    expect(new Uint8Array(await get.arrayBuffer())).toEqual(body)
+    // A later upload to the old url changes the source, never the copy.
+    const again = storage.presignUpload(key, 'audio/webm', 4)
+    await fetch(again.url, {
+      method: 'PUT',
+      headers: again.headers,
+      body: new Uint8Array(4),
+    })
+    const still = await fetch(storage.presignDownload(frozen))
+    expect(new Uint8Array(await still.arrayBuffer())).toEqual(body)
+    const gone = audioKey('att3', 'q', 'audio/webm', 'never')
+    expect(await storage.copy(gone, submittedKey(gone))).toBe(false)
   })
 
   it('refuses an expired url', async () => {
