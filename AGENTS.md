@@ -1,66 +1,48 @@
-# Tilchi: agent instructions (ECC-adapted)
+# Tilchi — agent rules
 
-Greenfield rewrite of https://github.com/xam1dullo/tilchi. Product and stack contract: `BUILD-BRIEF-v1.md`. Decisions: `docs/adr/` (0010 is the runtime). Tree tour: `docs/ONBOARDING.md`.
+These rules apply to every agent and model (Claude, Codex, Gemini/Antigravity, Grok, Cursor, others) and to humans. This file is always loaded. Everything else is loaded only when a task needs it (see "Read on demand").
 
-Never merge to `main`, never deploy production, never commit a secret. The owner does all three.
+Tilchi: online English lessons in Uzbekistan. Monorepo: `apps/api` (NestJS + Drizzle + Postgres + Redis), `apps/web` (TanStack Start), `packages/content` (copy data). Product copy is Uzbek first (plus ru, en). Code, commits, PRs and docs are English.
 
-## Roster
+## Hard rules
 
-| Role | Who | Does |
-|------|-----|------|
-| PM / adviser | Grok Bot | Decisions, briefs, conflict synthesis. Asks the owner only when blocked |
-| Scaffold | Cursor Auto (cloud) | Phase 1 scaffold ([#25](https://github.com/xam1dullo/tilchi/pull/25), merged) |
-| Architecture | Claude Opus 5.5 high | ADRs, security hardening, structural gaps (infra, deploy, boundaries) |
-| Executor | Claude Sonnet 5.5 max (+ AGY) | Nest / Start / Docker / CI vertical slices |
-| Small tasks | Claude Haiku 5.5 | Typos, doc sync, `.env.example`, one-line CI |
-| Review | Fable | SHIP / SHIP WITH NOTES / BLOCK (security + architecture) |
+1. **One checkout.** Work only in this repository checkout. Never run `git worktree`, never clone the repo elsewhere.
+2. **Code lives in the repo.** Never write product code, tests or docs under `/tmp`, `/private`, `/var/folders` or any path outside this repository. Throwaway test containers are fine; their data is not code.
+3. **One feature at a time.** Before starting new work, run `gh pr list --repo xam1dullo/tilchi --state open`. If an open PR exists, finish it (review fixes included) before starting anything else.
+4. **Branch from fresh `main`.** `git switch main && git pull --ff-only && git switch -c <type>/<slug>` (`feat`, `fix`, `docs`, `refactor`, `test`, `chore`). Never commit to `main`. Never force-push `main`.
+5. **Draft first.** Every PR opens as a draft. It is marked ready only when both reviewers report no BLOCK **and** every fix commit is pushed. Agents never merge; the owner merges.
+6. **Writer ≠ reviewer.** The agent that wrote a change never reviews it. A reviewer never edits code.
+7. **No secrets.** Never commit, print or paste `.env*`, tokens, keys or database dumps.
+8. **No production changes without the owner.** Deploys, production migrations, secrets, DNS and webhook changes need the owner's explicit "yes" in the current conversation.
+9. **Prove it.** Every behavior change ships with a test that fails without it, and the gates below pass locally before the PR is opened.
 
-At most 5 active implementers or reviewers per collision domain. Run in parallel only on non-overlapping paths. If two agents produce conflicting scaffolds, the PM picks one. Do not merge both.
-
-## Pipeline
-
-1. **Plan** (PM, or the assignee for multi-file work): files to touch, the test that proves it, and the ADR the change affects.
-2. **Implement, TDD-lean.** Write the failing test first for Nest services, auth, guards, and policy. UI gets smoke tests later.
-3. **Review** by Fable. BLOCK stops the PR.
-4. **Record.** A decision change updates `docs/adr` or `BUILD-BRIEF-v1.md` in the same PR.
-5. **PR** against `main`, conventional title. No merge without the owner.
-
-PR gate: `lint + typecheck + unit` and the compose config checks (`.github/workflows/pr-ci.yml`). There is no 80% coverage or e2e mandate, and no coverage theater.
-
-## Workspace
-
-- **No git worktrees.** Do not create or use `git worktree`. Work only in the single checkout of this repository.
-- **Code stays in the repo tree.** Write product and source only inside the repository working tree. Do not put app code under `/tmp`, `/private`, or other scratch paths outside the repo.
-- **One feature at a time.** Across agents, only one feature or slice may be in active implementation. Finish or park it before starting another.
-
-## Commands
+## Gates (run from the repo root)
 
 ```bash
-pnpm install && pnpm --filter @tilchi/web routes
-pnpm lint && pnpm typecheck && pnpm test && pnpm contrast
-docker compose config --quiet
-cp .env.example .env && docker compose up --build   # http://localhost
+pnpm install --frozen-lockfile
+pnpm lint          # 0 errors
+pnpm typecheck
+pnpm test          # API DB tests need TEST_DATABASE_URL / TEST_REDIS_URL — docs/agents/testing.md
+pnpm build
+pnpm contrast      # when CSS or tokens change
 ```
 
-## Security must-not-repeat
+## Read on demand (progressive disclosure)
 
-1. **Webhook:** `/bot/webhook` requires `X-Telegram-Bot-Api-Secret-Token` when `TELEGRAM_WEBHOOK_SECRET` is set, and is refused in production when it is unset. The API also will not boot in production without it. No IP-range bypass.
-2. **Deploy:** only `workflow_dispatch` plus `environment: production` with reviewers. No migrate or deploy on a bare `main` push. The job is held.
-3. **Session:** the HttpOnly `__Host-tilchi_sid` cookie only, set by Nest. Never a bearer token, never localStorage or sessionStorage. A handoff mints a cookie only after the bot confirms it.
-4. **Health:** `{ ok, service }` only. No `hasBotToken`/`hasDb`-style flags.
-5. **Meet / remote:** a short-lived, single-purpose ticket. Never send the session token to peers. Browsers never hold LiveKit API keys.
+Open only the files your task needs.
 
-Also: parameterized SQL only (Drizzle), validate input at the controller boundary, rate-limit on `req.ip` (never parse `X-Forwarded-For` yourself), and log variable names, never secret values.
+| Read this | When |
+| --- | --- |
+| `docs/agents/workflow.md` | Before starting any change: the 11-step lifecycle and its exit criteria |
+| `docs/agents/roles.md` | When you are given a role, or assign work to other agents |
+| `docs/agents/review.md` | When you review a PR |
+| `docs/agents/testing.md` | Before writing tests or running quality gates |
+| `docs/agents/security.md` | When touching auth, sessions, the bot, AI, storage, uploads or personal data |
+| `docs/agents/architecture.md` | When adding a module, route, table, event or config value |
+| `apps/api/AGENTS.md` | When working under `apps/api` |
+| `apps/web/AGENTS.md` | When working under `apps/web` |
+| `docs/prd/v1.md` | For product scope: search the relevant section, don't read it whole |
+| `docs/adr/` | For past decisions: read the ADR your task names |
+| `design.md` | For UI: tokens, type and copy style |
 
-## Code conventions
-
-- Immutability-friendly TypeScript. Files are small and focused, typically 200–400 lines, hard cap about 800.
-- Nest DI: inject with `@Inject(Service)`. `import type` erases the class from decorator metadata and the app will not boot. `src/app.module.test.ts` catches this.
-- nginx: every `proxy_set_header` lives in `docker/nginx/locations.conf`. A location that sets its own header drops all inherited ones.
-- Commits: `feat|fix|refactor|docs|test|chore|perf|ci: …`, one logical change each.
-- Context hygiene: do not start a big refactor in the last ~20% of a context window. Hand off or open a fresh agent.
-- Short conventions in `.cursor/rules/tilchi.mdc` and `.cursor/skills/ub-mode/SKILL.md` (poteto-mode, ub-mode) still apply.
-
-## Not adopted from ECC
-
-The interactive agent picker, the full agent catalog, ECC personas, and mandatory 80% coverage with e2e. Map ECC roles onto the five above.
+If two documents disagree: this file wins, then `docs/agents/*`, then the app `AGENTS.md`, then the PRD.

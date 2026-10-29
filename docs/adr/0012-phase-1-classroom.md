@@ -1,4 +1,4 @@
-# 0011. Phase 1 classroom loop
+# 0012. Phase 1 classroom loop
 
 Date: 2026-10-28
 Status: accepted

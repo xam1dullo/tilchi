@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "deny": [
+      "Bash(git worktree:*)",
+      "Write(//tmp/**)",
+      "Edit(//tmp/**)",
+      "Write(//private/**)",
+      "Edit(//private/**)",
+      "Write(//var/folders/**)",
+      "Edit(//var/folders/**)"
+    ]
+  }
+}
