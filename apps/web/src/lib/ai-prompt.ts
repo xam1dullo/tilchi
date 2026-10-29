@@ -31,7 +31,8 @@ const PII_PATTERNS: RegExp[] = [
 // (stray ", word-final ' in tog', '90s), so no other quote ever hides a
 // phrase; a phrase in the middle of a quote is refused (fails closed). A
 // closing ' or ’ must not be followed by a letter, so contractions
-// ('my name's Ali') stay inside, except a short Uzbek suffix ('…'ni).
+// ('my name's Ali') stay inside. No Uzbek suffix after it: '…'ni cannot be
+// told apart from ko'cha, so it is refused.
 const CLOSERS: Record<string, string> = {
   "'": "'",
   '‘': '’',
@@ -41,10 +42,6 @@ const CLOSERS: Record<string, string> = {
   '«': '»',
 }
 const OPENS_HERE = /(?<![\p{L}\p{N}])(['‘"“„«])[ \t]*$/u
-// One suffix only: chains read ko'chada as a closer, and an unbounded chain
-// backtracks exponentially (gacha = ga+cha).
-const SUFFIX =
-  '(?:ni|ga|da|dan|ning|dagi|dir|lar|mi|cha|gacha|dek|day|lik|siz|ku|chi)?'
 // A quoted example is one clause: a sentence end, a line break or a , ; :
 // before the closer means the quote does not cover the phrase.
 const SENTENCE_END =
@@ -55,7 +52,7 @@ function quotedExampleAt(text: string, at: number): boolean {
   if (!open) return false
   const close = CLOSERS[open]
   const closing = new RegExp(
-    open === "'" || open === '‘' ? `${close}${SUFFIX}(?!\\p{L})` : close,
+    open === "'" || open === '‘' ? `${close}(?!\\p{L})` : close,
     'iu',
   ).exec(text.slice(at))
   return (
@@ -66,10 +63,11 @@ function quotedExampleAt(text: string, at: number): boolean {
 // Every apostrophe an Uzbek keyboard produces; NFKC turns ´ into a space
 // plus U+0301.
 const APOSTROPHE = "(?:['’ʼʻ‘`]|\\u0301)"
-// Invisible format characters (zero-width space, soft hyphen, word joiner…)
+// Invisible characters (default-ignorables such as zero-width space, soft
+// hyphen, joiners, variation selectors, plus the Braille blank)
 // may sit between any two letters or words of a phrase.
-const HIDDEN = '\\p{Cf}*'
-const GAP = '[\\s\\p{Cf}]*'
+const HIDDEN = '[\\p{DI}\\u2800]*'
+const GAP = '[\\s\\p{DI}\\u2800]*'
 const word = (w: string) => [...w].join(HIDDEN)
 const words = (...ws: string[]) => ws.map(word).join(GAP)
 // A full phrase, any spacing or case, ending at a word boundary, then any
