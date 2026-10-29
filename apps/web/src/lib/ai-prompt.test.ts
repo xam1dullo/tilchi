@@ -115,6 +115,18 @@ describe('cleanQuestion', () => {
       // the closing quote. Taking the longest quote instead would let
       // "'a' my name is Ali, it's 'b'" through.
       "Explain 'the students' books; my name is Ali' in Uzbek.",
+      // Fails closed on purpose: only a quote that opens right before the
+      // phrase hides it.
+      'Translate ‘my name’s Ali and my name is Bob’ into Uzbek.',
+      `Translate "${'Please '.repeat(18)}my name is Ali" into Uzbek.`,
+      "'gonna'ni tushuntiring, mening ismim Ali, uyim tog' yonida",
+      '‘gonna’ni tushuntiring, mening ismim Ali, uyim tog’ yonida',
+      "I was born in the '90s and my name is Ali, at my parents' house",
+      "Tell 'em my name is Ali, it's my friends' idea",
+      'My TV is 55" wide, "gonna" means going to, my name is Ali, and "wanna"?',
+      'Explain "gonna, "wanna" - my name is Ali - and "gotta"',
+      '"my name is Ali',
+      "'my name is Ali. Hi'",
       'My name is → Ali',
       'my name is 😊 Ali',
       'my name is\u200bAli',
@@ -144,10 +156,11 @@ describe('cleanQuestion', () => {
       'I am confused. Explain articles.',
       'I am learning. Explain gerunds.',
       'Explain “my name is” in a sentence',
-      'Translate ‘my name’s Ali and my name is Bob’ into Uzbek.',
       "'my name is Ali'ni tarjima qiling",
       '‘my name is Ali’ni tarjima qiling',
-      `Translate "${'Please '.repeat(18)}my name is Ali" into Uzbek.`,
+      "'my name is Ali'mi?",
+      '„my name is Ali“ tarjimasi',
+      '«меня зовут Али» — что это?',
     ]) {
       expect(mentionsOwnName(q), q).toBe(false)
     }
