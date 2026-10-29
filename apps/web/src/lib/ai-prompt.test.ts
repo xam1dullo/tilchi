@@ -109,6 +109,8 @@ describe('cleanQuestion', () => {
       'Explain “gonna". My name is Ali. And "wanna”',
       'my name is + Ali',
       'My name is = Ali',
+      `my name is${' '.repeat(40)}Ali`,
+      'my name is 1. Ali',
       // Fails closed on purpose: a plural possessive inside a quote reads as
       // the closing quote. Taking the longest quote instead would let
       // "'a' my name is Ali, it's 'b'" through.
@@ -145,6 +147,7 @@ describe('cleanQuestion', () => {
       'Translate ‘my name’s Ali and my name is Bob’ into Uzbek.',
       "'my name is Ali'ni tarjima qiling",
       '‘my name is Ali’ni tarjima qiling',
+      `Translate "${'Please '.repeat(18)}my name is Ali" into Uzbek.`,
     ]) {
       expect(mentionsOwnName(q), q).toBe(false)
     }

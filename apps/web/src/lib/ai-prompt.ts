@@ -26,15 +26,14 @@ const PII_PATTERNS: RegExp[] = [
 // (PRD Compliance): this is a guard, not a guarantee — a name typed without
 // such a phrase still reaches the model; consent and the UI warning cover it.
 // Quoted examples are ignored: a phrase that starts inside "…", “…”, «…», ‘…’
-// or '…' does not count. A quote never spans a sentence end or a newline and
-// is at most 120 characters, so a stray or unbalanced quote cannot hide a
-// later sentence. Single quotes (' and ‘…’) open and close only outside words,
+// or '…' does not count. A quote never spans a sentence end or a newline,
+// so a stray or unbalanced quote cannot hide a later sentence. Single quotes (' and ‘…’) open and close only outside words,
 // may contain contractions ('my name's Ali') and may close before an Uzbek
 // suffix ('my name is Ali'ni). The text itself is not changed, so a quoted
 // name after an unquoted phrase is still caught.
 const SUFFIX = '(?:ni|ga|da|dan|ning|dagi|dir|lar)?'
 const quoteBody = (close: string, contractions: boolean) =>
-  `(?:(?![.?!…]\\s|\\n)(?:[^${close}]${contractions ? `|(?<=\\p{L})${close}(?=\\p{L})` : ''})){0,120}`
+  `(?:(?![.?!…]\\s|\\n)(?:[^${close}]${contractions ? `|(?<=\\p{L})${close}(?=\\p{L})` : ''}))*`
 const QUOTED = new RegExp(
   [
     `"${quoteBody('"', false)}"`,
@@ -46,11 +45,11 @@ const QUOTED = new RegExp(
   'gu',
 )
 const APOSTROPHE = "['’ʼ]"
-// A full phrase, any spacing or case, ending at a word boundary, then up to 8
-// non-letters (spaces, punctuation, symbols, emoji), then a letter (the name).
+// A full phrase, any spacing or case, ending at a word boundary, then any
+// non-letters (spaces, digits, punctuation, symbols, emoji), then a letter (the name).
 // The name part is a lookahead so a match never swallows the next phrase.
 const NAME_PHRASE = new RegExp(
-  `(?<![\\p{L}])(?:my\\s+name(?:\\s*${APOSTROPHE}\\s*s|\\s+is)|mening\\s+ismim|ismim|менинг\\s+исмим|исмим|меня\\s+зовут|мо[её]\\s+имя)(?![\\p{L}])(?=[^\\p{L}\\p{N}]{0,8}\\p{L})`,
+  `(?<![\\p{L}])(?:my\\s+name(?:\\s*${APOSTROPHE}\\s*s|\\s+is)|mening\\s+ismim|ismim|менинг\\s+исмим|исмим|меня\\s+зовут|мо[её]\\s+имя)(?![\\p{L}])(?=\\P{L}*\\p{L})`,
   'giu',
 )
 
