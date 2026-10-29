@@ -14,3 +14,6 @@ public/static/
 coverage/
 .deployed-sha
 .previous-sha
+
+.claude/worktrees/
+.metrics/

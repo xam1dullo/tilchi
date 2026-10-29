@@ -8,14 +8,14 @@ Answers issue [#9](https://github.com/xam1dullo/tilchi/issues/9). Verified again
 
 ## TL;DR
 
-| Candidate | Verdict | One-line reason |
-|---|---|---|
-| `@next/mdx` | **Runner-up** | Official, zero runtime cost, works under Turbopack + static export — but no typed frontmatter (DIY parsing + DIY types) |
-| `next-mdx-remote` | **Eliminate** | **Archived 2026-02** — README: "This project is archived and is no longer supported" |
-| `fumadocs-mdx` | Third | Typed frontmatter, very active — but drags in `fumadocs-core` (docs-framework core) and is ESM-only config |
-| `velite` | **Recommended** | Typed zod frontmatter, build-time data, zero runtime cost, Turbopack-compatible integration, active |
-| `content-collections` | Fourth | Active and solid for `.md`, but the MDX layer (`@content-collections/mdx`, mdx-bundler) is the stale 0.2.x line |
-| `contentlayer` | **Eliminate** | **Confirmed abandoned** — last release 2023-06-29, maintainer's own README: "no longer maintained due to lack of funding" |
+| Candidate             | Verdict         | One-line reason                                                                                                           |
+| --------------------- | --------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `@next/mdx`           | **Runner-up**   | Official, zero runtime cost, works under Turbopack + static export — but no typed frontmatter (DIY parsing + DIY types)   |
+| `next-mdx-remote`     | **Eliminate**   | **Archived 2026-02** — README: "This project is archived and is no longer supported"                                      |
+| `fumadocs-mdx`        | Third           | Typed frontmatter, very active — but drags in `fumadocs-core` (docs-framework core) and is ESM-only config                |
+| `velite`              | **Recommended** | Typed zod frontmatter, build-time data, zero runtime cost, Turbopack-compatible integration, active                       |
+| `content-collections` | Fourth          | Active and solid for `.md`, but the MDX layer (`@content-collections/mdx`, mdx-bundler) is the stale 0.2.x line           |
+| `contentlayer`        | **Eliminate**   | **Confirmed abandoned** — last release 2023-06-29, maintainer's own README: "no longer maintained due to lack of funding" |
 
 **Recommendation: velite** — details and exact install commands in the [final section](#recommendation-for-tilchiuz).
 
@@ -88,7 +88,7 @@ Answers issue [#9](https://github.com/xam1dullo/tilchi/issues/9). Verified again
 
 **Static export + Turbopack:** compatible — the current Next adapter is not a webpack loader at all: `withContentCollections(config)` runs the builder (generating `.content-collections/generated`) and returns the config unchanged ([packages/next/src/index.ts](https://github.com/sdorra/content-collections/blob/main/packages/next/src/index.ts)), so it's bundler-agnostic. Config surface: `content-collections.ts` + tsconfig path alias + the wrapper "must be the last plugin in the chain" (it returns a Promise).
 
-**The catch for an MDX site:** content-collections parses frontmatter + content into *data*; MDX compilation is a separate layer. The official MDX integration is `@content-collections/mdx@0.2.2` — the **stale** line (last modified 2025-03-10, built on `mdx-bundler@10`). So the data layer is active and the MDX layer is the least-maintained piece — backwards from what an MDX-first blog needs. Fine choice for a `.md`/data site; awkward for tilchi.
+**The catch for an MDX site:** content-collections parses frontmatter + content into _data_; MDX compilation is a separate layer. The official MDX integration is `@content-collections/mdx@0.2.2` — the **stale** line (last modified 2025-03-10, built on `mdx-bundler@10`). So the data layer is active and the MDX layer is the least-maintained piece — backwards from what an MDX-first blog needs. Fine choice for a `.md`/data site; awkward for tilchi.
 
 ## Candidate 6 — `contentlayer` — ABANDONMENT CONFIRMED
 
@@ -104,24 +104,24 @@ Answers issue [#9](https://github.com/xam1dullo/tilchi/issues/9). Verified again
 
 ## Comparison matrix (all verified 2026-08-01)
 
-| Criterion | `@next/mdx` | `next-mdx-remote` | `fumadocs-mdx` | `velite` | `content-collections` | `contentlayer` |
-|---|---|---|---|---|---|---|
-| Latest release | 16.2.12 (2026-07-25) | 6.0.0 (2026-02-12) | 15.2.1 (2026-07-30) | 0.4.0 (2026-06-19) | core 0.15.2 (2026-06-16); legacy 0.2.1 (2025-07-10) | 0.3.4 (2023-06-29) |
-| Maintained | ✅ first-party | ❌ **archived** (2026-02-27) | ✅ very active | ✅ active | ✅ core; ⚠️ mdx layer stale | ❌ **no longer maintained** (README) |
-| Works under `output: 'export'` | ✅ (inferred + community) | — | ✅ (community) | ✅ | ✅ | n/a (dead) |
-| Turbopack (Next 16 default) | ✅ (strings only) | ❌ (workaround req.) | ✅ (source-verified) | ✅ (docs' current path) | ✅ (prebuild, no loader) | ❌ |
-| Typed frontmatter | ❌ none (DIY) | ❌ none | ✅ zod | ✅ zod | ✅ zod | ✅ (was its selling point) |
-| Syntax highlight cost | build-time (rehype) | runtime hydrate | build-time | build-time (`@shikijs/rehype`) | build-time | build-time |
-| Config added | pageExtensions + wrapper + mandatory `mdx-components.tsx` + DIY frontmatter | serialize/hydrate plumbing | next config + collection defs + fumadocs-core loader | one `velite.config.ts` + next.config hook | `content-collections.ts` + tsconfig alias + wrapper | config DSL + CLI |
-| Deps installed | 4 small official | 1 (dead) | fumadocs-mdx + fumadocs-core + types | velite (heavy: sharp/esbuild/terser) | core + next adapter + zod (+ stale mdx pkg) | 1 (dead) |
-| Runtime/bundle cost | zero | client hydration | zero | zero | zero | zero |
-| Weekly downloads | ~1.02M | ~940K | ~1.03M | ~78K | ~2.4K (legacy) | ~21K |
+| Criterion                      | `@next/mdx`                                                                 | `next-mdx-remote`            | `fumadocs-mdx`                                       | `velite`                                  | `content-collections`                               | `contentlayer`                       |
+| ------------------------------ | --------------------------------------------------------------------------- | ---------------------------- | ---------------------------------------------------- | ----------------------------------------- | --------------------------------------------------- | ------------------------------------ |
+| Latest release                 | 16.2.12 (2026-07-25)                                                        | 6.0.0 (2026-02-12)           | 15.2.1 (2026-07-30)                                  | 0.4.0 (2026-06-19)                        | core 0.15.2 (2026-06-16); legacy 0.2.1 (2025-07-10) | 0.3.4 (2023-06-29)                   |
+| Maintained                     | ✅ first-party                                                              | ❌ **archived** (2026-02-27) | ✅ very active                                       | ✅ active                                 | ✅ core; ⚠️ mdx layer stale                         | ❌ **no longer maintained** (README) |
+| Works under `output: 'export'` | ✅ (inferred + community)                                                   | —                            | ✅ (community)                                       | ✅                                        | ✅                                                  | n/a (dead)                           |
+| Turbopack (Next 16 default)    | ✅ (strings only)                                                           | ❌ (workaround req.)         | ✅ (source-verified)                                 | ✅ (docs' current path)                   | ✅ (prebuild, no loader)                            | ❌                                   |
+| Typed frontmatter              | ❌ none (DIY)                                                               | ❌ none                      | ✅ zod                                               | ✅ zod                                    | ✅ zod                                              | ✅ (was its selling point)           |
+| Syntax highlight cost          | build-time (rehype)                                                         | runtime hydrate              | build-time                                           | build-time (`@shikijs/rehype`)            | build-time                                          | build-time                           |
+| Config added                   | pageExtensions + wrapper + mandatory `mdx-components.tsx` + DIY frontmatter | serialize/hydrate plumbing   | next config + collection defs + fumadocs-core loader | one `velite.config.ts` + next.config hook | `content-collections.ts` + tsconfig alias + wrapper | config DSL + CLI                     |
+| Deps installed                 | 4 small official                                                            | 1 (dead)                     | fumadocs-mdx + fumadocs-core + types                 | velite (heavy: sharp/esbuild/terser)      | core + next adapter + zod (+ stale mdx pkg)         | 1 (dead)                             |
+| Runtime/bundle cost            | zero                                                                        | client hydration             | zero                                                 | zero                                      | zero                                                | zero                                 |
+| Weekly downloads               | ~1.02M                                                                      | ~940K                        | ~1.03M                                               | ~78K                                      | ~2.4K (legacy)                                      | ~21K                                 |
 
 ---
 
 ## Recommendation for tilchi.uz
 
-**Use `velite`** — typed, build-time-validated content with MDX support, for one config file and one dependency, under a Turbopack-default static export. It's the only candidate that is simultaneously: actively maintained, static-export-safe, Turbopack-safe, typed-frontmatter-first, and lean in *configuration* — at the cost of a heavier npm install and pre-1.0 versioning.
+**Use `velite`** — typed, build-time-validated content with MDX support, for one config file and one dependency, under a Turbopack-default static export. It's the only candidate that is simultaneously: actively maintained, static-export-safe, Turbopack-safe, typed-frontmatter-first, and lean in _configuration_ — at the cost of a heavier npm install and pre-1.0 versioning.
 
 ### What it costs
 
