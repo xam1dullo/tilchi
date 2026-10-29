@@ -31,6 +31,10 @@ const EXPLICIT_INTRO = new RegExp(
   `(?<![\\p{L}])((?:my name is|my name's|my name’s|call me|mening ismim|ismim|меня зовут|мо[её] имя)\\s+)${NOT_LEVEL}${WORD}(?:\\s+${NOT_JOIN}${NOT_LEVEL}${WORD})?`,
   'giu',
 )
+// After a redaction, any further capitalised words are more of the name
+// ("Ali Valiyev Karimovich"). Case-sensitive on purpose.
+const NAME_TAIL = /\[name\](?:\s+\p{Lu}[\p{L}'’-]*)+/gu
+
 // "I am" / "Men" / "Я" also start ordinary sentences, so only capitalised
 // words count there ("I am confused" and "Men ingliz…" are kept).
 const IMPLICIT_INTRO = new RegExp(
@@ -43,7 +47,8 @@ export function stripPii(text: string): string {
     (out, re) => out.replace(re, REMOVED),
     text
       .replace(EXPLICIT_INTRO, '$1[name]')
-      .replace(IMPLICIT_INTRO, '$1[name]'),
+      .replace(IMPLICIT_INTRO, '$1[name]')
+      .replace(NAME_TAIL, '[name]'),
   )
 }
 

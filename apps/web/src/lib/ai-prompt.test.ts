@@ -124,6 +124,9 @@ describe('cleanQuestion', () => {
     expect(cleanQuestion('Моё имя Али, помогите')).toBe(
       'Моё имя [name], помогите',
     )
+    expect(
+      cleanQuestion('My name is Ali Valiyev Karimovich, explain articles'),
+    ).toBe('My name is [name], explain articles')
     expect(cleanQuestion('call me Bek, explain articles')).toBe(
       'call me [name], explain articles',
     )
