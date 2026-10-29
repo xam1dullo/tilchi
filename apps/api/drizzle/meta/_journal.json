@@ -29,6 +29,13 @@
       "when": 1793208775315,
       "tag": "0003_backfill_lesson_reminders",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1793295175315,
+      "tag": "0004_courses",
+      "breakpoints": true
     }
   ]
 }

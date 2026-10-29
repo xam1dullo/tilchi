@@ -5,6 +5,7 @@ import { AuthService } from './auth/auth.service'
 import { BotApi } from './bot/bot-api'
 import { BotController } from './bot/bot.controller'
 import { RegistrationService } from './bot/registration.service'
+import { CoursesController, CoursesService } from './courses/courses.controller'
 import { ActorGuard } from './http/actor'
 import { Database } from './db/database'
 import { DemoController } from './demo/demo.controller'
@@ -46,6 +47,7 @@ import { UsersRepository } from './users/users.repository'
     MeetController,
     LivekitWebhookController,
     NotificationsController,
+    CoursesController,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ActorGuard },
@@ -72,6 +74,7 @@ import { UsersRepository } from './users/users.repository'
     TelegramSender,
     OutboxService,
     OutboxWorker,
+    CoursesService,
   ],
 })
 export class AppModule {}

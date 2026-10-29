@@ -39,13 +39,15 @@ type Ctx = {
   target: string
   teacher: string
   notification: string
+  course: string
 }
 
 /** Expected status per caller, in the order of WHO. */
 type Row = {
   name: string
   handler: string
-  method: 'GET' | 'POST'
+  method: 'GET' | 'POST' | 'PATCH' | 'DELETE'
+  course?: boolean
   /** Lesson state the route needs; a fresh lesson is made per request. */
   lesson?: 'scheduled' | 'live'
   path: (ctx: Ctx) => string
@@ -54,6 +56,43 @@ type Row = {
 }
 
 const ROWS: Row[] = [
+  {
+    name: 'manage courses',
+    handler: 'CoursesController.manage',
+    method: 'GET',
+    path: () => '/api/courses/manage',
+    expect: [401, 403, 403, 403, 403, 200],
+  },
+  {
+    name: 'create course',
+    handler: 'CoursesController.create',
+    method: 'POST',
+    path: () => '/api/courses',
+    body: () => ({
+      title: 'Course',
+      description: 'Description',
+      segment: 'kattalar',
+      level: 'boshlovchi',
+    }),
+    expect: [401, 403, 403, 403, 403, 201],
+  },
+  {
+    name: 'update course',
+    handler: 'CoursesController.update',
+    method: 'PATCH',
+    course: true,
+    path: (c) => `/api/courses/${c.course}`,
+    body: () => ({ published: true }),
+    expect: [401, 403, 403, 403, 403, 200],
+  },
+  {
+    name: 'delete course',
+    handler: 'CoursesController.remove',
+    method: 'DELETE',
+    course: true,
+    path: (c) => `/api/courses/${c.course}`,
+    expect: [401, 403, 403, 403, 403, 200],
+  },
   {
     name: 'list groups',
     handler: 'GroupsController.list',
@@ -228,6 +267,7 @@ describe('route coverage', () => {
       'AuthController.start',
       'BotController.register',
       'BotController.webhook',
+      'CoursesController.list',
       'DemoController.preview',
       'HealthController.apiHealth',
       'HealthController.health',
@@ -333,6 +373,24 @@ describe.skipIf(!hasTestDatabase)('route x role matrix', () => {
     return mine.id
   }
 
+  async function freshCourse() {
+    const response = await fetch(`${base}/api/courses`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        cookie: '__Host-tilchi_sid=admin',
+      },
+      body: JSON.stringify({
+        title: 'Course',
+        description: 'Description',
+        segment: 'kattalar',
+        level: 'boshlovchi',
+      }),
+    })
+    expect(response.status).toBe(201)
+    return ((await response.json()) as { id: string }).id
+  }
+
   for (const row of ROWS) {
     it(row.name, async () => {
       for (const [index, who] of WHO.entries()) {
@@ -342,6 +400,7 @@ describe.skipIf(!hasTestDatabase)('route x role matrix', () => {
           target: ids.target,
           teacher: ids.owner,
           notification: await freshNotification(),
+          course: row.course ? await freshCourse() : '',
         }
         const headers: Record<string, string> = {
           'content-type': 'application/json',
