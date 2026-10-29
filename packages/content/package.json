@@ -7,7 +7,8 @@
     ".": "./src/site.ts",
     "./landing": "./src/landing.ts",
     "./seo": "./src/seo.ts",
-    "./domain/*": "./src/domain/*"
+    "./domain/*.ts": "./src/domain/*.ts",
+    "./domain/*": "./src/domain/*.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
