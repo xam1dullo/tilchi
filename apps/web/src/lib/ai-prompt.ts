@@ -40,7 +40,7 @@ const CLOSERS: Record<string, string> = {
   '„': '“',
   '«': '»',
 }
-const OPENS_HERE = /(?<![\p{L}\p{N}])(['‘"“„«])\s*$/u
+const OPENS_HERE = /(?<![\p{L}\p{N}])(['‘"“„«])[ \t]*$/u
 const SUFFIX = '(?:ni|ga|da|dan|ning|dagi|dir|lar|mi|cha|gacha)?'
 const SENTENCE_END = /[.?!…]\s|\n/
 
@@ -50,7 +50,7 @@ function quotedExampleAt(text: string, at: number): boolean {
   const close = CLOSERS[open]
   const closing = new RegExp(
     open === "'" || open === '‘' ? `${close}${SUFFIX}(?!\\p{L})` : close,
-    'u',
+    'iu',
   ).exec(text.slice(at))
   return (
     closing !== null && !SENTENCE_END.test(text.slice(at, at + closing.index))

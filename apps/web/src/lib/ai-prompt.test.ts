@@ -126,6 +126,8 @@ describe('cleanQuestion', () => {
       'My TV is 55" wide, "gonna" means going to, my name is Ali, and "wanna"?',
       'Explain "gonna, "wanna" - my name is Ali - and "gotta"',
       '"my name is Ali',
+      "'\nmy name is Ali'",
+      '“\nmy name is Ali”',
       "'my name is Ali. Hi'",
       'My name is → Ali',
       'my name is 😊 Ali',
@@ -159,6 +161,7 @@ describe('cleanQuestion', () => {
       "'my name is Ali'ni tarjima qiling",
       '‘my name is Ali’ni tarjima qiling',
       "'my name is Ali'mi?",
+      "'my name is Ali'NI tarjima",
       '„my name is Ali“ tarjimasi',
       '«меня зовут Али» — что это?',
     ]) {
