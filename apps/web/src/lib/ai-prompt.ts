@@ -62,7 +62,7 @@ function quotedExampleAt(text: string, at: number): boolean {
 
 // Every apostrophe an Uzbek keyboard produces; NFKC turns ´ into a space
 // plus U+0301.
-const APOSTROPHE = "(?:['’ʼʻ‘`]|\\u0301)"
+const APOSTROPHE = "(?:['’ʼʻ‘‛′`]|\\u0301)"
 // Invisible characters (default-ignorables such as zero-width space, soft
 // hyphen, joiners, variation selectors, plus the Braille blank)
 // may sit between any two letters or words of a phrase.

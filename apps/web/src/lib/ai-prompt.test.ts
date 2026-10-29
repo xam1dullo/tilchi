@@ -132,6 +132,8 @@ describe('cleanQuestion', () => {
       'my nameʻs Ali',
       'my name`s Ali',
       'my name´s Ali',
+      'my name‛s Ali',
+      'my name′s Ali',
       '"my name is Ali\rhow do I say "hi"',
       '"my name is Ali.How do I say "hi"',
       "'my name is Ali, men tog' tomon boraman",
