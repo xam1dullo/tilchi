@@ -1,4 +1,3 @@
-import { createHash } from 'node:crypto'
 import type { Limiter } from './ai-limit'
 import {
   MAX_OUTPUT_TOKENS,
@@ -20,7 +19,7 @@ export type TextStream = (input: {
 
 export type AskDeps = {
   config: AiConfig | null
-  /** Per session: keyed on the session cookie value only. */
+  /** Per account: keyed on userId from /auth/session (survives re-login). */
   limiter: Limiter
   /** One budget for every session together, a cap on model cost. */
   globalLimiter: Limiter
@@ -86,6 +85,22 @@ export function configFromEnv(
   return { apiKey, model: env.AI_MODEL?.trim() || 'claude-sonnet-5-5' }
 }
 
+/** Account id for the rate limit — not the session cookie (re-login must not reset). */
+async function sessionUserId(deps: AskDeps, headers: Headers) {
+  try {
+    const res = await (deps.fetchImpl ?? fetch)(
+      `${deps.apiBase}/auth/session`,
+      { headers },
+    )
+    if (!res.ok) return null
+    const body = (await res.json()) as { user?: { userId?: unknown } | null }
+    const id = body.user?.userId
+    return typeof id === 'string' && id !== '' ? id : null
+  } catch {
+    return null
+  }
+}
+
 export async function handleAsk(
   request: Request,
   lessonId: string,
@@ -98,8 +113,7 @@ export async function handleAsk(
   if (!session) return json(401, 'unauthorized')
 
   // Membership is the API's call: it answers 401/403/404 for non-members.
-  // Only the session cookie is forwarded, so the limiter key below is the
-  // same identity the API just authorized.
+  // Only the session cookie is forwarded to the API.
   const headers = new Headers({ cookie: `${SESSION_COOKIE}=${session}` })
   const preview = request.headers.get(PREVIEW_HEADER)
   if (preview) headers.set(PREVIEW_HEADER, preview)
@@ -132,14 +146,16 @@ export async function handleAsk(
   if (!question) return json(400, 'invalid_question')
   if (mentionsOwnName(question)) return json(422, 'personal_info')
 
-  const key = createHash('sha256').update(session).digest('hex')
-  // Check the session first without recording, then spend the global budget,
-  // then the session's: a global outage never burns a learner's own budget,
-  // and an already-limited session never drains the shared one.
+  const userId = await sessionUserId(deps, headers)
+  if (!userId) return json(502, 'upstream_unavailable')
+
+  // Check the account first without recording, then spend the global budget,
+  // then the account's: a global outage never burns a learner's own budget,
+  // and an already-limited account never drains the shared one.
   const wait =
-    deps.limiter.check(key) ||
+    deps.limiter.check(userId) ||
     deps.globalLimiter.hit('all') ||
-    deps.limiter.hit(key)
+    deps.limiter.hit(userId)
   if (wait > 0) return json(429, 'rate_limited', { 'retry-after': `${wait}` })
 
   const prompt = buildPrompt(context, question)

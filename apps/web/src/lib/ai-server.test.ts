@@ -1,4 +1,3 @@
-import { createHash } from 'node:crypto'
 import { describe, expect, it } from 'vitest'
 import { createLimiter } from './ai-limit'
 import {
@@ -8,7 +7,6 @@ import {
   handleAsk,
 } from './ai-server'
 
-const sha = (v: string) => createHash('sha256').update(v).digest('hex')
 const tok = (c: string) => c.repeat(43)
 const A = tok('a')
 
@@ -26,7 +24,15 @@ function setup(over: Partial<AskDeps> = {}) {
     globalLimiter: createLimiter(100, 1000, () => 0),
     apiBase: 'http://api',
     fetchImpl: async (url, init) => {
-      calls.push({ url: String(url), headers: new Headers(init?.headers) })
+      const headers = new Headers(init?.headers)
+      calls.push({ url: String(url), headers })
+      if (String(url).endsWith('/auth/session')) {
+        const raw = headers.get('cookie') ?? ''
+        const sid = /(?:^|;\s*)__Host-tilchi_sid=([^;]*)/.exec(raw)?.[1]
+        // One stable account per session token character prefix (tok repeats one char).
+        const userId = sid ? `user-${sid[0]}` : null
+        return Response.json({ user: userId ? { userId, role: 'learner', name: 'T' } : null })
+      }
       return Response.json(lessonBody)
     },
     stream: async function* (input) {
@@ -65,6 +71,18 @@ describe('handleAsk', () => {
     const { ask, calls } = setup()
     expect((await ask(undefined, {})).status).toBe(401)
     expect(calls).toHaveLength(0)
+  })
+
+  it('is 502 when /auth/session does not yield a userId', async () => {
+    const { ask } = setup({
+      fetchImpl: async (url, init) => {
+        if (String(url).endsWith('/auth/session')) {
+          return Response.json({ user: null })
+        }
+        return Response.json(lessonBody)
+      },
+    })
+    expect((await ask()).status).toBe(502)
   })
 
   it.each([401, 403, 404])(
@@ -134,7 +152,7 @@ describe('handleAsk', () => {
     expect(prompts[0]).toMatchObject({ model: 'm', maxTokens: 600 })
   })
 
-  it('rate limits per session with Retry-After, and other sessions are free', async () => {
+  it('rate limits per account with Retry-After, and other accounts are free', async () => {
     const { ask } = setup()
     expect((await ask()).status).toBe(200)
     expect((await ask()).status).toBe(200)
@@ -147,7 +165,29 @@ describe('handleAsk', () => {
     ).toBe(200)
   })
 
-  it('keys the budget on the session cookie only, not on other cookies', async () => {
+  it('keys the budget on the account: re-login with a new session still shares it', async () => {
+    const { ask } = setup({
+      fetchImpl: async (url) => {
+        if (String(url).endsWith('/auth/session')) {
+          return Response.json({
+            user: { userId: 'same-user', role: 'learner', name: 'T' },
+          })
+        }
+        return Response.json(lessonBody)
+      },
+    })
+    expect((await ask(undefined, { cookie: `__Host-tilchi_sid=${tok('a')}` })).status).toBe(
+      200,
+    )
+    expect((await ask(undefined, { cookie: `__Host-tilchi_sid=${tok('b')}` })).status).toBe(
+      200,
+    )
+    expect((await ask(undefined, { cookie: `__Host-tilchi_sid=${tok('c')}` })).status).toBe(
+      429,
+    )
+  })
+
+  it('does not reset the budget when only junk cookies change', async () => {
     const { ask } = setup()
     for (const junk of ['x=1', 'x=2']) {
       const cookie = `${junk}; __Host-tilchi_sid=${A}`
@@ -173,7 +213,7 @@ describe('handleAsk', () => {
     expect(calls).toHaveLength(0)
   })
 
-  it('does not spend a session budget while the global budget is exhausted', async () => {
+  it('does not spend an account budget while the global budget is exhausted', async () => {
     let global = 1
     const globalLimiter = {
       check: () => (global > 0 ? 0 : 60),
