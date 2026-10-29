@@ -1,7 +1,19 @@
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
+import { existsSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import { LandingPage } from './components/landing/landing'
+
+it('resolves content domain exports to existing files', () => {
+  for (const name of ['demo', 'demo.ts']) {
+    expect(
+      existsSync(
+        fileURLToPath(import.meta.resolve(`@tilchi/content/domain/${name}`)),
+      ),
+    ).toBe(true)
+  }
+})
 
 it('uses the configured bot on all landing links and hides them if unavailable', () => {
   const configured = renderToStaticMarkup(
