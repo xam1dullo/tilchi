@@ -158,6 +158,13 @@ describe('cleanQuestion', () => {
       'is\ufe0fmim Ali',
       'my name\u17b4is Ali',
       'my\u180bname is Ali',
+      'is\u3164mim Ali',
+      'is\u2800mim Ali',
+      'is\uffa0mim Ali',
+      'my na\u3164me is Ali',
+      'is\ufff9mim Ali',
+      'my na\ufffbme is Ali',
+      'is\u0600mim Ali',
       // Fails closed on purpose: a suffix after the closer reads like ko'cha.
       "'my name is Ali'ni tarjima qiling",
       '‘my name is Ali’ni tarjima qiling',

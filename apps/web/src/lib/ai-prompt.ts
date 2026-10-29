@@ -64,10 +64,11 @@ function quotedExampleAt(text: string, at: number): boolean {
 // plus U+0301.
 const APOSTROPHE = "(?:['’ʼʻ‘‛′`]|\\u0301)"
 // Invisible characters (default-ignorables such as zero-width space, soft
-// hyphen, joiners, variation selectors, plus the Braille blank)
+// hyphen, joiners, variation selectors, other format characters; blank
+// fillers are turned into a zero-width space first)
 // may sit between any two letters or words of a phrase.
-const HIDDEN = '[\\p{DI}\\u2800]*'
-const GAP = '[\\s\\p{DI}\\u2800]*'
+const HIDDEN = '[\\p{Cf}\\p{DI}]*'
+const GAP = '[\\s\\p{Cf}\\p{DI}]*'
 const word = (w: string) => [...w].join(HIDDEN)
 const words = (...ws: string[]) => ws.map(word).join(GAP)
 // A full phrase, any spacing or case, ending at a word boundary, then any
@@ -79,11 +80,11 @@ const NAME_PHRASE = new RegExp(
   'giu',
 )
 
-// Blank-looking characters that are not whitespace.
+// Blank-looking characters that are neither whitespace nor ignorable.
 const FILLERS = /[\u2800\u3164\u115f\u1160\uffa0]/gu
 
 export function mentionsOwnName(raw: string): boolean {
-  const text = raw.normalize('NFKC').replace(FILLERS, ' ')
+  const text = raw.normalize('NFKC').replace(FILLERS, '\u200b')
   for (const m of text.matchAll(NAME_PHRASE)) {
     if (!quotedExampleAt(text, m.index)) return true
   }
