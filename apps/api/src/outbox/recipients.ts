@@ -53,7 +53,11 @@ const RULES: Partial<Record<OutboxEvent, (scope: Scope) => Member[]>> = {
   'lesson.reminder': learnersAndTeacher,
   'lesson.started': notJoined,
   'sessions.revoked': subject,
-  'test.assigned': withAttempt(false),
+  // With a subject, only that learner: one who joined after the test was set.
+  'test.assigned': (scope) =>
+    withAttempt(false)(scope).filter(
+      (m) => !scope.subject || m.userId === scope.subject.userId,
+    ),
   'test.reminder': withAttempt(true),
   'test.submitted': teacherOnly,
   'test.graded': subject,

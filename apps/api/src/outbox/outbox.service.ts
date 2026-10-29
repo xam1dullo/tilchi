@@ -210,7 +210,9 @@ export class OutboxService {
           ? await this.outbox.joinedIds(lessonId)
           : [],
       subject:
-        event === 'sessions.revoked' || event === 'test.graded'
+        event === 'sessions.revoked' ||
+        event === 'test.graded' ||
+        (event === 'test.assigned' && payload.userId)
           ? await this.outbox.user(String(payload.userId))
           : null,
       attempts: assignmentId

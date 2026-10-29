@@ -807,12 +807,22 @@ describe.skipIf(!hasTestDatabase)('tests, assignments and grading', () => {
     await db.database.db.execute(
       sql`update assignments set deadline = now() - interval '1 hour' where id = ${closed.assignmentId}`,
     )
+    await worker.drainOnce(new Date())
+    const assignedTo = async (name: string) =>
+      (await inboxOf(name)).filter((e) => e === 'test.assigned').length
+    expect(await assignedTo('ana')).toBe(2)
     await groups.putMember(group, who.eve)
+    await worker.drainOnce(new Date())
+    // Only eve hears about the open test; nobody is told twice.
+    expect(await assignedTo('eve')).toBe(1)
+    expect(await assignedTo('ana')).toBe(2)
     const mine = await call('eve', 'GET', '/api/me/assignments')
     expect(mine.status).toBe(200)
-    expect(mine.body.assignments.map((a: { assignmentId: string }) => a.assignmentId)).toEqual([
-      open.assignmentId,
-    ])
+    expect(
+      mine.body.assignments.map(
+        (a: { assignmentId: string }) => a.assignmentId,
+      ),
+    ).toEqual([open.assignmentId])
     const attempt = await call(
       'eve',
       'GET',

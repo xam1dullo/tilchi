@@ -10,6 +10,7 @@ import {
 } from '../db/schema'
 import { isUuid } from '../db/uuid'
 import { uuidv7 } from '../id'
+import { enqueue } from '../outbox/outbox.repository'
 
 export type GroupKind = (typeof groups.$inferSelect)['kind']
 
@@ -149,7 +150,7 @@ export class GroupsRepository {
         // A learner who joins late still gets every test that is open now.
         // assign() locks the same group row, so no assignment slips between.
         const open = await tx
-          .select({ id: assignments.id })
+          .select({ id: assignments.id, deadline: assignments.deadline })
           .from(assignments)
           .where(
             and(
@@ -157,13 +158,24 @@ export class GroupsRepository {
               gt(assignments.deadline, new Date()),
             ),
           )
-        if (open.length > 0) {
-          await tx
+        for (const assignment of open) {
+          const [made] = await tx
             .insert(attempts)
-            .values(
-              open.map((a) => ({ id: uuidv7(), assignmentId: a.id, userId })),
-            )
+            .values({ id: uuidv7(), assignmentId: assignment.id, userId })
             .onConflictDoNothing()
+            .returning({ id: attempts.id })
+          if (!made) continue
+          // Told on their own: the group heard about this test long ago.
+          await enqueue(tx, {
+            event: 'test.assigned',
+            payload: {
+              assignmentId: assignment.id,
+              groupId,
+              deadline: assignment.deadline.toISOString(),
+              userId,
+            },
+            idempotencyKey: `test.assigned:${assignment.id}:${userId}`,
+          })
         }
       }
       return 'added'
