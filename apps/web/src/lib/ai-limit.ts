@@ -11,23 +11,30 @@ export function createLimiter(
   max: number,
   windowMs: number,
   now: () => number = Date.now,
+  maxKeys = 5000,
 ): Limiter {
   const hits = new Map<string, number[]>()
+  // Map keeps insertion order: re-inserting on every hit makes the first key
+  // the least recently used, so eviction is O(1) per extra key.
+  const remember = (key: string, recent: number[]) => {
+    hits.delete(key)
+    hits.set(key, recent)
+    while (hits.size > maxKeys) {
+      const oldest = hits.keys().next().value
+      if (oldest === undefined) break
+      hits.delete(oldest)
+    }
+  }
   return {
     hit(key) {
       const t = now()
       const recent = (hits.get(key) ?? []).filter((at) => t - at < windowMs)
       if (recent.length >= max) {
-        hits.set(key, recent)
+        remember(key, recent)
         return Math.ceil(((recent[0] ?? t) + windowMs - t) / 1000)
       }
       recent.push(t)
-      hits.set(key, recent)
-      if (hits.size > 5000) {
-        for (const [k, v] of hits) {
-          if (v.every((at) => t - at >= windowMs)) hits.delete(k)
-        }
-      }
+      remember(key, recent)
       return 0
     },
   }

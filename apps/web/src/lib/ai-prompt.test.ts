@@ -40,21 +40,20 @@ describe('lessonContext', () => {
     user: { name: 'Ali Valiyev', telegramId: '540152508' },
   }
 
-  it('keeps title, level and time only', () => {
+  it('keeps level and time only, never the group name', () => {
     expect(lessonContext(body)).toEqual({
-      title: 'IELTS 7 evening',
       level: 'B2',
       scheduledAt: '2026-11-02T10:00:00.000Z',
     })
   })
 
-  it('drops an unknown level and a bad date, and scrubs the title', () => {
+  it('drops an unknown level and a bad date', () => {
     expect(
       lessonContext({
         lesson: { scheduledAt: 'soon' },
-        group: { name: 'Group +998901234567', level: 'expert' },
+        group: { name: 'Ali Valiyev — 1:1', level: 'expert' },
       }),
-    ).toEqual({ title: 'Group [removed]', level: null, scheduledAt: null })
+    ).toEqual({ level: null, scheduledAt: null })
   })
 
   it('rejects a payload without a group name', () => {
@@ -67,16 +66,16 @@ describe('buildPrompt', () => {
   it('has no names, ids or phones, only lesson text and the question', () => {
     const context = lessonContext({
       lesson: { scheduledAt: '2026-11-02T10:00:00.000Z' },
-      group: { name: 'Kids A2', level: 'A2' },
+      group: { name: 'Ali Valiyev 1:1', level: 'A2' },
     })
     const question = cleanQuestion('What is "ubiquitous"? I am Ali, 540152508')
     expect(context).not.toBeNull()
     expect(question).not.toBeNull()
     const { system, user } = buildPrompt(context!, question!)
     expect(user).toBe(
-      'Lesson: Kids A2\nLevel: A2\nScheduled: 2026-11-02T10:00:00.000Z\n\nQuestion: What is "ubiquitous"? I am Ali, [removed]',
+      'Level: A2\nScheduled: 2026-11-02T10:00:00.000Z\n\nQuestion: What is "ubiquitous"? I am [name], [removed]',
     )
-    expect(`${system}${user}`).not.toMatch(/540152508/)
+    expect(`${system}${user}`).not.toMatch(/540152508|Ali|Valiyev/)
   })
 
   it('tells the model to refuse tests and questions (story 52)', () => {
@@ -85,6 +84,27 @@ describe('buildPrompt', () => {
 })
 
 describe('cleanQuestion', () => {
+  it('replaces self-introduced names in uz, ru and en', () => {
+    expect(cleanQuestion('My name is Ali Valiyev, explain gerunds')).toBe(
+      'My name is [name], explain gerunds',
+    )
+    expect(cleanQuestion('Mening ismim Ali. Present perfect nima?')).toBe(
+      'Mening ismim [name]. Present perfect nima?',
+    )
+    expect(cleanQuestion('Меня зовут Али Валиев, что такое gerund?')).toBe(
+      'Меня зовут [name], что такое gerund?',
+    )
+    expect(cleanQuestion("I'm Ali and I need help with articles")).toBe(
+      "I'm [name] and I need help with articles",
+    )
+  })
+
+  it('keeps ordinary "I am" sentences', () => {
+    expect(cleanQuestion('I am confused about articles')).toBe(
+      'I am confused about articles',
+    )
+  })
+
   it('rejects non-strings, blanks and over-long input', () => {
     expect(cleanQuestion(undefined)).toBeNull()
     expect(cleanQuestion('   ')).toBeNull()

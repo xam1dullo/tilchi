@@ -18,6 +18,7 @@ function setup(over: Partial<AskDeps> = {}) {
   const deps: AskDeps = {
     config: { apiKey: 'k', model: 'm' },
     limiter: createLimiter(2, 1000, () => 0),
+    globalLimiter: createLimiter(100, 1000, () => 0),
     apiBase: 'http://api',
     fetchImpl: async (url, init) => {
       calls.push({ url: String(url), headers: new Headers(init?.headers) })
@@ -32,7 +33,7 @@ function setup(over: Partial<AskDeps> = {}) {
   }
   const ask = (
     body: unknown = { question: 'What is a gerund?' },
-    headers: Record<string, string> = { cookie: 'sid=abc' },
+    headers: Record<string, string> = { cookie: '__Host-tilchi_sid=abc' },
   ) =>
     handleAsk(
       new Request('http://web/ai/lessons/l1/ask', {
@@ -85,14 +86,14 @@ describe('handleAsk', () => {
     expect((await dead.ask()).status).toBe(502)
   })
 
-  it('forwards the cookie and preview role to GET /api/lessons/:id', async () => {
+  it('forwards only the session cookie and the preview role', async () => {
     const { ask, calls } = setup()
     await ask(undefined, {
-      cookie: 'sid=abc',
+      cookie: 'theme=dark; __Host-tilchi_sid=abc',
       'X-Tilchi-Preview-Role': 'teacher',
     })
     expect(calls[0]?.url).toBe('http://api/api/lessons/l1')
-    expect(calls[0]?.headers.get('cookie')).toBe('sid=abc')
+    expect(calls[0]?.headers.get('cookie')).toBe('__Host-tilchi_sid=abc')
     expect(calls[0]?.headers.get('X-Tilchi-Preview-Role')).toBe('teacher')
   })
 
@@ -109,6 +110,7 @@ describe('handleAsk', () => {
       {
         config: { apiKey: 'k', model: 'm' },
         limiter: createLimiter(1, 1),
+        globalLimiter: createLimiter(1, 1),
         apiBase: 'x',
         stream: async function* () {},
       },
@@ -121,7 +123,8 @@ describe('handleAsk', () => {
     const res = await ask({ question: 'Explain gerunds, my id is 540152508' })
     expect(res.status).toBe(200)
     expect(await res.text()).toBe('Hello')
-    expect(prompts[0]?.user).toContain('Lesson: IELTS 7')
+    expect(prompts[0]?.user).not.toContain('IELTS 7')
+    expect(prompts[0]?.user).toContain('Level: B2')
     expect(prompts[0]?.user).not.toContain('540152508')
     expect(prompts[0]).toMatchObject({ model: 'm', maxTokens: 600 })
   })
@@ -133,7 +136,35 @@ describe('handleAsk', () => {
     const limited = await ask()
     expect(limited.status).toBe(429)
     expect(limited.headers.get('retry-after')).toBe('1')
-    expect((await ask(undefined, { cookie: 'sid=other' })).status).toBe(200)
+    expect(
+      (await ask(undefined, { cookie: '__Host-tilchi_sid=other' })).status,
+    ).toBe(200)
+  })
+
+  it('keys the budget on the session cookie only, not on other cookies', async () => {
+    const { ask } = setup()
+    for (const junk of ['x=1', 'x=2']) {
+      const cookie = `${junk}; __Host-tilchi_sid=abc`
+      expect((await ask(undefined, { cookie })).status).toBe(200)
+    }
+    const res = await ask(undefined, { cookie: 'x=3; __Host-tilchi_sid=abc' })
+    expect(res.status).toBe(429)
+  })
+
+  it('is 401 without the session cookie, even with other cookies', async () => {
+    const { ask, calls } = setup()
+    expect((await ask(undefined, { cookie: 'x=1' })).status).toBe(401)
+    expect(calls).toHaveLength(0)
+  })
+
+  it('caps all sessions together with a global hourly budget', async () => {
+    const { ask } = setup({ globalLimiter: createLimiter(2, 1000, () => 0) })
+    for (const sid of ['a', 'b']) {
+      const cookie = `__Host-tilchi_sid=${sid}`
+      expect((await ask(undefined, { cookie })).status).toBe(200)
+    }
+    const res = await ask(undefined, { cookie: '__Host-tilchi_sid=c' })
+    expect(res.status).toBe(429)
   })
 
   it('does not spend the budget on an invalid question', async () => {
@@ -151,6 +182,16 @@ describe('createLimiter', () => {
     expect(limiter.hit('a')).toBe(1)
     t = 1000
     expect(limiter.hit('a')).toBe(0)
+  })
+
+  it('keeps at most maxKeys entries, dropping the least recent key', () => {
+    const limiter = createLimiter(1, 1000, () => 0, 2)
+    limiter.hit('a')
+    limiter.hit('b')
+    expect(limiter.hit('a')).toBe(1)
+    limiter.hit('c')
+    expect(limiter.hit('a')).toBe(1)
+    expect(limiter.hit('b')).toBe(0)
   })
 })
 
