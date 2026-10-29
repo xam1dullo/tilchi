@@ -65,7 +65,7 @@ function AppLayout() {
             search={search}
             activeOptions={{ exact: true }}
           >
-            {copy.groups}
+            {copy[item.id]}
           </Link>
         ))}
       </nav>
@@ -75,7 +75,7 @@ function AppLayout() {
       <nav className="app-sheet" aria-label={copy.navMain}>
         {items.map((item) => (
           <Link key={item.id} to={item.to} search={search}>
-            {copy.groups}
+            {copy[item.id]}
           </Link>
         ))}
       </nav>
