@@ -138,6 +138,9 @@ describe('cleanQuestion', () => {
       "'my name is Ali, I like rock 'n' roll",
       '"my name is Ali; how do I say "hi"?',
       "'my name is Ali.🙂 Hello'",
+      '"My name is Ali.(I am 20) What does "run" mean?',
+      '"My name is Ali.— what does "run" mean?',
+      'mynameis Ali',
       "'my name is Ali. Hi'",
       'My name is → Ali',
       'my name is 😊 Ali',
@@ -177,6 +180,8 @@ describe('cleanQuestion', () => {
       '"my name is Ali!" ok?',
       '“my name is” means what?',
       '"my name is..." how do I end it?',
+      'Is "My name is Ali 3.5 m" ok?',
+      "'my name is'larni tarjima qil",
       '„my name is Ali“ tarjimasi',
       '«меня зовут Али» — что это?',
     ]) {

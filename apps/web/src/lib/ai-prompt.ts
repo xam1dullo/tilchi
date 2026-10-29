@@ -42,10 +42,11 @@ const CLOSERS: Record<string, string> = {
 }
 const OPENS_HERE = /(?<![\p{L}\p{N}])(['‘"“„«])[ \t]*$/u
 const SUFFIX =
-  '(?:ni|ga|da|dan|ning|dagi|dir|lar|mi|cha|gacha|dek|day|lik|siz|ku|chi)?'
+  '(?:ni|ga|da|dan|ning|dagi|dir|lar|mi|cha|gacha|dek|day|lik|siz|ku|chi)*'
 // A quoted example is one clause: a sentence end, a line break or a , ; :
 // before the closer means the quote does not cover the phrase.
-const SENTENCE_END = /[,;:]|[.?!…。！？](?=[^.?!…。！？])|[\n\r\u0085\u2028\u2029]/u
+const SENTENCE_END =
+  /[,;:]|[.?!…。！？](?=[^.?!…。！？\p{N}])|[\n\r\u0085\u2028\u2029]/u
 
 function quotedExampleAt(text: string, at: number): boolean {
   const open = OPENS_HERE.exec(text.slice(0, at))?.[1]
@@ -68,7 +69,7 @@ const APOSTROPHE = "(?:['’ʼʻ‘`]|\\u0301)"
 // (the name). The name part is a lookahead so a match never swallows the
 // next phrase.
 const NAME_PHRASE = new RegExp(
-  `(?<![\\p{L}])(?:my\\s+name(?:\\s*${APOSTROPHE}\\s*s|\\s+is)|mening\\s+ismim|ismim|менинг\\s+исмим|исмим|меня\\s+зовут|мо[её]\\s+имя)(?![\\p{L}])(?=\\P{L}*\\p{L})`,
+  `(?<![\\p{L}])(?:my\\s*name(?:\\s*${APOSTROPHE}\\s*s|\\s*is)|mening\\s+ismim|ismim|менинг\\s+исмим|исмим|меня\\s+зовут|мо[её]\\s+имя)(?![\\p{L}])(?=\\P{L}*\\p{L})`,
   'giu',
 )
 

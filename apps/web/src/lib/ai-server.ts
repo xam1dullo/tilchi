@@ -130,7 +130,9 @@ export async function handleAsk(
   }
   const question = cleanQuestion(body?.question)
   if (!question) return json(400, 'invalid_question')
-  if (mentionsOwnName(question)) return json(422, 'personal_info')
+  // Check the raw text too: redaction can swallow a sentence end.
+  if (mentionsOwnName(String(body?.question)) || mentionsOwnName(question))
+    return json(422, 'personal_info')
 
   const key = createHash('sha256').update(session).digest('hex')
   // Check the session first without recording, then spend the global budget,
