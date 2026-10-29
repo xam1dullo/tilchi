@@ -66,36 +66,30 @@ function quotedExampleAt(text: string, at: number): boolean {
 // Every apostrophe an Uzbek keyboard produces; NFKC turns ´ into a space
 // plus U+0301.
 const APOSTROPHE = "(?:['’ʼʻ‘`]|\\u0301)"
+// Invisible format characters (zero-width space, soft hyphen, word joiner…)
+// may sit between any two letters or words of a phrase.
+const HIDDEN = '\\p{Cf}*'
+const GAP = '[\\s\\p{Cf}]*'
+const word = (w: string) => [...w].join(HIDDEN)
+const words = (...ws: string[]) => ws.map(word).join(GAP)
 // A full phrase, any spacing or case, ending at a word boundary, then any
 // non-letters (spaces, digits, punctuation, symbols, emoji), then a letter
 // (the name). The name part is a lookahead so a match never swallows the
 // next phrase.
 const NAME_PHRASE = new RegExp(
-  `(?<![\\p{L}])(?:my\\s*name(?:\\s*${APOSTROPHE}\\s*s|\\s*is)|mening\\s+ismim|ismim|менинг\\s+исмим|исмим|меня\\s+зовут|мо[её]\\s+имя)(?![\\p{L}])(?=\\P{L}*\\p{L})`,
+  `(?<![\\p{L}])(?:${words('my', 'name')}(?:${GAP}${APOSTROPHE}${GAP}${word('s')}|${GAP}${word('is')})|${words('mening', 'ismim')}|${word('ismim')}|${words('менинг', 'исмим')}|${word('исмим')}|${words('меня', 'зовут')}|${words('моё', 'имя')}|${words('мое', 'имя')})(?![\\p{L}])(?=\\P{L}*\\p{L})`,
   'giu',
 )
 
 // Blank-looking characters that are not whitespace.
 const FILLERS = /[\u2800\u3164\u115f\u1160\uffa0]/gu
 
-function phraseOutsideQuotes(text: string): boolean {
+export function mentionsOwnName(raw: string): boolean {
+  const text = raw.normalize('NFKC').replace(FILLERS, ' ')
   for (const m of text.matchAll(NAME_PHRASE)) {
     if (!quotedExampleAt(text, m.index)) return true
   }
   return false
-}
-
-export function mentionsOwnName(raw: string): boolean {
-  // Invisible format characters may split a word (is\u200bmim) or two words
-  // (my\u200bname), so check both readings.
-  const text = raw
-    .normalize('NFKC')
-    .replace(/\u00ad/g, '')
-    .replace(FILLERS, ' ')
-  return (
-    phraseOutsideQuotes(text.replace(/\p{Cf}/gu, ' ')) ||
-    phraseOutsideQuotes(text.replace(/\p{Cf}/gu, ''))
-  )
 }
 
 export function stripPii(text: string): string {
