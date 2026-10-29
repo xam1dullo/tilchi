@@ -1,4 +1,3 @@
-import { createHash } from 'node:crypto'
 import { describe, expect, it } from 'vitest'
 import { createLimiter } from './ai-limit'
 import {
@@ -8,7 +7,6 @@ import {
   handleAsk,
 } from './ai-server'
 
-const sha = (v: string) => createHash('sha256').update(v).digest('hex')
 const tok = (c: string) => c.repeat(43)
 const A = tok('a')
 
@@ -26,7 +24,13 @@ function setup(over: Partial<AskDeps> = {}) {
     globalLimiter: createLimiter(100, 1000, () => 0),
     apiBase: 'http://api',
     fetchImpl: async (url, init) => {
-      calls.push({ url: String(url), headers: new Headers(init?.headers) })
+      const headers = new Headers(init?.headers)
+      calls.push({ url: String(url), headers })
+      if (String(url).endsWith('/auth/session')) {
+        // One account per token letter: tok('a') and tok('b') are two people.
+        const sid = /__Host-tilchi_sid=(\w)/.exec(headers.get('cookie') ?? '')
+        return Response.json({ user: sid ? { userId: `u-${sid[1]}` } : null })
+      }
       return Response.json(lessonBody)
     },
     stream: async function* (input) {
@@ -100,6 +104,8 @@ describe('handleAsk', () => {
     expect(calls[0]?.url).toBe('http://api/api/lessons/l1')
     expect(calls[0]?.headers.get('cookie')).toBe(`__Host-tilchi_sid=${A}`)
     expect(calls[0]?.headers.get('X-Tilchi-Preview-Role')).toBe('teacher')
+    expect(calls[1]?.url).toBe('http://api/auth/session')
+    expect(calls[1]?.headers.get('cookie')).toBe(`__Host-tilchi_sid=${A}`)
   })
 
   it('rejects a bad lesson id and a bad question', async () => {
@@ -145,6 +151,65 @@ describe('handleAsk', () => {
       (await ask(undefined, { cookie: `__Host-tilchi_sid=${tok('o')}` }))
         .status,
     ).toBe(200)
+  })
+
+  it('keys the budget on the account, so logging in again does not reset it', async () => {
+    const sessionOf = (userId: string | null) =>
+      setup({
+        fetchImpl: async (url) =>
+          String(url).endsWith('/auth/session')
+            ? Response.json({ user: userId ? { userId } : null })
+            : Response.json(lessonBody),
+      })
+    const { ask } = sessionOf('same-user')
+    for (const sid of ['a', 'b']) {
+      const cookie = `__Host-tilchi_sid=${tok(sid)}`
+      expect((await ask(undefined, { cookie })).status).toBe(200)
+    }
+    const again = { cookie: `__Host-tilchi_sid=${tok('c')}` }
+    expect((await ask(undefined, again)).status).toBe(429)
+  })
+
+  it('is 502 when the API knows no account for the session', async () => {
+    const { ask, prompts } = setup({
+      fetchImpl: async (url) =>
+        String(url).endsWith('/auth/session')
+          ? Response.json({ user: null })
+          : Response.json(lessonBody),
+    })
+    expect((await ask()).status).toBe(502)
+    expect(prompts).toHaveLength(0)
+  })
+
+  it('is 502 when the session lookup fails', async () => {
+    const { ask } = setup({
+      fetchImpl: async (url) => {
+        if (String(url).endsWith('/auth/session')) throw new Error('down')
+        return Response.json(lessonBody)
+      },
+    })
+    expect((await ask()).status).toBe(502)
+  })
+
+  it('in preview (no account) shares one budget per preview role', async () => {
+    const { ask } = setup({
+      fetchImpl: async (url) =>
+        String(url).endsWith('/auth/session')
+          ? Response.json({ user: null })
+          : Response.json(lessonBody),
+    })
+    for (const sid of ['a', 'b']) {
+      const headers = {
+        cookie: `__Host-tilchi_sid=${tok(sid)}`,
+        'X-Tilchi-Preview-Role': 'learner',
+      }
+      expect((await ask(undefined, headers)).status).toBe(200)
+    }
+    const headers = {
+      cookie: `__Host-tilchi_sid=${tok('c')}`,
+      'X-Tilchi-Preview-Role': 'learner',
+    }
+    expect((await ask(undefined, headers)).status).toBe(429)
   })
 
   it('keys the budget on the session cookie only, not on other cookies', async () => {
