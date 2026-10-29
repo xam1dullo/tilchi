@@ -1,11 +1,30 @@
 type Env = Record<string, string | undefined>
 
+/** Only this public identifier is exposed to the browser, never bot credentials. */
+export function telegramBotUsername(env: Env): string {
+  const username = env.TELEGRAM_BOT_USERNAME?.trim()
+  if (!username) return 'tilchiuz_bot'
+  if (!/^[A-Za-z0-9_]{5,32}$/.test(username)) {
+    throw new Error(
+      'TELEGRAM_BOT_USERNAME must be 5-32 letters, digits or underscores',
+    )
+  }
+  return username
+}
+
 type BootstrapConfigResult =
   | { ok: true; config: { port: number } }
   | { ok: false; errors: string[] }
 
 export function readBootstrapConfig(env: Env): BootstrapConfigResult {
   const errors = productionConfigErrors(env)
+  try {
+    telegramBotUsername(env)
+  } catch {
+    errors.push(
+      'TELEGRAM_BOT_USERNAME must be 5-32 letters, digits or underscores',
+    )
+  }
   const raw = env.PORT ?? '3001'
   const port = Number(raw)
   if (

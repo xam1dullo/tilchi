@@ -10,6 +10,17 @@ function escaped(text: string) {
 }
 
 describe('EmptyGroups (a learner with no Group, story 58)', () => {
+  it('uses the configured bot and hides the action when config is unavailable', () => {
+    const copy = messages('uz')
+    const configured = renderToStaticMarkup(
+      createElement(EmptyGroups, { copy, botUsername: 'deno_blogbot' }),
+    )
+    expect(configured).toContain('https://t.me/deno_blogbot')
+    const unavailable = renderToStaticMarkup(
+      createElement(EmptyGroups, { copy, botUsername: null }),
+    )
+    expect(unavailable).not.toContain('https://t.me/')
+  })
   it.each(locales)(
     'points the course CTA at the landing courses section in %s',
     (locale) => {

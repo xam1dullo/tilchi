@@ -2,7 +2,7 @@ import 'reflect-metadata'
 import type { AddressInfo } from 'node:net'
 import { NestFactory } from '@nestjs/core'
 import type { NestExpressApplication } from '@nestjs/platform-express'
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import { AppModule } from './app.module'
 
 let app: NestExpressApplication
@@ -24,6 +24,18 @@ afterAll(async () => {
 })
 
 describe('AppModule boot', () => {
+  it('serves only the configured public bot username without authentication', async () => {
+    vi.stubEnv('TELEGRAM_BOT_USERNAME', 'example_bot')
+    try {
+      const response = await fetch(`${base}/api/public-config`)
+      expect(response.status).toBe(200)
+      expect(await response.json()).toEqual({
+        telegramBotUsername: 'example_bot',
+      })
+    } finally {
+      vi.unstubAllEnvs()
+    }
+  })
   it('resolves every controller and serves health', async () => {
     const response = await fetch(`${base}/api/health`)
     expect(response.status).toBe(200)

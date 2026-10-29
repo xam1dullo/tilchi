@@ -271,6 +271,7 @@ describe('route coverage', () => {
       'DemoController.preview',
       'HealthController.apiHealth',
       'HealthController.health',
+      'HealthController.publicConfig',
       'LivekitWebhookController.receive',
     ])
   })

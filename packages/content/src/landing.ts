@@ -23,8 +23,8 @@ export type LevelId = (typeof levelIds)[number]
 
 /** Decision G2: the bot parses `<segment>_<level>`. */
 export const ctaPayload = (seg: SegmentId, lv: LevelId) => `${seg}_${lv}`
-export const ctaHref = (seg?: SegmentId, lv?: LevelId) =>
-  seg && lv ? botLink(seg, lv) : botLink('', '')
+export const ctaHref = (seg?: SegmentId, lv?: LevelId, username?: string) =>
+  seg && lv ? botLink(seg, lv, username) : botLink('', '', username)
 
 export interface Card {
   segment: SegmentId

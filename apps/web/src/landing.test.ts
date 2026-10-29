@@ -2,6 +2,18 @@ import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import { LandingPage } from './components/landing/landing'
+
+it('uses the configured bot on all landing links and hides them if unavailable', () => {
+  const configured = renderToStaticMarkup(
+    createElement(LandingPage, { locale: 'uz', botUsername: 'deno_blogbot' }),
+  )
+  expect(configured).toContain('https://t.me/deno_blogbot?start=')
+  expect(configured).not.toContain('https://t.me/tilchiuz_bot')
+  const unavailable = renderToStaticMarkup(
+    createElement(LandingPage, { locale: 'uz', botUsername: null }),
+  )
+  expect(unavailable).not.toContain('https://t.me/')
+})
 import { locales } from './lib/locale'
 import { landingHead } from './routes/index'
 

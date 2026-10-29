@@ -8,6 +8,7 @@ import { createIsomorphicFn } from '@tanstack/react-start'
 import frauncesUrl from '@fontsource-variable/fraunces/files/fraunces-latin-soft-normal.woff2?url'
 import geistUrl from '@fontsource-variable/geist/files/geist-latin-wght-normal.woff2?url'
 import appCss from '../styles/app.css?url'
+import { apiFetch } from '../lib/api'
 import { messages } from '../lib/i18n'
 import {
   localeFromAcceptLanguage,
@@ -32,7 +33,20 @@ const readLocale = createIsomorphicFn()
   })
 
 export const Route = createRootRoute({
-  beforeLoad: async () => ({ locale: await readLocale() }),
+  beforeLoad: async () => {
+    const locale = await readLocale()
+    const config = await apiFetch<{ telegramBotUsername?: unknown }>(
+      '/api/public-config',
+    ).catch(() => null)
+    const username = config?.telegramBotUsername
+    return {
+      locale,
+      botUsername:
+        typeof username === 'string' && /^[A-Za-z0-9_]{5,32}$/.test(username)
+          ? username
+          : null,
+    }
+  },
   head: () => ({
     meta: [
       { charSet: 'utf-8' },

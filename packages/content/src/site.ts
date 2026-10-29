@@ -247,11 +247,18 @@ export const botSummary = (seg: string, lv: string) => {
 export const tgLinkProps = (href: string = site.botUrl) =>
   ({ href, target: '_blank', rel: 'noopener' }) as const
 
-export const botLink = (seg: string, lv: string) => {
+export const botLink = (
+  seg: string,
+  lv: string,
+  username: string = site.telegramBot,
+) => {
   const clean = (s: string) => s.replace(/[^A-Za-z0-9_-]/g, '')
   const segC = clean(seg)
   const lvC = clean(lv)
   const payload =
     segC || lvC ? [segC, lvC].filter(Boolean).join('_').slice(0, 64) : ''
-  return payload ? `${site.botUrl}?start=${payload}` : site.botUrl
+  if (!/^[A-Za-z0-9_]{5,32}$/.test(username))
+    throw new Error('invalid bot username')
+  const url = `https://t.me/${username}`
+  return payload ? `${url}?start=${payload}` : url
 }

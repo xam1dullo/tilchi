@@ -29,7 +29,13 @@ function Head({
   )
 }
 
-function Hero({ copy }: { copy: Copy }) {
+function Hero({
+  copy,
+  botUsername,
+}: {
+  copy: Copy
+  botUsername: string | null
+}) {
   const { hero } = copy
   return (
     <section className="l-hero" aria-labelledby="l-hero-title">
@@ -41,10 +47,15 @@ function Hero({ copy }: { copy: Copy }) {
       </h1>
       <p className="lede">{hero.lede}</p>
       <div className="hero-actions">
-        <a className="btn btn-ink" {...tgLinkProps(ctaHref())}>
-          <TelegramGlyph />
-          {hero.cta}
-        </a>
+        {botUsername && (
+          <a
+            className="btn btn-ink"
+            {...tgLinkProps(ctaHref(undefined, undefined, botUsername))}
+          >
+            <TelegramGlyph />
+            {hero.cta}
+          </a>
+        )}
       </div>
       <ul className="l-facts">
         {hero.facts.map((fact) => (
@@ -70,7 +81,13 @@ function Trust({ copy }: { copy: Copy }) {
   )
 }
 
-function Segments({ copy }: { copy: Copy }) {
+function Segments({
+  copy,
+  botUsername,
+}: {
+  copy: Copy
+  botUsername: string | null
+}) {
   const { segments } = copy
   return (
     <section className="l-section" aria-labelledby="l-seg">
@@ -86,12 +103,16 @@ function Segments({ copy }: { copy: Copy }) {
                 <li key={item}>{item}</li>
               ))}
             </ul>
-            <a
-              className="btn btn-outline"
-              {...tgLinkProps(ctaHref(card.segment, 'bilmayman'))}
-            >
-              {segments.cta}
-            </a>
+            {botUsername && (
+              <a
+                className="btn btn-outline"
+                {...tgLinkProps(
+                  ctaHref(card.segment, 'bilmayman', botUsername),
+                )}
+              >
+                {segments.cta}
+              </a>
+            )}
           </li>
         ))}
       </ul>
@@ -146,7 +167,13 @@ function Method({ copy }: { copy: Copy }) {
   )
 }
 
-function Courses({ copy }: { copy: Copy }) {
+function Courses({
+  copy,
+  botUsername,
+}: {
+  copy: Copy
+  botUsername: string | null
+}) {
   const { courses, segmentLabels, levelLabels } = copy
   return (
     <section className="l-section" id="programs" aria-labelledby="l-courses">
@@ -168,15 +195,18 @@ function Courses({ copy }: { copy: Copy }) {
                 <span className="l-levels-label">
                   {segmentLabels[seg]} · {courses.levelsLabel}
                 </span>
-                {levelIds.map((lv) => (
-                  <a
-                    key={lv}
-                    className="btn btn-outline btn-compact"
-                    {...tgLinkProps(ctaHref(seg, lv))}
-                  >
-                    {levelLabels[lv]}
-                  </a>
-                ))}
+                {levelIds.map(
+                  (lv) =>
+                    botUsername && (
+                      <a
+                        key={lv}
+                        className="btn btn-outline btn-compact"
+                        {...tgLinkProps(ctaHref(seg, lv, botUsername))}
+                      >
+                        {levelLabels[lv]}
+                      </a>
+                    ),
+                )}
               </div>
             ))}
           </li>
@@ -203,7 +233,13 @@ function Faq({ copy }: { copy: Copy }) {
   )
 }
 
-export function LandingPage({ locale }: { locale: Locale }) {
+export function LandingPage({
+  locale,
+  botUsername = 'tilchiuz_bot',
+}: {
+  locale: Locale
+  botUsername?: string | null
+}) {
   const copy = landing[locale]
   const chrome = messages(locale)
   const year = new Date().getFullYear()
@@ -226,20 +262,25 @@ export function LandingPage({ locale }: { locale: Locale }) {
         </div>
       </header>
       <div className="l-page">
-        <Hero copy={copy} />
+        <Hero copy={copy} botUsername={botUsername} />
         <Trust copy={copy} />
-        <Segments copy={copy} />
+        <Segments copy={copy} botUsername={botUsername} />
         <Teacher copy={copy} />
         <Method copy={copy} />
-        <Courses copy={copy} />
+        <Courses copy={copy} botUsername={botUsername} />
         <Faq copy={copy} />
         <section className="l-final" aria-labelledby="l-final">
           <h2 id="l-final">{copy.cta.title}</h2>
           <p>{copy.cta.body}</p>
-          <a className="btn btn-primary" {...tgLinkProps(ctaHref())}>
-            <TelegramGlyph />
-            {copy.cta.button}
-          </a>
+          {botUsername && (
+            <a
+              className="btn btn-primary"
+              {...tgLinkProps(ctaHref(undefined, undefined, botUsername))}
+            >
+              <TelegramGlyph />
+              {copy.cta.button}
+            </a>
+          )}
         </section>
       </div>
       <footer className="site-foot">
