@@ -19,6 +19,13 @@ BUILD-BRIEF-v1 put speaking-test audio on Cloudflare R2. A learner's recorded vo
 - One more container on the VPS (about 256 MB RAM at v1 volume).
 - Moving to a UZ cloud object store later is a config change (endpoint and keys), not a code change.
 
+## Implementation (PR 7a)
+
+- Image: Docker Hub `minio/minio` and `quay.io/minio/minio` no longer pull anonymously, so compose uses the Chainguard MinIO build, pinned by digest. Revisit when a maintained official image returns.
+- Signing: the API signs SigV4 query URLs itself (no AWS SDK). A presigned PUT pins `Content-Type` and `Content-Length` as signed headers (checked against a real MinIO: a larger body or other type gets 403), lives 180 s; playback GET lives 600 s.
+- Host: a presigned URL is bound to the host it was signed for, so `S3_PUBLIC_URL` must be an origin (no path) that reaches MinIO unchanged. Production needs an nginx vhost and certificate for that host; it is not part of 7a.
+- The API creates the bucket on boot (an existing one is fine), so there is no init container.
+
 ## Open
 
 - The audio retention purge (180 days after grading) lands with the hardening phase.

@@ -33,6 +33,15 @@ services:
       LIVEKIT_PUBLIC_URL: wss://${TILCHI_DOMAIN:?}/rtc
       LIVEKIT_API_KEY: ${LIVEKIT_API_KEY:?}
       LIVEKIT_API_SECRET: ${LIVEKIT_API_SECRET:?}
+      S3_PUBLIC_URL: ${S3_PUBLIC_URL:?https origin browsers use for audio uploads}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:?}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:?}
+
+  minio:
+    environment:
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY:?}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY:?}
+      MINIO_API_CORS_ALLOW_ORIGIN: https://${TILCHI_DOMAIN:?}
 
   postgres:
     environment:

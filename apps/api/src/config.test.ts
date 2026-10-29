@@ -3,6 +3,7 @@ import {
   databaseUrl,
   productionConfigErrors,
   readBootstrapConfig,
+  storageConfig,
   telegramBotUsername,
 } from './config'
 
@@ -74,6 +75,10 @@ const good = {
   TELEGRAM_WEBHOOK_SECRET: 'a'.repeat(40),
   LIVEKIT_API_KEY: 'APIprodkey',
   LIVEKIT_API_SECRET: 'b'.repeat(40),
+  S3_ENDPOINT: 'http://minio:9000',
+  S3_PUBLIC_URL: 'https://files.tilchi.uz',
+  S3_ACCESS_KEY: 'tilchi-prod-access',
+  S3_SECRET_KEY: 'c'.repeat(32),
 }
 
 describe('productionConfigErrors', () => {
@@ -154,5 +159,46 @@ describe('databaseUrl', () => {
 
   it('prefers a configured url in tests', () => {
     expect(databaseUrl({ NODE_ENV: 'test', DATABASE_URL: url })).toBe(url)
+  })
+})
+
+describe('storage config', () => {
+  it('defaults to a local MinIO in development', () => {
+    expect(storageConfig({})).toMatchObject({
+      endpoint: 'http://localhost:9000',
+      publicUrl: 'http://localhost:9000',
+      bucket: 'tilchi-audio',
+    })
+  })
+
+  it('refuses a path in the public url: presigned hosts must be origins', () => {
+    expect(() =>
+      storageConfig({ S3_PUBLIC_URL: 'https://tilchi.uz/storage' }),
+    ).toThrow(/S3_PUBLIC_URL/)
+    expect(() => storageConfig({ S3_BUCKET: 'Bad_Name' })).toThrow(/S3_BUCKET/)
+  })
+
+  it('refuses dev credentials, short secrets and plain http in production', () => {
+    for (const patch of [
+      { S3_ACCESS_KEY: 'minioadmin' },
+      { S3_SECRET_KEY: 'tilchi-dev-secret' },
+      { S3_SECRET_KEY: 'short' },
+      { S3_PUBLIC_URL: 'http://files.tilchi.uz' },
+      { S3_ENDPOINT: '' },
+    ]) {
+      expect(
+        productionConfigErrors({ ...good, ...patch }).length,
+        JSON.stringify(Object.keys(patch)),
+      ).toBeGreaterThan(0)
+    }
+    expect(
+      productionConfigErrors({ ...good, S3_SECRET_KEY: undefined }).join(),
+    ).toContain('S3_SECRET_KEY')
+  })
+
+  it('accepts a 16 char secret, the shortest allowed', () => {
+    expect(
+      productionConfigErrors({ ...good, S3_SECRET_KEY: 'd'.repeat(16) }),
+    ).toEqual([])
   })
 })
