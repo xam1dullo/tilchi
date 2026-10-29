@@ -1,4 +1,6 @@
 export type Limiter = {
+  /** Seconds to wait if a hit now would be over the limit, else 0. Records nothing. */
+  check(key: string): number
   /** Records a hit. Returns seconds to wait when over the limit, else 0. */
   hit(key: string): number
 }
@@ -25,17 +27,24 @@ export function createLimiter(
       hits.delete(oldest)
     }
   }
+  const recentFor = (key: string, t: number) =>
+    (hits.get(key) ?? []).filter((at) => t - at < windowMs)
+  const waitFor = (recent: number[], t: number) =>
+    recent.length >= max
+      ? Math.ceil(((recent[0] ?? t) + windowMs - t) / 1000)
+      : 0
   return {
+    check(key) {
+      const t = now()
+      return waitFor(recentFor(key, t), t)
+    },
     hit(key) {
       const t = now()
-      const recent = (hits.get(key) ?? []).filter((at) => t - at < windowMs)
-      if (recent.length >= max) {
-        remember(key, recent)
-        return Math.ceil(((recent[0] ?? t) + windowMs - t) / 1000)
-      }
-      recent.push(t)
+      const recent = recentFor(key, t)
+      const wait = waitFor(recent, t)
+      if (wait === 0) recent.push(t)
       remember(key, recent)
-      return 0
+      return wait
     },
   }
 }

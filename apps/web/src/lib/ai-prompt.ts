@@ -20,11 +20,12 @@ const PII_PATTERNS: RegExp[] = [
 ]
 
 // A self-introduction followed by capitalised words: "My name is Ali Valiyev",
-// "Mening ismim Ali", "Меня зовут Али". ponytail: a heuristic — it misses
-// lowercase names and can catch "I am English". The consent text covers the
+// "Mening ismim Ali", "Меня зовут Али". A name needs a lowercase second
+// letter, so CEFR levels ("I am B2") survive. ponytail: a heuristic — it
+// misses lowercase names and "Men Ali"/"Я Али", and can catch "I am English". The consent text covers the
 // foreign provider; upgrade to an NER pass if names still slip through.
 const SELF_INTRO =
-  /(?<![\p{L}])((?:[Mm]y name is|I am|I['’]m|[Mm]ening ismim|[Ii]smim|[Мм]еня зовут)\s+)\p{Lu}[\p{L}'’-]*(?:\s+\p{Lu}[\p{L}'’-]*)*/gu
+  /(?<![\p{L}])((?:[Mm]y name is|I am|I['’]m|[Mm]ening ismim|[Ii]smim|[Мм]еня зовут)\s+)\p{Lu}\p{Ll}[\p{L}'’-]*(?:\s+\p{Lu}\p{Ll}[\p{L}'’-]*)*/gu
 
 export function stripPii(text: string): string {
   return PII_PATTERNS.reduce(

@@ -99,9 +99,12 @@ describe('cleanQuestion', () => {
     )
   })
 
-  it('keeps ordinary "I am" sentences', () => {
+  it('keeps ordinary "I am" sentences and CEFR levels', () => {
     expect(cleanQuestion('I am confused about articles')).toBe(
       'I am confused about articles',
+    )
+    expect(cleanQuestion('I am B2, explain inversion')).toBe(
+      'I am B2, explain inversion',
     )
   })
 
