@@ -22,13 +22,13 @@ describe('EmptyGroups (a learner with no Group, story 58)', () => {
     expect(unavailable).not.toContain('https://t.me/')
   })
   it.each(locales)(
-    'points the course CTA at the landing courses section in %s',
+    'points the course CTA at the public catalog in %s',
     (locale) => {
       const copy = messages(locale)
       const html = renderToStaticMarkup(createElement(EmptyGroups, { copy }))
       expect(html).toContain(escaped(copy.emptyBody))
       expect(html).toContain(
-        `<a class="btn btn-primary" href="/#programs">${escaped(copy.catalog)}</a>`,
+        `<a class="btn btn-primary" href="/courses">${escaped(copy.catalog)}</a>`,
       )
       expect(html).not.toContain('href="/"')
     },

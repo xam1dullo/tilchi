@@ -10,4 +10,14 @@ describe('navForRole', () => {
     }
     expect(JSON.stringify(navForRole('learner'))).not.toContain('parent')
   })
+
+  it('shows course management only to admins', () => {
+    expect(navForRole('admin').map((item) => item.to)).toContain('/app/courses')
+    expect(navForRole('teacher').map((item) => item.to)).not.toContain(
+      '/app/courses',
+    )
+    expect(navForRole('learner').map((item) => item.to)).not.toContain(
+      '/app/courses',
+    )
+  })
 })
