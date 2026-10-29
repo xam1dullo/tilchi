@@ -76,6 +76,7 @@ describe('failureForStatus', () => {
   it('maps the server answers to the states the sheet shows', () => {
     expect(failureForStatus(503)).toBe('disabled')
     expect(failureForStatus(429)).toBe('limit')
+    expect(failureForStatus(422)).toBe('personal')
     for (const s of [401, 403, 404])
       expect(failureForStatus(s)).toBe('forbidden')
     expect(failureForStatus(502)).toBe('unavailable')

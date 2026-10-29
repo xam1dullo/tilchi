@@ -14,6 +14,7 @@ const failureKey = {
   disabled: 'aiDisabled',
   limit: 'aiLimit',
   forbidden: 'aiForbidden',
+  personal: 'aiPersonal',
   unavailable: 'aiUnavailable',
 } as const satisfies Record<AiFailure, keyof AiCopy>
 

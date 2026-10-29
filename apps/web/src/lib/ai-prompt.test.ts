@@ -3,6 +3,7 @@ import {
   MAX_QUESTION_CHARS,
   SYSTEM_PROMPT,
   buildPrompt,
+  mentionsOwnName,
   cleanQuestion,
   lessonContext,
   stripPii,
@@ -68,12 +69,12 @@ describe('buildPrompt', () => {
       lesson: { scheduledAt: '2026-11-02T10:00:00.000Z' },
       group: { name: 'Ali Valiyev 1:1', level: 'A2' },
     })
-    const question = cleanQuestion('What is "ubiquitous"? I am Ali, 540152508')
+    const question = cleanQuestion('What is "ubiquitous"? Call 540152508')
     expect(context).not.toBeNull()
     expect(question).not.toBeNull()
     const { system, user } = buildPrompt(context!, question!)
     expect(user).toBe(
-      'Level: A2\nScheduled: 2026-11-02T10:00:00.000Z\n\nQuestion: What is "ubiquitous"? I am [name], [removed]',
+      'Level: A2\nScheduled: 2026-11-02T10:00:00.000Z\n\nQuestion: What is "ubiquitous"? Call [removed]',
     )
     expect(`${system}${user}`).not.toMatch(/540152508|Ali|Valiyev/)
   })
@@ -84,64 +85,39 @@ describe('buildPrompt', () => {
 })
 
 describe('cleanQuestion', () => {
-  it('replaces self-introduced names in uz, ru and en', () => {
-    expect(cleanQuestion('My name is Ali Valiyev, explain gerunds')).toBe(
-      'My name is [name], explain gerunds',
-    )
-    expect(cleanQuestion('Mening ismim Ali. Present perfect nima?')).toBe(
-      'Mening ismim [name]. Present perfect nima?',
-    )
-    expect(cleanQuestion('Меня зовут Али Валиев, что такое gerund?')).toBe(
-      'Меня зовут [name], что такое gerund?',
-    )
-    expect(cleanQuestion("I'm Ali and I need help with articles")).toBe(
-      "I'm [name] and I need help with articles",
-    )
+  it('flags self-introductions in any case, outside quotes', () => {
+    for (const q of [
+      'My name is Ali Valiyev, explain gerunds',
+      'my name is ali ibn valiyev',
+      'MY NAME IS ALI',
+      "my name's sardor",
+      'call me Bek, explain articles',
+      'Mening ismim Ali. Present perfect nima?',
+      'ismim sardor',
+      'Меня зовут Али',
+      'моё имя али',
+      'I am Ali, help me',
+      'I am ali.',
+      'men ali',
+      'Men Ali, savol bor',
+      'я али',
+      'Я Али, что такое gerund?',
+    ]) {
+      expect(mentionsOwnName(q), q).toBe(true)
+    }
   })
 
-  it('keeps ordinary "I am" sentences and CEFR levels', () => {
-    expect(cleanQuestion('I am confused about articles')).toBe(
+  it('keeps ordinary sentences, levels and quoted examples', () => {
+    for (const q of [
       'I am confused about articles',
-    )
-    expect(cleanQuestion('I am B2, explain inversion')).toBe(
       'I am B2, explain inversion',
-    )
-    expect(cleanQuestion('My name is ALI, help me')).toBe(
-      'My name is [name], help me',
-    )
-  })
-
-  it('catches lowercase and all-caps names after explicit name phrases', () => {
-    expect(cleanQuestion('my name is ali valiyev, explain gerunds')).toBe(
-      'my name is [name], explain gerunds',
-    )
-    expect(cleanQuestion('MY NAME IS ALI VALIYEV, help')).toBe(
-      'MY NAME IS [name], help',
-    )
-    expect(cleanQuestion("my name's sardor and I need help")).toBe(
-      "my name's [name] and I need help",
-    )
-    expect(cleanQuestion('Моё имя Али, помогите')).toBe(
-      'Моё имя [name], помогите',
-    )
-    expect(
-      cleanQuestion('My name is Ali Valiyev Karimovich, explain articles'),
-    ).toBe('My name is [name], explain articles')
-    expect(cleanQuestion('call me Bek, explain articles')).toBe(
-      'call me [name], explain articles',
-    )
-  })
-
-  it('catches "Men Ali" and "Я Али" but keeps ordinary sentences', () => {
-    expect(cleanQuestion('Men Ali, present perfect nima?')).toBe(
-      'Men [name], present perfect nima?',
-    )
-    expect(cleanQuestion('Я Али, что такое gerund?')).toBe(
-      'Я [name], что такое gerund?',
-    )
-    expect(cleanQuestion('Men ingliz tilini o‘rganyapman')).toBe(
       'Men ingliz tilini o‘rganyapman',
-    )
+      'Я не понимаю present perfect',
+      'What does "call me a taxi" mean?',
+      'Explain “my name is” in a sentence',
+    ]) {
+      expect(mentionsOwnName(q), q).toBe(false)
+    }
   })
 
   it('rejects over-long raw input before scanning it', () => {

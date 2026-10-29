@@ -19,37 +19,25 @@ const PII_PATTERNS: RegExp[] = [
   /\d{5,}/g,
 ]
 
-// Names a learner volunteers about themselves. ponytail: heuristics, not NER —
-// they miss names with no introduction ("— Ali", a sign-off). The consent text
-// covers the foreign provider; add an NER pass if names still slip through.
-const NOT_LEVEL = '(?![ABCabc][12](?![\\p{L}\\d]))'
-const WORD = "[\\p{L}'’-]+"
-// A second word is a surname unless it is a joining word ("Sardor and I…").
-const NOT_JOIN = '(?!(?:and|but|or|va|ham|lekin|и|а|но)(?![\\p{L}]))'
-// Explicit name phrases: the next one or two words, any case.
-const EXPLICIT_INTRO = new RegExp(
-  `(?<![\\p{L}])((?:my name is|my name's|my name’s|call me|mening ismim|ismim|меня зовут|мо[её] имя)\\s+)${NOT_LEVEL}${WORD}(?:\\s+${NOT_JOIN}${NOT_LEVEL}${WORD})?`,
-  'giu',
-)
-// After a redaction, any further capitalised words are more of the name
-// ("Ali Valiyev Karimovich"). Case-sensitive on purpose.
-const NAME_TAIL = /\[name\](?:\s+\p{Lu}[\p{L}'’-]*)+/gu
+// A learner introducing themselves. Rewriting names out of free text proved
+// leaky (casing, word order, surnames), so such questions are refused instead
+// and the UI asks to rephrase. Quoted text is ignored ("call me a taxi").
+// ponytail: phrase list, not NER — sign-offs like "— Ali" still pass.
+const QUOTED = /"[^"]*"|“[^”]*”|«[^»]*»/g
+const EXPLICIT_INTRO =
+  /(?<![\p{L}])(?:my name(?:'s|’s| is)|call me|mening ismim|ismim|меня зовут|мо[её] имя)\s+\p{L}/iu
+// "I am" / "Men" / "Я" start ordinary sentences too: only a capitalised word
+// after them, or a single word ending the clause ("I am ali."), counts.
+const IMPLICIT_INTRO =
+  /(?<![\p{L}])(?:(?:I am|I['’]m|[Mm]en|[Яя])\s+(?![ABC][12](?![\p{L}\d]))\p{Lu}|(?:[Ii] am|[Ii]['’]m|[Mm]en|[Яя])\s+(?![ABCabc][12](?![\p{L}\d]))[\p{L}'’-]+\s*(?:[.,!?;]|$))/u
 
-// "I am" / "Men" / "Я" also start ordinary sentences, so only capitalised
-// words count there ("I am confused" and "Men ingliz…" are kept).
-const IMPLICIT_INTRO = new RegExp(
-  `(?<![\\p{L}])((?:I am|I['’]m|Men|Я)\\s+)${NOT_LEVEL}\\p{Lu}[\\p{L}'’-]*(?:\\s+${NOT_LEVEL}\\p{Lu}[\\p{L}'’-]*)*`,
-  'gu',
-)
+export function mentionsOwnName(text: string): boolean {
+  const unquoted = text.replace(QUOTED, ' ')
+  return EXPLICIT_INTRO.test(unquoted) || IMPLICIT_INTRO.test(unquoted)
+}
 
 export function stripPii(text: string): string {
-  return PII_PATTERNS.reduce(
-    (out, re) => out.replace(re, REMOVED),
-    text
-      .replace(EXPLICIT_INTRO, '$1[name]')
-      .replace(IMPLICIT_INTRO, '$1[name]')
-      .replace(NAME_TAIL, '[name]'),
-  )
+  return PII_PATTERNS.reduce((out, re) => out.replace(re, REMOVED), text)
 }
 
 export type LessonContext = {

@@ -1,6 +1,11 @@
 /** Pure view state of the AI helper side sheet. No React, no fetch. */
 
-export type AiFailure = 'disabled' | 'limit' | 'forbidden' | 'unavailable'
+export type AiFailure =
+  | 'disabled'
+  | 'limit'
+  | 'forbidden'
+  | 'personal'
+  | 'unavailable'
 
 export type AiRow = { id: number; question: string; answer: string }
 
@@ -60,6 +65,7 @@ export function reduceAi(state: AiState, action: AiAction): AiState {
 export function failureForStatus(status: number): AiFailure {
   if (status === 503) return 'disabled'
   if (status === 429) return 'limit'
+  if (status === 422) return 'personal'
   if (status === 401 || status === 403 || status === 404) return 'forbidden'
   return 'unavailable'
 }

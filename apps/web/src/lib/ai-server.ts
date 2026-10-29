@@ -4,6 +4,7 @@ import {
   MAX_OUTPUT_TOKENS,
   buildPrompt,
   cleanQuestion,
+  mentionsOwnName,
   lessonContext,
 } from './ai-prompt'
 
@@ -30,7 +31,29 @@ export type AskDeps = {
 
 const PREVIEW_HEADER = 'X-Tilchi-Preview-Role'
 const SESSION_COOKIE = '__Host-tilchi_sid'
-const MAX_BODY_CHARS = 8 * 1024
+const MAX_BODY_BYTES = 8 * 1024
+
+/** The body as text, or null once it passes `max` bytes (the stream is cancelled). */
+export async function readLimited(
+  request: Request,
+  max: number,
+): Promise<string | null> {
+  if (!request.body) return ''
+  const reader = request.body.getReader()
+  const chunks: Uint8Array[] = []
+  let size = 0
+  for (;;) {
+    const { done, value } = await reader.read()
+    if (done) break
+    size += value.byteLength
+    if (size > max) {
+      await reader.cancel().catch(() => undefined)
+      return null
+    }
+    chunks.push(value)
+  }
+  return new TextDecoder().decode(Buffer.concat(chunks))
+}
 
 // The API mints base64url(32 bytes). Only that exact shape is accepted, so
 // "%61bc"-style encodings of one session cannot mint fresh limiter keys.
@@ -95,9 +118,9 @@ export async function handleAsk(
   const context = lessonContext(await lessonResponse.json().catch(() => null))
   if (!context) return json(502, 'upstream_unavailable')
 
-  // A question is ≤ 600 chars; anything near 8 KB is not a real request.
-  const raw = await request.text().catch(() => '')
-  if (raw.length > MAX_BODY_CHARS) return json(413, 'too_large')
+  // A question is ≤ 600 chars: stop reading past 8 KB, without waiting for EOF.
+  const raw = await readLimited(request, MAX_BODY_BYTES)
+  if (raw === null) return json(413, 'too_large')
   let body: { question?: unknown } | null = null
   try {
     body = JSON.parse(raw)
@@ -106,6 +129,7 @@ export async function handleAsk(
   }
   const question = cleanQuestion(body?.question)
   if (!question) return json(400, 'invalid_question')
+  if (mentionsOwnName(question)) return json(422, 'personal_info')
 
   const key = createHash('sha256').update(session).digest('hex')
   // Check the session first without recording, then spend the global budget,

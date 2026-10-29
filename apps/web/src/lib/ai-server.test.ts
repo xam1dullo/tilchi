@@ -47,7 +47,7 @@ function setup(over: Partial<AskDeps> = {}) {
       'l1',
       deps,
     )
-  return { ask, calls, prompts }
+  return { ask, calls, prompts, deps }
 }
 
 describe('handleAsk', () => {
@@ -194,6 +194,42 @@ describe('handleAsk', () => {
       cookie: `__Host-tilchi_sid=${tok('c')}`,
     })
     expect(res.status).toBe(429)
+  })
+
+  it('refuses a question that introduces the learner, without spending budget', async () => {
+    const { ask, prompts } = setup()
+    const res = await ask({ question: 'my name is ali, explain gerunds' })
+    expect(res.status).toBe(422)
+    expect(await res.json()).toEqual({ error: 'personal_info' })
+    expect(prompts).toHaveLength(0)
+    expect((await ask()).status).toBe(200)
+    expect((await ask()).status).toBe(200)
+  })
+
+  it('stops reading an endless body after 8 KB', async () => {
+    const { prompts } = setup()
+    const deps = setup()
+    let pulled = 0
+    const endless = new ReadableStream<Uint8Array>({
+      pull(controller) {
+        pulled += 1
+        controller.enqueue(new Uint8Array(1024))
+      },
+    })
+    const res = await handleAsk(
+      new Request('http://web/ai/lessons/l1/ask', {
+        method: 'POST',
+        headers: { cookie: `__Host-tilchi_sid=${A}` },
+        body: endless,
+        // @ts-expect-error Node needs duplex for a streamed request body
+        duplex: 'half',
+      }),
+      'l1',
+      deps.deps,
+    )
+    expect(res.status).toBe(413)
+    expect(pulled).toBeLessThan(20)
+    expect(prompts).toHaveLength(0)
   })
 
   it('refuses an oversized body with 413 before parsing it', async () => {
