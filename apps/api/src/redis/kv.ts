@@ -56,9 +56,13 @@ export function createMemoryKv(now = () => Date.now()): Kv {
       return true
     },
     async incr(key, ttlSeconds) {
-      const current = Number((await this.get(key)) ?? '0')
-      const next = current + 1
-      await this.set(key, String(next), ttlSeconds)
+      const time = now()
+      const entry = store.get(key)
+      const active = entry && entry.expiresAt > time ? entry : undefined
+      const next = Number(active?.value ?? '0') + 1
+      const expiresAt =
+        next === 1 || !active ? time + ttlSeconds * 1000 : active.expiresAt
+      store.set(key, { value: String(next), expiresAt })
       return next
     },
   }

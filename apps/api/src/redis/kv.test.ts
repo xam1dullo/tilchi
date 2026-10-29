@@ -17,6 +17,23 @@ describe('createMemoryKv', () => {
     expect(await kv.incr('rate:ip:1', 60)).toBe(2)
   })
 
+  it('increments concurrent calls atomically', async () => {
+    const kv = createMemoryKv()
+    expect(await Promise.all([kv.incr('k', 60), kv.incr('k', 60)])).toEqual([
+      1, 2,
+    ])
+  })
+
+  it('keeps the initial counter expiry when incremented again', async () => {
+    let now = 1_000
+    const kv = createMemoryKv(() => now)
+    expect(await kv.incr('k', 10)).toBe(1)
+    now = 9_000
+    expect(await kv.incr('k', 10)).toBe(2)
+    now = 11_000
+    expect(await kv.incr('k', 10)).toBe(1)
+  })
+
   it('hands a taken value to one caller only', async () => {
     const kv = createMemoryKv()
     await kv.set('handoff:1', 'v', 60)
