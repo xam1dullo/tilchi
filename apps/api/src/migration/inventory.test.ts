@@ -190,6 +190,7 @@ describe('snapshot reconciliation', () => {
       { ...record, sourceKey: 1 },
       { ...record, sourceKey: [] },
       { ...record, sourceKey: ['owner-a', ' '] },
+      { ...record, sourceKey: new Array(1) },
       { ...record, state: 'unknown' },
       { ...record, fingerprint: '' },
       { ...record, fingerprint: 'not-a-sha256' },

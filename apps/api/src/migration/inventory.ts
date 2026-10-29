@@ -77,7 +77,7 @@ function indexSnapshot(
       !nonempty(row.sourceTable) ||
       !Array.isArray(row.sourceKey) ||
       row.sourceKey.length === 0 ||
-      !row.sourceKey.every(nonempty) ||
+      !Array.from(row.sourceKey).every(nonempty) ||
       (row.state !== 'active' && row.state !== 'deleted') ||
       typeof row.fingerprint !== 'string' ||
       !/^[0-9a-f]{64}$/.test(row.fingerprint)
