@@ -19,19 +19,23 @@ const PII_PATTERNS: RegExp[] = [
   /\d{5,}/g,
 ]
 
-// A self-introduction followed by capitalised words: "My name is Ali Valiyev",
-// "Mening ismim Ali", "Меня зовут Али". CEFR levels ("I am B2") are
-// excluded explicitly, so all-caps names ("ALI") are still caught. ponytail: a heuristic — it
-// misses lowercase names and "Men Ali"/"Я Али", and can catch "I am English". The consent text covers the
-// foreign provider; upgrade to an NER pass if names still slip through.
-const SELF_INTRO =
-  /(?<![\p{L}])((?:[Mm]y name is|I am|I['’]m|[Mm]ening ismim|[Ii]smim|[Мм]еня зовут)\s+)(?![ABC][12](?![\p{L}\d]))\p{Lu}[\p{L}'’-]*(?:\s+\p{Lu}[\p{L}'’-]*)*/gu
+// A learner introducing themselves by name. Rewriting names out of free text
+// proved leaky, and guessing at "I am …" blocked ordinary questions ("I am
+// confused."), so only unambiguous name phrases are refused (any case, any
+// punctuation after them); quoted examples are ignored. PM decision
+// (PRD Compliance): this is a guard, not a guarantee — a name typed without
+// such a phrase still reaches the model; consent and the UI warning cover it.
+const QUOTED = /"[^"]*"|“[^”]*”|«[^»]*»/g
+const NAME_PHRASE =
+  /(?<![\p{L}])(?:my name(?:'s|’s| is)|mening ismim|ismim|меня зовут|мо[её] имя)[\s:,\-–—]*\p{L}/iu
+
+export function mentionsOwnName(text: string): boolean {
+  const unquoted = text.replace(QUOTED, ' ')
+  return NAME_PHRASE.test(unquoted)
+}
 
 export function stripPii(text: string): string {
-  return PII_PATTERNS.reduce(
-    (out, re) => out.replace(re, REMOVED),
-    text.replace(SELF_INTRO, '$1[name]'),
-  )
+  return PII_PATTERNS.reduce((out, re) => out.replace(re, REMOVED), text)
 }
 
 export type LessonContext = {
@@ -69,6 +73,8 @@ export const SYSTEM_PROMPT = [
 
 export function cleanQuestion(raw: unknown): string | null {
   if (typeof raw !== 'string') return null
+  // Reject before any regex runs: the scans are not linear on huge input.
+  if (raw.length > MAX_QUESTION_CHARS) return null
   const question = stripPii(raw).trim()
   if (question.length === 0 || question.length > MAX_QUESTION_CHARS) return null
   return question

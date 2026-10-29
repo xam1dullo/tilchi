@@ -3,6 +3,7 @@ import {
   MAX_QUESTION_CHARS,
   SYSTEM_PROMPT,
   buildPrompt,
+  mentionsOwnName,
   cleanQuestion,
   lessonContext,
   stripPii,
@@ -68,12 +69,12 @@ describe('buildPrompt', () => {
       lesson: { scheduledAt: '2026-11-02T10:00:00.000Z' },
       group: { name: 'Ali Valiyev 1:1', level: 'A2' },
     })
-    const question = cleanQuestion('What is "ubiquitous"? I am Ali, 540152508')
+    const question = cleanQuestion('What is "ubiquitous"? Call 540152508')
     expect(context).not.toBeNull()
     expect(question).not.toBeNull()
     const { system, user } = buildPrompt(context!, question!)
     expect(user).toBe(
-      'Level: A2\nScheduled: 2026-11-02T10:00:00.000Z\n\nQuestion: What is "ubiquitous"? I am [name], [removed]',
+      'Level: A2\nScheduled: 2026-11-02T10:00:00.000Z\n\nQuestion: What is "ubiquitous"? Call [removed]',
     )
     expect(`${system}${user}`).not.toMatch(/540152508|Ali|Valiyev/)
   })
@@ -84,31 +85,44 @@ describe('buildPrompt', () => {
 })
 
 describe('cleanQuestion', () => {
-  it('replaces self-introduced names in uz, ru and en', () => {
-    expect(cleanQuestion('My name is Ali Valiyev, explain gerunds')).toBe(
-      'My name is [name], explain gerunds',
-    )
-    expect(cleanQuestion('Mening ismim Ali. Present perfect nima?')).toBe(
-      'Mening ismim [name]. Present perfect nima?',
-    )
-    expect(cleanQuestion('Меня зовут Али Валиев, что такое gerund?')).toBe(
-      'Меня зовут [name], что такое gerund?',
-    )
-    expect(cleanQuestion("I'm Ali and I need help with articles")).toBe(
-      "I'm [name] and I need help with articles",
-    )
+  it('flags self-introductions in any case, outside quotes', () => {
+    for (const q of [
+      'My name is Ali Valiyev, explain gerunds',
+      'my name is ali ibn valiyev',
+      'MY NAME IS ALI',
+      "my name's sardor",
+      'Mening ismim: Ali. Present perfect nima?',
+      'my name is: sardor',
+      'Mening ismim Ali. Present perfect nima?',
+      'ismim sardor',
+      'Меня зовут Али',
+      'моё имя али',
+    ]) {
+      expect(mentionsOwnName(q), q).toBe(true)
+    }
   })
 
-  it('keeps ordinary "I am" sentences and CEFR levels', () => {
-    expect(cleanQuestion('I am confused about articles')).toBe(
+  it('keeps ordinary sentences, levels and quoted examples', () => {
+    for (const q of [
       'I am confused about articles',
-    )
-    expect(cleanQuestion('I am B2, explain inversion')).toBe(
       'I am B2, explain inversion',
-    )
-    expect(cleanQuestion('My name is ALI, help me')).toBe(
-      'My name is [name], help me',
-    )
+      'Men ingliz tilini o‘rganyapman',
+      'Я не понимаю present perfect',
+      'What does "call me a taxi" mean?',
+      'What does call me a taxi mean?',
+      'I am confused. Explain articles.',
+      'I am learning. Explain gerunds.',
+      'Explain “my name is” in a sentence',
+    ]) {
+      expect(mentionsOwnName(q), q).toBe(false)
+    }
+  })
+
+  it('rejects over-long raw input before scanning it', () => {
+    const huge = 'a'.repeat(200_000)
+    const started = performance.now()
+    expect(cleanQuestion(huge)).toBeNull()
+    expect(performance.now() - started).toBeLessThan(50)
   })
 
   it('rejects non-strings, blanks and over-long input', () => {

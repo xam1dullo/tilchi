@@ -20,6 +20,8 @@ const uz = {
   aiDisabled: 'AI yordamchi serverda hali yoqilmagan.',
   aiLimit: "Savollar limiti tugadi. Keyinroq urinib ko'ring.",
   aiForbidden: 'Bu dars uchun AI yordamchi mavjud emas.',
+  aiPersonal:
+    'Ismingiz yoki shaxsiy ma’lumotingizni yozmang — savolni qaytadan yozing.',
   aiUnavailable: "Javob olinmadi. Qayta urinib ko'ring.",
 }
 
@@ -43,6 +45,7 @@ const ru: AiCopy = {
   aiDisabled: 'AI-помощник на сервере ещё не включён.',
   aiLimit: 'Лимит вопросов исчерпан. Попробуйте позже.',
   aiForbidden: 'AI-помощник для этого урока недоступен.',
+  aiPersonal: 'Не пишите своё имя и личные данные — переформулируйте вопрос.',
   aiUnavailable: 'Ответ не получен. Попробуйте ещё раз.',
 }
 
@@ -64,6 +67,8 @@ const en: AiCopy = {
   aiDisabled: 'The AI helper is not enabled on the server yet.',
   aiLimit: 'Question limit reached. Try again later.',
   aiForbidden: 'The AI helper is not available for this lesson.',
+  aiPersonal:
+    'Please leave out your name and personal details, then ask again.',
   aiUnavailable: 'No answer received. Try again.',
 }
 
