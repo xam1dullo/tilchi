@@ -4,12 +4,6 @@ Greenfield rewrite of https://github.com/xam1dullo/tilchi. Product and stack con
 
 Never merge to `main`, never deploy production, never commit a secret. The owner does all three.
 
-## Workspace
-
-1. **No git worktrees.** Work only in the single repo checkout — do not create or use `git worktree` (including under `.claude/worktrees`, `/tmp`, or `/private`).
-2. **In-repo only.** Product and source changes stay inside this repository working tree. Never write app code under `/tmp`, `/private`, or other scratch trees outside the repo.
-3. **One feature at a time.** Across agents, finish or explicitly park the current feature before starting another. Do not run parallel feature slices on overlapping work.
-
 ## Roster
 
 | Role | Who | Does |
@@ -32,6 +26,12 @@ At most 5 active implementers or reviewers per collision domain. Run in parallel
 5. **PR** against `main`, conventional title. No merge without the owner.
 
 PR gate: `lint + typecheck + unit` and the compose config checks (`.github/workflows/pr-ci.yml`). There is no 80% coverage or e2e mandate, and no coverage theater.
+
+## Workspace
+
+- **No git worktrees.** Do not create or use `git worktree`. Work only in the single checkout of this repository.
+- **Code stays in the repo tree.** Write product and source only inside the repository working tree. Do not put app code under `/tmp`, `/private`, or other scratch paths outside the repo.
+- **One feature at a time.** Across agents, only one feature or slice may be in active implementation. Finish or park it before starting another.
 
 ## Commands
 

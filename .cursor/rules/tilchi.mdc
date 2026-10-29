@@ -5,8 +5,6 @@ alwaysApply: true
 
 Follow AGENTS.md.
 
-Workspace: no git worktrees — single checkout only. Product/source only inside this repo working tree (never /tmp or /private). One feature at a time across agents — finish or park before starting another.
-
 poteto-mode: smallest change, domain types first, prove it with a command.
 
 ub-mode: one decision in one place, parse at the boundary, tests describe what a caller sees. Skill: .cursor/skills/ub-mode/SKILL.md.
@@ -14,3 +12,5 @@ ub-mode: one decision in one place, parse at the boundary, tests describe what a
 ECC: descriptive names, immutable defaults, KISS, DRY, YAGNI.
 
 Session cookie is `__Host-tilchi_sid` only. No localStorage session. No bearer session. Webhook secret or refuse in production. Health has no secret flags. Meet tickets do not carry the session. Deploy stays gated by the production environment.
+
+No git worktrees — single repo checkout only. Product code only inside the repo tree (not /tmp or /private). One feature in flight at a time.
