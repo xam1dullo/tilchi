@@ -1,4 +1,6 @@
 # Production-shaped stack. Secrets must be set (no silent defaults).
+# S3_* may be empty here (the dev overlay fills them); the prod overlay requires
+# them, and the API and MinIO both refuse to start with empty or dev values.
 # Local: docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
 # Production adds docker-compose.prod.yml (ghcr images by git SHA, TLS).
 # See docs/adr/0010-docker-vps.md.
@@ -63,6 +65,11 @@ services:
       PUBLIC_APP_URL: ${PUBLIC_APP_URL:-}
       ADMIN_CHAT_IDS: ${ADMIN_CHAT_IDS:-}
       ADMIN_CHAT_ID: ${ADMIN_CHAT_ID:-}
+      S3_ENDPOINT: http://minio:9000
+      S3_PUBLIC_URL: ${S3_PUBLIC_URL:-}
+      S3_BUCKET: ${S3_BUCKET:-tilchi-audio}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:-}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:-}
     expose:
       - "3001"
     healthcheck:
@@ -79,6 +86,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      minio:
+        condition: service_started
 
   postgres:
     <<: *restart
@@ -95,6 +104,23 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
+
+  # Learner audio (ADR 0011). Compose network only: no published port here.
+  # Official minio/minio images are no longer public; this is the Chainguard
+  # build, pinned by digest. Nest creates the bucket on boot.
+  minio:
+    <<: *restart
+    image: cgr.dev/chainguard/minio@sha256:e234321fd3abff7fb968b0674056e883b702aa1ad93a0d4d795cb6c21fa46407
+    command: ["server", "/data"]
+    environment:
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY:-}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY:-}
+      MINIO_API_CORS_ALLOW_ORIGIN: ${S3_CORS_ORIGIN:-http://localhost}
+      TZ: Asia/Tashkent
+    volumes:
+      - miniodata:/data
+    expose:
+      - "9000"
 
   redis:
     <<: *restart
@@ -137,3 +163,4 @@ services:
 
 volumes:
   pgdata:
+  miniodata:

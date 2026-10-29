@@ -13,6 +13,18 @@ services:
       LIVEKIT_API_SECRET: ${LIVEKIT_API_SECRET:-devsecret}
       TILCHI_PREVIEW_ROLE: ${TILCHI_PREVIEW_ROLE:-learner}
       TILCHI_DEMO: ${TILCHI_DEMO:-1}
+      S3_PUBLIC_URL: ${S3_PUBLIC_URL:-http://localhost:9000}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:-tilchi-dev}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:-tilchi-dev-secret}
+
+  # Browsers upload straight to MinIO with presigned URLs; dev publishes it on
+  # loopback only. Production reaches it through nginx instead.
+  minio:
+    ports:
+      - "127.0.0.1:9000:9000"
+    environment:
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY:-tilchi-dev}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY:-tilchi-dev-secret}
 
   start:
     environment:

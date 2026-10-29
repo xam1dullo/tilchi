@@ -8,6 +8,10 @@ export type OutboxEvent =
   | 'registration.completed'
   | 'sessions.revoked'
   | 'meeting.close'
+  | 'test.assigned'
+  | 'test.reminder'
+  | 'test.submitted'
+  | 'test.graded'
 
 export type OutboxEntry = {
   event: OutboxEvent
@@ -27,6 +31,19 @@ export type LessonPayload = {
   scheduledAt: string
   previousScheduledAt?: string
   lead?: ReminderLead
+}
+
+export type TestLead = '24h' | '3h'
+
+/** What the four test events carry; `userId` is the learner the event is about. */
+export type TestPayload = {
+  assignmentId: string
+  groupId: string
+  /** ISO instant of the assignment deadline. */
+  deadline: string
+  attemptId?: string
+  userId?: string
+  lead?: TestLead
 }
 
 const URGENT: ReadonlySet<OutboxEvent> = new Set([

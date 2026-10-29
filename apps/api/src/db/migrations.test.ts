@@ -80,7 +80,10 @@ describe('runMigrations without a journal', () => {
 describeWithDatabase('runMigrations on a real database', (current) => {
   it('builds the whole v1 schema from an empty database', async () => {
     expect(await tables(current().url)).toEqual([
+      'assignments',
+      'attempts',
       'attendance_events',
+      'audio_objects',
       'courses',
       'group_members',
       'groups',
@@ -89,7 +92,10 @@ describeWithDatabase('runMigrations on a real database', (current) => {
       'notifications',
       'outbox',
       'outbox_deliveries',
+      'questions',
       'sessions',
+      'test_questions',
+      'tests',
       'users',
     ])
   })

@@ -40,7 +40,22 @@ type Ctx = {
   teacher: string
   notification: string
   course: string
+  question: string
+  test: string
+  attempt: string
+  speaking: string
 }
+
+/** A deadline a week out, within the one-year limit. */
+const soon = () => new Date(Date.now() + 7 * 24 * 3_600_000).toISOString()
+
+type Json = {
+  id: string
+  assignments: { assignmentId: string; attemptId: string }[]
+}
+
+/** What a row needs to exist before it is called; built fresh per caller. */
+type Assess = 'draft' | 'published' | 'test' | 'attempt' | 'submitted' | 'audio'
 
 /** Expected status per caller, in the order of WHO. */
 type Row = {
@@ -48,6 +63,7 @@ type Row = {
   handler: string
   method: 'GET' | 'POST' | 'PATCH' | 'DELETE'
   course?: boolean
+  assess?: Assess
   /** Lesson state the route needs; a fresh lesson is made per request. */
   lesson?: 'scheduled' | 'live'
   path: (ctx: Ctx) => string
@@ -92,6 +108,132 @@ const ROWS: Row[] = [
     course: true,
     path: (c) => `/api/courses/${c.course}`,
     expect: [401, 403, 403, 403, 403, 200],
+  },
+  {
+    name: 'list questions',
+    handler: 'QuestionsController.list',
+    method: 'GET',
+    path: () => '/api/questions',
+    expect: [401, 403, 403, 200, 200, 200],
+  },
+  {
+    name: 'create question',
+    handler: 'QuestionsController.create',
+    method: 'POST',
+    path: () => '/api/questions',
+    body: () => ({ type: 'speaking', prompt: 'Describe your day' }),
+    expect: [401, 403, 403, 201, 201, 201],
+  },
+  {
+    name: 'update question',
+    handler: 'QuestionsController.update',
+    method: 'PATCH',
+    assess: 'draft',
+    path: (c) => `/api/questions/${c.question}`,
+    body: () => ({ prompt: 'New prompt' }),
+    expect: [401, 403, 403, 200, 200, 200],
+  },
+  {
+    name: 'delete question',
+    handler: 'QuestionsController.remove',
+    method: 'DELETE',
+    assess: 'draft',
+    path: (c) => `/api/questions/${c.question}`,
+    expect: [401, 403, 403, 200, 200, 200],
+  },
+  {
+    name: 'list tests',
+    handler: 'TestsController.list',
+    method: 'GET',
+    path: () => '/api/tests',
+    expect: [401, 403, 403, 200, 200, 200],
+  },
+  {
+    name: 'create test',
+    handler: 'TestsController.create',
+    method: 'POST',
+    assess: 'published',
+    path: () => '/api/tests',
+    body: (c) => ({ title: 'T', questionIds: [c.question] }),
+    expect: [401, 403, 403, 201, 201, 201],
+  },
+  {
+    name: 'get test',
+    handler: 'TestsController.get',
+    method: 'GET',
+    assess: 'test',
+    path: (c) => `/api/tests/${c.test}`,
+    expect: [401, 403, 403, 200, 200, 200],
+  },
+  {
+    name: 'assign test',
+    handler: 'AssignmentsController.assign',
+    method: 'POST',
+    assess: 'test',
+    path: (c) => `/api/groups/${c.group}/assignments`,
+    body: (c) => ({ testId: c.test, deadline: soon() }),
+    expect: [401, 403, 404, 201, 404, 201],
+  },
+  {
+    name: 'list group assignments',
+    handler: 'AssignmentsController.listForGroup',
+    method: 'GET',
+    path: (c) => `/api/groups/${c.group}/assignments`,
+    expect: [401, 403, 404, 200, 404, 200],
+  },
+  {
+    name: 'my assignments',
+    handler: 'AssignmentsController.mine',
+    method: 'GET',
+    path: () => '/api/me/assignments',
+    expect: [401, 200, 200, 403, 403, 403],
+  },
+  {
+    name: 'get attempt',
+    handler: 'AttemptsController.get',
+    method: 'GET',
+    assess: 'attempt',
+    path: (c) => `/api/attempts/${c.attempt}`,
+    expect: [401, 200, 404, 200, 404, 200],
+  },
+  {
+    name: 'submit attempt',
+    handler: 'AttemptsController.submit',
+    method: 'POST',
+    assess: 'attempt',
+    path: (c) => `/api/attempts/${c.attempt}/submit`,
+    body: () => ({ answers: {} }),
+    expect: [401, 201, 404, 404, 404, 404],
+  },
+  {
+    name: 'presign audio',
+    handler: 'AttemptsController.presign',
+    method: 'POST',
+    assess: 'attempt',
+    path: (c) => `/api/attempts/${c.attempt}/audio/presign`,
+    body: (c) => ({
+      questionId: c.speaking,
+      contentType: 'audio/webm',
+      size: 10,
+    }),
+    expect: [401, 201, 404, 404, 404, 404],
+  },
+  {
+    name: 'play audio',
+    handler: 'AttemptsController.playback',
+    method: 'GET',
+    assess: 'audio',
+    path: (c) => `/api/attempts/${c.attempt}/audio/${c.speaking}`,
+    expect: [401, 200, 404, 200, 404, 200],
+  },
+  {
+    name: 'grade attempt',
+    handler: 'AttemptsController.grade',
+    method: 'POST',
+    assess: 'submitted',
+    path: (c) => `/api/attempts/${c.attempt}/grade`,
+    body: () => ({}),
+    expect: [401, 403, 404, 201, 404, 201],
   },
   {
     name: 'list groups',
@@ -392,6 +534,74 @@ describe.skipIf(!hasTestDatabase)('route x role matrix', () => {
     return ((await response.json()) as { id: string }).id
   }
 
+  async function as(who: string, method: string, path: string, body?: unknown) {
+    const res = await fetch(base + path, {
+      method,
+      headers: {
+        'content-type': 'application/json',
+        cookie: `__Host-tilchi_sid=${who}`,
+      },
+      body: body === undefined ? undefined : JSON.stringify(body),
+    })
+    expect(res.status, `${method} ${path}`).toBeLessThan(300)
+    return (await res.json()) as Json
+  }
+
+  async function freshAssessment(level: Assess) {
+    const made = async (body: unknown, publish: boolean) => {
+      const q = await as('owner', 'POST', '/api/questions', body)
+      if (publish) {
+        await as('owner', 'PATCH', `/api/questions/${q.id}`, {
+          status: 'published',
+        })
+      }
+      return q.id as string
+    }
+    const out = { question: '', test: '', attempt: '', speaking: '' }
+    if (level === 'draft') {
+      out.question = await made({ type: 'speaking', prompt: 'P' }, false)
+      return out
+    }
+    out.question = await made(
+      { type: 'single', prompt: 'P', options: ['a', 'b'], correct: [0] },
+      true,
+    )
+    if (level === 'published') return out
+    out.speaking = await made({ type: 'speaking', prompt: 'S' }, true)
+    const test = await as('owner', 'POST', '/api/tests', {
+      title: 'T',
+      questionIds: [out.question, out.speaking],
+    })
+    out.test = test.id
+    if (level === 'test') return out
+    const assigned = await as(
+      'owner',
+      'POST',
+      `/api/groups/${group}/assignments`,
+      {
+        testId: out.test,
+        deadline: soon(),
+      },
+    )
+    const mine = await as('member', 'GET', '/api/me/assignments')
+    out.attempt =
+      mine.assignments.find((a) => a.assignmentId === assigned.id)?.attemptId ??
+      ''
+    if (level === 'audio') {
+      await as('member', 'POST', `/api/attempts/${out.attempt}/audio/presign`, {
+        questionId: out.speaking,
+        contentType: 'audio/webm',
+        size: 10,
+      })
+    }
+    if (level === 'submitted') {
+      await as('member', 'POST', `/api/attempts/${out.attempt}/submit`, {
+        answers: {},
+      })
+    }
+    return out
+  }
+
   for (const row of ROWS) {
     it(row.name, async () => {
       for (const [index, who] of WHO.entries()) {
@@ -402,6 +612,9 @@ describe.skipIf(!hasTestDatabase)('route x role matrix', () => {
           teacher: ids.owner,
           notification: await freshNotification(),
           course: row.course ? await freshCourse() : '',
+          ...(row.assess
+            ? await freshAssessment(row.assess)
+            : { question: '', test: '', attempt: '', speaking: '' }),
         }
         const headers: Record<string, string> = {
           'content-type': 'application/json',

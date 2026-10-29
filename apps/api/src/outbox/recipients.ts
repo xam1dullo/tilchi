@@ -14,6 +14,8 @@ export type Scope = {
   joinedIds: string[]
   /** The user an event is about (all sessions revoked). */
   subject: Member | null
+  /** The assignment's attempts, for the test events. */
+  attempts?: { userId: string; status: string }[]
 }
 
 const learners = (scope: Scope) =>
@@ -31,6 +33,19 @@ const notJoined = (scope: Scope) =>
 
 const subject = (scope: Scope) => (scope.subject ? [scope.subject] : [])
 
+const withAttempt =
+  (open: boolean) =>
+  (scope: Scope): Member[] => {
+    const { attempts = [] } = scope
+    const ids = attempts
+      .filter((a) => !open || a.status === 'assigned')
+      .map((a) => a.userId)
+    return learners(scope).filter((m) => ids.includes(m.userId))
+  }
+
+const teacherOnly = (scope: Scope) =>
+  scope.members.filter((m) => m.userId === scope.teacherId)
+
 const RULES: Partial<Record<OutboxEvent, (scope: Scope) => Member[]>> = {
   'lesson.scheduled': learners,
   'lesson.cancelled': learners,
@@ -38,6 +53,10 @@ const RULES: Partial<Record<OutboxEvent, (scope: Scope) => Member[]>> = {
   'lesson.reminder': learnersAndTeacher,
   'lesson.started': notJoined,
   'sessions.revoked': subject,
+  'test.assigned': withAttempt(false),
+  'test.reminder': withAttempt(true),
+  'test.submitted': teacherOnly,
+  'test.graded': subject,
 }
 
 /**

@@ -23,6 +23,18 @@ export const lessonStatus = pgEnum('lesson_status', [
   'ended',
   'cancelled',
 ])
+export const questionType = pgEnum('question_type', [
+  'single',
+  'multi',
+  'speaking',
+])
+export const questionStatus = pgEnum('question_status', ['draft', 'published'])
+export const attemptStatus = pgEnum('attempt_status', [
+  'assigned',
+  'submitted',
+  'graded',
+  'missed',
+])
 export const attendanceKind = pgEnum('attendance_kind', [
   'token',
   'join',
@@ -243,4 +255,150 @@ export const notifications = pgTable(
       table.userId,
     ),
   ],
+)
+
+export type QuestionOption = { id: string; text: string }
+/** Points one question earned when its attempt was graded. */
+export type QuestionResult = { points: number; max: number }
+
+/**
+ * The shared question bank. A choice question has options and an answer key
+ * (option ids); a speaking question has neither. Only a draft may change.
+ */
+export const questions = pgTable(
+  'questions',
+  {
+    id: uuid('id').primaryKey(),
+    type: questionType('type').notNull(),
+    prompt: text('prompt').notNull(),
+    options: jsonb('options').$type<QuestionOption[]>(),
+    answerKey: jsonb('answer_key').$type<string[]>(),
+    status: questionStatus('status').notNull().default('draft'),
+    authorId: uuid('author_id')
+      .notNull()
+      .references(() => users.id),
+    createdAt: tstz('created_at').notNull().defaultNow(),
+    updatedAt: tstz('updated_at').notNull().defaultNow(),
+    deletedAt: tstz('deleted_at'),
+  },
+  (table) => [
+    check(
+      'questions_shape',
+      sql`(${table.type} = 'speaking' and ${table.options} is null and ${table.answerKey} is null)
+        or (${table.type} <> 'speaking' and ${table.options} is not null and ${table.answerKey} is not null)`,
+    ),
+  ],
+)
+
+/** A test is an ordered list of published questions and never changes. */
+export const tests = pgTable('tests', {
+  id: uuid('id').primaryKey(),
+  title: text('title').notNull(),
+  authorId: uuid('author_id')
+    .notNull()
+    .references(() => users.id),
+  createdAt: tstz('created_at').notNull().defaultNow(),
+})
+
+export const testQuestions = pgTable(
+  'test_questions',
+  {
+    testId: uuid('test_id')
+      .notNull()
+      .references(() => tests.id),
+    questionId: uuid('question_id')
+      .notNull()
+      .references(() => questions.id),
+    position: integer('position').notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.testId, table.questionId] }),
+    uniqueIndex('test_questions_position_idx').on(table.testId, table.position),
+    index('test_questions_question_idx').on(table.questionId),
+  ],
+)
+
+/** A test given to one Group with a deadline; attempts are made for its learners. */
+export const assignments = pgTable(
+  'assignments',
+  {
+    id: uuid('id').primaryKey(),
+    testId: uuid('test_id')
+      .notNull()
+      .references(() => tests.id),
+    groupId: uuid('group_id')
+      .notNull()
+      .references(() => groups.id),
+    deadline: tstz('deadline').notNull(),
+    createdBy: uuid('created_by')
+      .notNull()
+      .references(() => users.id),
+    createdAt: tstz('created_at').notNull().defaultNow(),
+  },
+  (table) => [index('assignments_group_idx').on(table.groupId)],
+)
+
+/**
+ * One attempt per learner per assignment (the unique key). The check keeps the
+ * state machine honest in the data: a graded row always carries its grade.
+ */
+export const attempts = pgTable(
+  'attempts',
+  {
+    id: uuid('id').primaryKey(),
+    assignmentId: uuid('assignment_id')
+      .notNull()
+      .references(() => assignments.id),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id),
+    status: attemptStatus('status').notNull().default('assigned'),
+    /** Question id to the chosen option ids. Speaking answers live in audio_objects. */
+    answers: jsonb('answers')
+      .$type<Record<string, string[]>>()
+      .notNull()
+      .default({}),
+    score: integer('score'),
+    /** Question id to the points it earned, kept for the learner's review. */
+    result: jsonb('result').$type<Record<string, QuestionResult>>(),
+    feedback: text('feedback'),
+    submittedAt: tstz('submitted_at'),
+    gradedAt: tstz('graded_at'),
+    gradedBy: uuid('graded_by').references(() => users.id),
+    createdAt: tstz('created_at').notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('attempts_assignment_user_idx').on(
+      table.assignmentId,
+      table.userId,
+    ),
+    index('attempts_user_idx').on(table.userId),
+    index('attempts_open_idx')
+      .on(table.assignmentId)
+      .where(sql`${table.status} = 'assigned'`),
+    check(
+      'attempts_state_shape',
+      sql`(${table.status} not in ('submitted', 'graded') or ${table.submittedAt} is not null)
+        and (${table.status} <> 'graded'
+          or (${table.score} is not null and ${table.gradedAt} is not null and ${table.gradedBy} is not null))`,
+    ),
+  ],
+)
+
+/** One recorded speaking answer: the object key in the in-country bucket. */
+export const audioObjects = pgTable(
+  'audio_objects',
+  {
+    attemptId: uuid('attempt_id')
+      .notNull()
+      .references(() => attempts.id),
+    questionId: uuid('question_id')
+      .notNull()
+      .references(() => questions.id),
+    objectKey: text('object_key').notNull().unique(),
+    contentType: text('content_type').notNull(),
+    size: integer('size').notNull(),
+    createdAt: tstz('created_at').notNull().defaultNow(),
+  },
+  (table) => [primaryKey({ columns: [table.attemptId, table.questionId] })],
 )

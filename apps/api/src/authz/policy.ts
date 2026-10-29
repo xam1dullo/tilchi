@@ -24,6 +24,12 @@ export type Action =
   | 'lesson.reschedule'
   | 'meeting.join'
   | 'meeting.moderate'
+  | 'question.manage'
+  | 'test.manage'
+  | 'test.assign'
+  | 'assignment.view'
+  | 'attempt.take'
+  | 'attempt.grade'
 
 const isManager = (actor: Actor) =>
   actor.role === 'admin' || actor.role === 'teacher'
@@ -40,7 +46,14 @@ const manages = (actor: Actor, group: GroupScope) =>
  * decides who may do what. Group actions need the group; without it, false.
  */
 export function can(actor: Actor, action: Action, group?: GroupScope): boolean {
-  if (action === 'group.create') return isManager(actor)
+  if (
+    action === 'group.create' ||
+    action === 'question.manage' ||
+    action === 'test.manage'
+  ) {
+    return isManager(actor)
+  }
+  if (action === 'attempt.take') return actor.role === 'learner'
   if (
     action === 'group.addMember' ||
     action === 'teacher.list' ||

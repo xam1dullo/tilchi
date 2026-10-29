@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common'
 import { and, asc, eq, isNull, lte, sql } from 'drizzle-orm'
 import { Database, type Executor, type Tx } from '../db/database'
 import {
+  attempts,
   attendanceEvents,
   groupMembers,
   groups,
@@ -185,6 +186,14 @@ export class OutboxRepository {
       .from(users)
       .where(and(eq(users.id, userId), isNull(users.deletedAt)))
     return (row as Member | undefined) ?? null
+  }
+
+  async attemptsOf(assignmentId: string) {
+    if (!isUuid(assignmentId)) return []
+    return this.database.db
+      .select({ userId: attempts.userId, status: attempts.status })
+      .from(attempts)
+      .where(eq(attempts.assignmentId, assignmentId))
   }
 
   async joinedIds(lessonId: string): Promise<string[]> {
