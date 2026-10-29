@@ -199,7 +199,20 @@ describe('handleAsk', () => {
   })
 
   it('refuses a question that introduces the learner, without spending budget', async () => {
-    const { ask, prompts } = setup()
+    let hits = 0
+    const counting = {
+      check: () => 0,
+      hit: () => {
+        hits += 1
+        return 0
+      },
+    }
+    const { ask, prompts } = setup({
+      limiter: counting,
+      globalLimiter: counting,
+    })
+    expect((await ask({ question: 'my  name   is Ali' })).status).toBe(422)
+    expect(hits).toBe(0)
     const res = await ask({ question: 'my name is ali, explain gerunds' })
     expect(res.status).toBe(422)
     expect(await res.json()).toEqual({ error: 'personal_info' })

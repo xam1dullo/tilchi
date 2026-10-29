@@ -25,9 +25,16 @@ const PII_PATTERNS: RegExp[] = [
 // punctuation after them); quoted examples are ignored. PM decision
 // (PRD Compliance): this is a guard, not a guarantee — a name typed without
 // such a phrase still reaches the model; consent and the UI warning cover it.
-const QUOTED = /"[^"]*"|“[^”]*”|«[^»]*»/g
-const NAME_PHRASE =
-  /(?<![\p{L}])(?:my name(?:'s|’s| is)|mening ismim|ismim|меня зовут|мо[её] имя)[\s:,\-–—]*\p{L}/iu
+// Quoted examples are ignored: "…", “…”, «…», and '…' when the quote marks
+// stand outside words (so contractions like "name's" are not quotes).
+const QUOTED = /"[^"]*"|“[^”]*”|«[^»]*»|(?<![\p{L}])'[^']*'(?![\p{L}])/gu
+const APOSTROPHE = "['’ʼ]"
+// A full phrase, any spacing or case, ending at a word boundary, then optional
+// punctuation, then a letter (the name).
+const NAME_PHRASE = new RegExp(
+  `(?<![\\p{L}])(?:my\\s+name(?:\\s*${APOSTROPHE}\\s*s|\\s+is)|mening\\s+ismim|ismim|меня\\s+зовут|мо[её]\\s+имя)(?![\\p{L}])[\\s\\p{P}]*\\p{L}`,
+  'iu',
+)
 
 export function mentionsOwnName(text: string): boolean {
   const unquoted = text.replace(QUOTED, ' ')
