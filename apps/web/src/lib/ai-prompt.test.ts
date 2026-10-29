@@ -106,6 +106,9 @@ describe('cleanQuestion', () => {
     expect(cleanQuestion('I am B2, explain inversion')).toBe(
       'I am B2, explain inversion',
     )
+    expect(cleanQuestion('My name is ALI, help me')).toBe(
+      'My name is [name], help me',
+    )
   })
 
   it('rejects non-strings, blanks and over-long input', () => {
