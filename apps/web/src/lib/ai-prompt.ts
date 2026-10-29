@@ -1,6 +1,7 @@
 /**
- * Pure prompt building for the lesson helper. The prompt carries lesson text
- * only: never a name, phone, e-mail, handle or Telegram id (PRD Compliance).
+ * Pure prompt building for the lesson helper. The prompt carries lesson
+ * context and the question only: never a group name (1:1 groups are named
+ * after the learner), phone, e-mail, handle or Telegram id (PRD Compliance).
  */
 
 export const MAX_QUESTION_CHARS = 600
@@ -18,12 +19,22 @@ const PII_PATTERNS: RegExp[] = [
   /\d{5,}/g,
 ]
 
+// A self-introduction followed by capitalised words: "My name is Ali Valiyev",
+// "Mening ismim Ali", "Меня зовут Али". CEFR levels ("I am B2") are
+// excluded explicitly, so all-caps names ("ALI") are still caught. ponytail: a heuristic — it
+// misses lowercase names and "Men Ali"/"Я Али", and can catch "I am English". The consent text covers the
+// foreign provider; upgrade to an NER pass if names still slip through.
+const SELF_INTRO =
+  /(?<![\p{L}])((?:[Mm]y name is|I am|I['’]m|[Mm]ening ismim|[Ii]smim|[Мм]еня зовут)\s+)(?![ABC][12](?![\p{L}\d]))\p{Lu}[\p{L}'’-]*(?:\s+\p{Lu}[\p{L}'’-]*)*/gu
+
 export function stripPii(text: string): string {
-  return PII_PATTERNS.reduce((out, re) => out.replace(re, REMOVED), text)
+  return PII_PATTERNS.reduce(
+    (out, re) => out.replace(re, REMOVED),
+    text.replace(SELF_INTRO, '$1[name]'),
+  )
 }
 
 export type LessonContext = {
-  title: string
   level: string | null
   scheduledAt: string | null
 }
@@ -34,9 +45,9 @@ const LEVELS = new Set(['A1', 'A2', 'B1', 'B2', 'C1', 'C2'])
 export function lessonContext(body: unknown): LessonContext | null {
   const { lesson, group } = (body ?? {}) as {
     lesson?: { scheduledAt?: unknown }
-    group?: { name?: unknown; level?: unknown }
+    group?: { level?: unknown }
   }
-  if (typeof group?.name !== 'string') return null
+  if (!group || typeof group !== 'object') return null
   const level =
     typeof group.level === 'string' && LEVELS.has(group.level.toUpperCase())
       ? group.level.toUpperCase()
@@ -44,7 +55,7 @@ export function lessonContext(body: unknown): LessonContext | null {
   const when = lesson?.scheduledAt
   const scheduledAt =
     typeof when === 'string' && !Number.isNaN(Date.parse(when)) ? when : null
-  return { title: stripPii(group.name).slice(0, 120), level, scheduledAt }
+  return { level, scheduledAt }
 }
 
 export const SYSTEM_PROMPT = [
@@ -64,11 +75,11 @@ export function cleanQuestion(raw: unknown): string | null {
 }
 
 export function buildPrompt(context: LessonContext, question: string) {
-  const lines = [`Lesson: ${context.title}`]
+  const lines: string[] = []
   if (context.level) lines.push(`Level: ${context.level}`)
   if (context.scheduledAt) lines.push(`Scheduled: ${context.scheduledAt}`)
   return {
     system: SYSTEM_PROMPT,
-    user: `${lines.join('\n')}\n\nQuestion: ${question}`,
+    user: [...lines, '', `Question: ${question}`].join('\n').trimStart(),
   }
 }

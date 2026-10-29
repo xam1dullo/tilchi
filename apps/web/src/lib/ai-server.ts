@@ -19,13 +19,33 @@ export type TextStream = (input: {
 
 export type AskDeps = {
   config: AiConfig | null
+  /** Per session: keyed on the session cookie value only. */
   limiter: Limiter
+  /** One budget for every session together, a cap on model cost. */
+  globalLimiter: Limiter
   apiBase: string
   fetchImpl?: typeof fetch
   stream: TextStream
 }
 
 const PREVIEW_HEADER = 'X-Tilchi-Preview-Role'
+const SESSION_COOKIE = '__Host-tilchi_sid'
+
+// The API mints base64url(32 bytes). Only that exact shape is accepted, so
+// "%61bc"-style encodings of one session cannot mint fresh limiter keys.
+const SESSION_TOKEN = /^[A-Za-z0-9_-]{43}$/
+
+/** The session cookie value, ignoring every other cookie in the header. */
+export function sessionCookie(header: string): string | null {
+  for (const part of header.split(';')) {
+    const at = part.indexOf('=')
+    if (at < 0) continue
+    if (part.slice(0, at).trim() !== SESSION_COOKIE) continue
+    const value = part.slice(at + 1).trim()
+    return SESSION_TOKEN.test(value) ? value : null
+  }
+  return null
+}
 const LESSON_ID = /^[\w-]{1,64}$/
 
 const json = (status: number, error: string, extra: HeadersInit = {}) =>
@@ -49,11 +69,13 @@ export async function handleAsk(
   if (!deps.config) return json(503, 'ai_disabled')
   if (!LESSON_ID.test(lessonId)) return json(404, 'not_found')
 
-  const cookie = request.headers.get('cookie') ?? ''
-  if (!cookie) return json(401, 'unauthorized')
+  const session = sessionCookie(request.headers.get('cookie') ?? '')
+  if (!session) return json(401, 'unauthorized')
 
   // Membership is the API's call: it answers 401/403/404 for non-members.
-  const headers = new Headers({ cookie })
+  // Only the session cookie is forwarded, so the limiter key below is the
+  // same identity the API just authorized.
+  const headers = new Headers({ cookie: `${SESSION_COOKIE}=${session}` })
   const preview = request.headers.get(PREVIEW_HEADER)
   if (preview) headers.set(PREVIEW_HEADER, preview)
   let lessonResponse: Response
@@ -78,8 +100,14 @@ export async function handleAsk(
   const question = cleanQuestion(body?.question)
   if (!question) return json(400, 'invalid_question')
 
-  const key = createHash('sha256').update(cookie).digest('hex')
-  const wait = deps.limiter.hit(key)
+  const key = createHash('sha256').update(session).digest('hex')
+  // Check the session first without recording, then spend the global budget,
+  // then the session's: a global outage never burns a learner's own budget,
+  // and an already-limited session never drains the shared one.
+  const wait =
+    deps.limiter.check(key) ||
+    deps.globalLimiter.hit('all') ||
+    deps.limiter.hit(key)
   if (wait > 0) return json(429, 'rate_limited', { 'retry-after': `${wait}` })
 
   const prompt = buildPrompt(context, question)
