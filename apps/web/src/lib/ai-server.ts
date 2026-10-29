@@ -1,5 +1,6 @@
-import { createHash } from 'node:crypto'
 import type { Limiter } from './ai-limit'
+import type { AppRole } from './nav'
+import { parsePreviewRole } from './preview'
 import {
   MAX_OUTPUT_TOKENS,
   buildPrompt,
@@ -20,13 +21,15 @@ export type TextStream = (input: {
 
 export type AskDeps = {
   config: AiConfig | null
-  /** Per session: keyed on the session cookie value only. */
+  /** Per account: keyed on the userId the API returns for the session. */
   limiter: Limiter
   /** One budget for every session together, a cap on model cost. */
   globalLimiter: Limiter
   apiBase: string
   fetchImpl?: typeof fetch
   stream: TextStream
+  /** Dev/test only: a preview role may stand in for a missing account. */
+  previewAllowed?: boolean
 }
 
 const PREVIEW_HEADER = 'X-Tilchi-Preview-Role'
@@ -86,6 +89,32 @@ export function configFromEnv(
   return { apiKey, model: env.AI_MODEL?.trim() || 'claude-sonnet-5-5' }
 }
 
+// The budget follows the account, not the session cookie: logging in again
+// mints a new cookie but must not mint a new budget (XAM-897). With no
+// account, dev/test preview shares one budget per known role; anywhere else
+// it is 502, because the session can expire between the lesson call and
+// this one and the preview header is the client's to choose.
+async function accountKey(
+  fetchImpl: typeof fetch,
+  apiBase: string,
+  headers: Headers,
+  preview: AppRole | null,
+): Promise<string | null> {
+  try {
+    const res = await fetchImpl(`${apiBase}/auth/session`, { headers })
+    if (!res.ok) {
+      await res.body?.cancel().catch(() => {})
+      return null
+    }
+    const body = (await res.json()) as { user?: { userId?: unknown } | null }
+    const id = body?.user?.userId
+    if (typeof id === 'string' && id !== '') return `user:${id}`
+    return preview ? `preview:${preview}` : null
+  } catch {
+    return null
+  }
+}
+
 export async function handleAsk(
   request: Request,
   lessonId: string,
@@ -103,12 +132,21 @@ export async function handleAsk(
   const headers = new Headers({ cookie: `${SESSION_COOKIE}=${session}` })
   const preview = request.headers.get(PREVIEW_HEADER)
   if (preview) headers.set(PREVIEW_HEADER, preview)
+  const fetchImpl = deps.fetchImpl ?? fetch
+  // A fetch that throws synchronously still lands in the 502 below.
+  const lesson = Promise.resolve().then(() =>
+    fetchImpl(`${deps.apiBase}/api/lessons/${lessonId}`, { headers }),
+  )
+  // In parallel; never rejects, so an early return leaves nothing unhandled.
+  const account = accountKey(
+    fetchImpl,
+    deps.apiBase,
+    headers,
+    deps.previewAllowed ? parsePreviewRole(preview) : null,
+  )
   let lessonResponse: Response
   try {
-    lessonResponse = await (deps.fetchImpl ?? fetch)(
-      `${deps.apiBase}/api/lessons/${lessonId}`,
-      { headers },
-    )
+    lessonResponse = await lesson
   } catch {
     return json(502, 'upstream_unavailable')
   }
@@ -134,10 +172,11 @@ export async function handleAsk(
   if (mentionsOwnName(String(body?.question)) || mentionsOwnName(question))
     return json(422, 'personal_info')
 
-  const key = createHash('sha256').update(session).digest('hex')
-  // Check the session first without recording, then spend the global budget,
-  // then the session's: a global outage never burns a learner's own budget,
-  // and an already-limited session never drains the shared one.
+  const key = await account
+  if (!key) return json(502, 'upstream_unavailable')
+  // Check the account first without recording, then spend the global budget,
+  // then the account's: a global outage never burns a learner's own budget,
+  // and an already-limited account never drains the shared one.
   const wait =
     deps.limiter.check(key) ||
     deps.globalLimiter.hit('all') ||
