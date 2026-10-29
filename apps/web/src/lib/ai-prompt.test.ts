@@ -111,6 +111,43 @@ describe('cleanQuestion', () => {
     )
   })
 
+  it('catches lowercase and all-caps names after explicit name phrases', () => {
+    expect(cleanQuestion('my name is ali valiyev, explain gerunds')).toBe(
+      'my name is [name], explain gerunds',
+    )
+    expect(cleanQuestion('MY NAME IS ALI VALIYEV, help')).toBe(
+      'MY NAME IS [name], help',
+    )
+    expect(cleanQuestion("my name's sardor and I need help")).toBe(
+      "my name's [name] and I need help",
+    )
+    expect(cleanQuestion('Моё имя Али, помогите')).toBe(
+      'Моё имя [name], помогите',
+    )
+    expect(cleanQuestion('call me Bek, explain articles')).toBe(
+      'call me [name], explain articles',
+    )
+  })
+
+  it('catches "Men Ali" and "Я Али" but keeps ordinary sentences', () => {
+    expect(cleanQuestion('Men Ali, present perfect nima?')).toBe(
+      'Men [name], present perfect nima?',
+    )
+    expect(cleanQuestion('Я Али, что такое gerund?')).toBe(
+      'Я [name], что такое gerund?',
+    )
+    expect(cleanQuestion('Men ingliz tilini o‘rganyapman')).toBe(
+      'Men ingliz tilini o‘rganyapman',
+    )
+  })
+
+  it('rejects over-long raw input before scanning it', () => {
+    const huge = 'a'.repeat(200_000)
+    const started = performance.now()
+    expect(cleanQuestion(huge)).toBeNull()
+    expect(performance.now() - started).toBeLessThan(50)
+  })
+
   it('rejects non-strings, blanks and over-long input', () => {
     expect(cleanQuestion(undefined)).toBeNull()
     expect(cleanQuestion('   ')).toBeNull()

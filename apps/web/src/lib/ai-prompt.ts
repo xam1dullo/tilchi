@@ -19,18 +19,31 @@ const PII_PATTERNS: RegExp[] = [
   /\d{5,}/g,
 ]
 
-// A self-introduction followed by capitalised words: "My name is Ali Valiyev",
-// "Mening ismim Ali", "Меня зовут Али". CEFR levels ("I am B2") are
-// excluded explicitly, so all-caps names ("ALI") are still caught. ponytail: a heuristic — it
-// misses lowercase names and "Men Ali"/"Я Али", and can catch "I am English". The consent text covers the
-// foreign provider; upgrade to an NER pass if names still slip through.
-const SELF_INTRO =
-  /(?<![\p{L}])((?:[Mm]y name is|I am|I['’]m|[Mm]ening ismim|[Ii]smim|[Мм]еня зовут)\s+)(?![ABC][12](?![\p{L}\d]))\p{Lu}[\p{L}'’-]*(?:\s+\p{Lu}[\p{L}'’-]*)*/gu
+// Names a learner volunteers about themselves. ponytail: heuristics, not NER —
+// they miss names with no introduction ("— Ali", a sign-off). The consent text
+// covers the foreign provider; add an NER pass if names still slip through.
+const NOT_LEVEL = '(?![ABCabc][12](?![\\p{L}\\d]))'
+const WORD = "[\\p{L}'’-]+"
+// A second word is a surname unless it is a joining word ("Sardor and I…").
+const NOT_JOIN = '(?!(?:and|but|or|va|ham|lekin|и|а|но)(?![\\p{L}]))'
+// Explicit name phrases: the next one or two words, any case.
+const EXPLICIT_INTRO = new RegExp(
+  `(?<![\\p{L}])((?:my name is|my name's|my name’s|call me|mening ismim|ismim|меня зовут|мо[её] имя)\\s+)${NOT_LEVEL}${WORD}(?:\\s+${NOT_JOIN}${NOT_LEVEL}${WORD})?`,
+  'giu',
+)
+// "I am" / "Men" / "Я" also start ordinary sentences, so only capitalised
+// words count there ("I am confused" and "Men ingliz…" are kept).
+const IMPLICIT_INTRO = new RegExp(
+  `(?<![\\p{L}])((?:I am|I['’]m|Men|Я)\\s+)${NOT_LEVEL}\\p{Lu}[\\p{L}'’-]*(?:\\s+${NOT_LEVEL}\\p{Lu}[\\p{L}'’-]*)*`,
+  'gu',
+)
 
 export function stripPii(text: string): string {
   return PII_PATTERNS.reduce(
     (out, re) => out.replace(re, REMOVED),
-    text.replace(SELF_INTRO, '$1[name]'),
+    text
+      .replace(EXPLICIT_INTRO, '$1[name]')
+      .replace(IMPLICIT_INTRO, '$1[name]'),
   )
 }
 
@@ -69,6 +82,8 @@ export const SYSTEM_PROMPT = [
 
 export function cleanQuestion(raw: unknown): string | null {
   if (typeof raw !== 'string') return null
+  // Reject before any regex runs: the scans are not linear on huge input.
+  if (raw.length > MAX_QUESTION_CHARS) return null
   const question = stripPii(raw).trim()
   if (question.length === 0 || question.length > MAX_QUESTION_CHARS) return null
   return question

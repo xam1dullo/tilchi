@@ -196,6 +196,13 @@ describe('handleAsk', () => {
     expect(res.status).toBe(429)
   })
 
+  it('refuses an oversized body with 413 before parsing it', async () => {
+    const { ask, prompts } = setup()
+    const res = await ask({ question: 'a'.repeat(20_000) })
+    expect(res.status).toBe(413)
+    expect(prompts).toHaveLength(0)
+  })
+
   it('does not spend the budget on an invalid question', async () => {
     const { ask } = setup()
     for (let i = 0; i < 5; i++) await ask({ question: '' })

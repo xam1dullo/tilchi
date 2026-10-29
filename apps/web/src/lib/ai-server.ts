@@ -30,6 +30,7 @@ export type AskDeps = {
 
 const PREVIEW_HEADER = 'X-Tilchi-Preview-Role'
 const SESSION_COOKIE = '__Host-tilchi_sid'
+const MAX_BODY_CHARS = 8 * 1024
 
 // The API mints base64url(32 bytes). Only that exact shape is accepted, so
 // "%61bc"-style encodings of one session cannot mint fresh limiter keys.
@@ -94,9 +95,15 @@ export async function handleAsk(
   const context = lessonContext(await lessonResponse.json().catch(() => null))
   if (!context) return json(502, 'upstream_unavailable')
 
-  const body = (await request.json().catch(() => null)) as {
-    question?: unknown
-  } | null
+  // A question is ≤ 600 chars; anything near 8 KB is not a real request.
+  const raw = await request.text().catch(() => '')
+  if (raw.length > MAX_BODY_CHARS) return json(413, 'too_large')
+  let body: { question?: unknown } | null = null
+  try {
+    body = JSON.parse(raw)
+  } catch {
+    body = null
+  }
   const question = cleanQuestion(body?.question)
   if (!question) return json(400, 'invalid_question')
 
