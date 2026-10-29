@@ -25,28 +25,56 @@ const PII_PATTERNS: RegExp[] = [
 // punctuation after them); quoted examples are ignored. PM decision
 // (PRD Compliance): this is a guard, not a guarantee — a name typed without
 // such a phrase still reaches the model; consent and the UI warning cover it.
-// Quoted examples are ignored: a phrase that starts inside "…", “…”, «…», ‘…’
-// or '…' does not count. Straight single quotes open and close only outside
-// words, and may contain contractions ('my name's Ali'). The text itself is
-// not changed, so a quoted name after an unquoted phrase is still caught.
-const QUOTED =
-  /"[^"]*"|“[^”]*”|«[^»]*»|‘[^’]*’|(?<![\p{L}])'(?:[^']|(?<=\p{L})'(?=\p{L}))*'(?![\p{L}])/gu
+// Quoted examples are ignored, but only when the quote opens right before the
+// phrase and closes later in the same sentence: 'my name is Ali', “my name
+// is”, «меня зовут Али». Pairing quotes across the whole text proved leaky
+// (stray ", word-final ' in tog', '90s), so no other quote ever hides a
+// phrase; a phrase in the middle of a quote is refused (fails closed). A
+// closing ' or ’ must not be followed by a letter, so contractions
+// ('my name's Ali') stay inside, except a short Uzbek suffix ('…'ni).
+const CLOSERS: Record<string, string> = {
+  "'": "'",
+  '‘': '’',
+  '"': '"',
+  '“': '”',
+  '„': '“',
+  '«': '»',
+}
+const OPENS_HERE = /(?<![\p{L}\p{N}])(['‘"“„«])[ \t]*$/u
+const SUFFIX = '(?:ni|ga|da|dan|ning|dagi|dir|lar|mi|cha|gacha)?'
+const SENTENCE_END = /[.?!…]\s|\n/
+
+function quotedExampleAt(text: string, at: number): boolean {
+  const open = OPENS_HERE.exec(text.slice(0, at))?.[1]
+  if (!open) return false
+  const close = CLOSERS[open]
+  const closing = new RegExp(
+    open === "'" || open === '‘' ? `${close}${SUFFIX}(?!\\p{L})` : close,
+    'iu',
+  ).exec(text.slice(at))
+  return (
+    closing !== null && !SENTENCE_END.test(text.slice(at, at + closing.index))
+  )
+}
+
 const APOSTROPHE = "['’ʼ]"
-// A full phrase, any spacing or case, ending at a word boundary, then optional
-// punctuation, then a letter (the name).
+// A full phrase, any spacing or case, ending at a word boundary, then any
+// non-letters (spaces, digits, punctuation, symbols, emoji), then a letter
+// (the name). The name part is a lookahead so a match never swallows the
+// next phrase.
 const NAME_PHRASE = new RegExp(
-  `(?<![\\p{L}])(?:my\\s+name(?:\\s*${APOSTROPHE}\\s*s|\\s+is)|mening\\s+ismim|ismim|меня\\s+зовут|мо[её]\\s+имя)(?![\\p{L}])[\\s\\p{P}]*\\p{L}`,
+  `(?<![\\p{L}])(?:my\\s+name(?:\\s*${APOSTROPHE}\\s*s|\\s+is)|mening\\s+ismim|ismim|менинг\\s+исмим|исмим|меня\\s+зовут|мо[её]\\s+имя)(?![\\p{L}])(?=\\P{L}*\\p{L})`,
   'giu',
 )
 
-export function mentionsOwnName(text: string): boolean {
-  const quoted = [...text.matchAll(QUOTED)].map((m) => [
-    m.index,
-    m.index + m[0].length,
-  ])
+export function mentionsOwnName(raw: string): boolean {
+  // Soft hyphens vanish; other invisible format characters act as spaces.
+  const text = raw
+    .normalize('NFKC')
+    .replace(/\u00ad/g, '')
+    .replace(/\p{Cf}/gu, ' ')
   for (const m of text.matchAll(NAME_PHRASE)) {
-    const inside = quoted.some(([from, to]) => m.index > from && m.index < to)
-    if (!inside) return true
+    if (!quotedExampleAt(text, m.index)) return true
   }
   return false
 }
