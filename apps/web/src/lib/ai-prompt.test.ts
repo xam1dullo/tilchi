@@ -108,6 +108,11 @@ describe('cleanQuestion', () => {
       'I am 5\'9" tall. My name is Ali. What does "gonna" mean?',
       'Explain “gonna". My name is Ali. And "wanna”',
       'my name is + Ali',
+      'My name is = Ali',
+      // Fails closed on purpose: a plural possessive inside a quote reads as
+      // the closing quote. Taking the longest quote instead would let
+      // "'a' my name is Ali, it's 'b'" through.
+      "Explain 'the students' books; my name is Ali' in Uzbek.",
       'My name is → Ali',
       'my name is 😊 Ali',
       'my name is\u200bAli',
