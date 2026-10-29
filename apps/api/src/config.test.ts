@@ -3,7 +3,30 @@ import {
   databaseUrl,
   productionConfigErrors,
   readBootstrapConfig,
+  telegramBotUsername,
 } from './config'
+
+describe('Telegram bot username', () => {
+  it('defaults only when absent and rejects invalid configured values without echoing them', () => {
+    expect(telegramBotUsername({})).toBe('tilchiuz_bot')
+    expect(
+      telegramBotUsername({ TELEGRAM_BOT_USERNAME: ' deno_blogbot ' }),
+    ).toBe('deno_blogbot')
+    for (const value of [
+      'abc',
+      'bad/name',
+      'evil?start=secret',
+      'x'.repeat(33),
+    ]) {
+      const result = readBootstrapConfig({ TELEGRAM_BOT_USERNAME: value })
+      expect(result.ok).toBe(false)
+      if (!result.ok) {
+        expect(result.errors.join()).toContain('TELEGRAM_BOT_USERNAME')
+        expect(result.errors.join()).not.toContain(value)
+      }
+    }
+  })
+})
 
 describe('readBootstrapConfig', () => {
   it('defaults to port 3001 and parses a configured port', () => {

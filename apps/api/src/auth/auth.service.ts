@@ -1,5 +1,6 @@
 import { HttpException, Inject, Injectable } from '@nestjs/common'
 import { createHash, randomBytes } from 'node:crypto'
+import { telegramBotUsername } from '../config'
 import {
   type Handoff,
   bindTelegramUser,
@@ -72,7 +73,7 @@ export class AuthService {
       handoffId: handoff.id,
       bindingSecret,
       expiresInSeconds: HANDOFF_TTL_MS / 1000,
-      deepLink: `https://t.me/${process.env.TELEGRAM_BOT_USERNAME ?? 'tilchiuz_bot'}?start=${handoff.id.replace(/-/g, '')}`,
+      deepLink: `https://t.me/${telegramBotUsername(process.env)}?start=${handoff.id.replace(/-/g, '')}`,
     }
   }
 

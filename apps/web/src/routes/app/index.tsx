@@ -37,7 +37,7 @@ export const Route = createFileRoute('/app/')({
 })
 
 function GroupsPage() {
-  const { locale } = useRouteContext({ from: '__root__' })
+  const { locale, botUsername } = useRouteContext({ from: '__root__' })
   const { previewRole } = useRouteContext({ from: '/app' })
   const { groups, can, teachers } = Route.useLoaderData()
   const copy = messages(locale)
@@ -60,7 +60,7 @@ function GroupsPage() {
         ) : null}
       </div>
       {view.empty ? (
-        <EmptyGroups copy={copy} />
+        <EmptyGroups copy={copy} botUsername={botUsername} />
       ) : (
         <ul className="rows classroom-list">
           {view.groups.map((group) => (
@@ -84,7 +84,13 @@ function GroupsPage() {
 }
 
 /** The course catalog route does not exist yet: this goes to the landing section. */
-export function EmptyGroups({ copy }: { copy: Copy }) {
+export function EmptyGroups({
+  copy,
+  botUsername = 'tilchiuz_bot',
+}: {
+  copy: Copy
+  botUsername?: string | null
+}) {
   return (
     <div className="empty-panel">
       <p>{copy.emptyBody}</p>
@@ -92,9 +98,14 @@ export function EmptyGroups({ copy }: { copy: Copy }) {
         <a className="btn btn-primary" href="/#programs">
           {copy.catalog}
         </a>
-        <a className="btn btn-outline" {...tgLinkProps(botLink('', ''))}>
-          {copy.telegramWrite}
-        </a>
+        {botUsername && (
+          <a
+            className="btn btn-outline"
+            {...tgLinkProps(botLink('', '', botUsername))}
+          >
+            {copy.telegramWrite}
+          </a>
+        )}
       </div>
     </div>
   )

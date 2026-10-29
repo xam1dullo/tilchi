@@ -55,6 +55,11 @@ describe('fmtPrice', () => {
 })
 
 describe('botLink', () => {
+  it('uses the configured bot for enrollment links', () => {
+    expect(botLink('ielts', 'orta', 'deno_blogbot')).toBe(
+      'https://t.me/deno_blogbot?start=ielts_orta',
+    )
+  })
   it('builds a start-payload deep link', () => {
     expect(botLink('ielts', 'orta')).toBe(
       'https://t.me/tilchiuz_bot?start=ielts_orta',

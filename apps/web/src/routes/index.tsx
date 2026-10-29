@@ -35,6 +35,6 @@ export const Route = createFileRoute('/')({
 })
 
 function Home() {
-  const { locale } = useRouteContext({ from: '__root__' })
-  return <LandingPage locale={locale} />
+  const { locale, botUsername } = useRouteContext({ from: '__root__' })
+  return <LandingPage locale={locale} botUsername={botUsername} />
 }
