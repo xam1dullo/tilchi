@@ -831,6 +831,18 @@ describe.skipIf(!hasTestDatabase)('tests, assignments and grading', () => {
     expect(attempt.body.status).toBe('assigned')
   })
 
+  it('drops a late joiner’s own notice if they are deleted before it is sent', async () => {
+    await setup()
+    await worker.drainOnce(new Date())
+    await groups.putMember(group, who.eve)
+    await db.database.db.execute(
+      sql`update users set deleted_at = now() where id = ${who.eve}`,
+    )
+    await worker.drainOnce(new Date())
+    const assigned = (await inboxOf('ana')).filter((e) => e === 'test.assigned')
+    expect(assigned).toHaveLength(1)
+  })
+
   it('refuses a deadline more than a year away', async () => {
     const t = await setup()
     const far = await call(

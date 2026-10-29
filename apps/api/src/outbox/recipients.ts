@@ -16,6 +16,11 @@ export type Scope = {
   subject: Member | null
   /** The assignment's attempts, for the test events. */
   attempts?: { userId: string; status: string }[]
+  /**
+   * Set by the event, not looked up: a notice meant for one learner reaches
+   * that learner or nobody, never the group (even if they were deleted).
+   */
+  onlyUserId?: string
 }
 
 const learners = (scope: Scope) =>
@@ -53,10 +58,10 @@ const RULES: Partial<Record<OutboxEvent, (scope: Scope) => Member[]>> = {
   'lesson.reminder': learnersAndTeacher,
   'lesson.started': notJoined,
   'sessions.revoked': subject,
-  // With a subject, only that learner: one who joined after the test was set.
+  // A learner who joined after the test was set is told on their own.
   'test.assigned': (scope) =>
     withAttempt(false)(scope).filter(
-      (m) => !scope.subject || m.userId === scope.subject.userId,
+      (m) => scope.onlyUserId === undefined || m.userId === scope.onlyUserId,
     ),
   'test.reminder': withAttempt(true),
   'test.submitted': teacherOnly,
