@@ -1,8 +1,15 @@
 import { Inject, Injectable } from '@nestjs/common'
-import { and, asc, eq, getTableColumns, inArray, isNull } from 'drizzle-orm'
+import { and, asc, eq, getTableColumns, gt, inArray, isNull } from 'drizzle-orm'
 import { Database } from '../db/database'
-import { groupMembers, groups, users } from '../db/schema'
+import {
+  assignments,
+  attempts,
+  groupMembers,
+  groups,
+  users,
+} from '../db/schema'
 import { isUuid } from '../db/uuid'
+import { uuidv7 } from '../id'
 
 export type GroupKind = (typeof groups.$inferSelect)['kind']
 
@@ -138,6 +145,27 @@ export class GroupsRepository {
         if (learners >= capacity) return 'full'
       }
       await tx.insert(groupMembers).values({ groupId, userId })
+      if (user.role === 'learner') {
+        // A learner who joins late still gets every test that is open now.
+        // assign() locks the same group row, so no assignment slips between.
+        const open = await tx
+          .select({ id: assignments.id })
+          .from(assignments)
+          .where(
+            and(
+              eq(assignments.groupId, groupId),
+              gt(assignments.deadline, new Date()),
+            ),
+          )
+        if (open.length > 0) {
+          await tx
+            .insert(attempts)
+            .values(
+              open.map((a) => ({ id: uuidv7(), assignmentId: a.id, userId })),
+            )
+            .onConflictDoNothing()
+        }
+      }
       return 'added'
     })
   }
