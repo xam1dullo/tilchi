@@ -27,6 +27,12 @@ At most 5 active implementers or reviewers per collision domain. Run in parallel
 
 PR gate: `lint + typecheck + unit` and the compose config checks (`.github/workflows/pr-ci.yml`). There is no 80% coverage or e2e mandate, and no coverage theater.
 
+## Workspace
+
+- **No git worktrees.** Do not create or use `git worktree`. Work only in the single checkout of this repository.
+- **Code stays in the repo tree.** Write product and source only inside the repository working tree. Do not put app code under `/tmp`, `/private`, or other scratch paths outside the repo.
+- **One feature at a time.** Across agents, only one feature or slice may be in active implementation. Finish or park it before starting another.
+
 ## Commands
 
 ```bash
