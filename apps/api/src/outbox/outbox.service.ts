@@ -6,6 +6,7 @@ import { RoomAdmin } from '../meet/room-admin'
 import {
   type LessonPayload,
   type OutboxEvent,
+  type TestPayload,
   channelsFor,
   isUrgent,
 } from './events'
@@ -104,6 +105,10 @@ export class OutboxService {
     now: Date,
     tx: Tx,
   ) {
+    if (event === 'test.reminder') {
+      // Quiet hours may push a reminder past the deadline; then it is noise.
+      return now.getTime() >= new Date(String(payload.deadline)).getTime()
+    }
     if (event !== 'lesson.reminder' && event !== 'lesson.started') return false
     const id = (payload as Partial<LessonPayload>).lessonId
     const lesson = id ? await this.lessons.get(id, tx) : null
@@ -194,6 +199,7 @@ export class OutboxService {
     payload: Record<string, unknown>,
   ): Promise<Scope> {
     const { lessonId, groupId } = payload as Partial<LessonPayload>
+    const { assignmentId } = payload as Partial<TestPayload>
     const group = groupId
       ? await this.outbox.groupScope(groupId)
       : { teacherId: null, members: [] }
@@ -204,9 +210,12 @@ export class OutboxService {
           ? await this.outbox.joinedIds(lessonId)
           : [],
       subject:
-        event === 'sessions.revoked'
+        event === 'sessions.revoked' || event === 'test.graded'
           ? await this.outbox.user(String(payload.userId))
           : null,
+      attempts: assignmentId
+        ? await this.outbox.attemptsOf(assignmentId)
+        : undefined,
     }
   }
 }

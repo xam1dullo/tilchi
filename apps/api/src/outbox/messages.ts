@@ -1,4 +1,4 @@
-import type { LessonPayload, OutboxEvent } from './events'
+import type { LessonPayload, OutboxEvent, TestPayload } from './events'
 import { TASHKENT_OFFSET_MS } from './quiet-hours'
 
 export type Message = { title: string; body: string; link: string | null }
@@ -12,7 +12,9 @@ export function tashkentTime(iso: string | undefined) {
   return `${pad(d.getUTCDate())}.${pad(d.getUTCMonth() + 1)} ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`
 }
 
-type Payload = Partial<LessonPayload> & Record<string, unknown> & { at?: Date }
+type Payload = Omit<Partial<LessonPayload>, 'lead'> &
+  Omit<Partial<TestPayload>, 'lead'> &
+  Record<string, unknown> & { at?: Date; lead?: string }
 
 const tashkentDay = (d: Date) =>
   new Date(d.getTime() + TASHKENT_OFFSET_MS).toISOString().slice(0, 10)
@@ -61,6 +63,26 @@ const RENDER: Partial<Record<OutboxEvent, (p: Payload) => Message>> = {
     title: 'Dars vaqti o‘zgardi',
     body: `${tashkentTime(p.previousScheduledAt)} dagi dars ${when(p)} ga ko‘chirildi.`,
     link: groupLink(p),
+  }),
+  'test.assigned': (p) => ({
+    title: 'Yangi test',
+    body: `Test topshirish muddati: ${tashkentTime(p.deadline)}.`,
+    link: '/app/tests',
+  }),
+  'test.reminder': (p) => ({
+    title: 'Test muddati yaqin',
+    body: `Test topshirish muddati ${tashkentTime(p.deadline)} gacha. ${p.lead === '3h' ? 'Atigi 3 soat qoldi.' : '24 soatdan kam qoldi.'}`,
+    link: '/app/tests',
+  }),
+  'test.submitted': () => ({
+    title: 'Test topshirildi',
+    body: 'Bir o‘quvchi testni topshirdi. Baholash uchun oching.',
+    link: '/app/tests',
+  }),
+  'test.graded': () => ({
+    title: 'Test baholandi',
+    body: 'Testingiz baholandi. Natijani ko‘rish uchun oching.',
+    link: '/app/tests',
   }),
   'sessions.revoked': () => ({
     title: 'Seanslar tugatildi',

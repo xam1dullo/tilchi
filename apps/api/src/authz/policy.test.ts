@@ -97,6 +97,39 @@ describe('can', () => {
   })
 })
 
+describe('tests and the question bank', () => {
+  it('lets teachers and admins manage the bank and compose tests, nobody else', () => {
+    for (const action of ['question.manage', 'test.manage'] as const) {
+      for (const actor of [owner, visiting, outsider, admin]) {
+        expect(can(actor, action), action).toBe(true)
+      }
+      expect(can(learner, action)).toBe(false)
+    }
+  })
+
+  it('lets only the assigned teacher and admins assign and review a Group', () => {
+    for (const action of [
+      'test.assign',
+      'assignment.view',
+      'attempt.grade',
+    ] as const) {
+      expect(can(owner, action, group), action).toBe(true)
+      expect(can(admin, action, group), action).toBe(true)
+      expect(can(visiting, action, group), action).toBe(false)
+      expect(can(learner, action, group), action).toBe(false)
+      expect(can(outsider, action, group), action).toBe(false)
+      expect(can(owner, action), action).toBe(false)
+    }
+  })
+
+  it('lets only learners take a test', () => {
+    expect(can(learner, 'attempt.take')).toBe(true)
+    for (const actor of [owner, visiting, admin]) {
+      expect(can(actor, 'attempt.take')).toBe(false)
+    }
+  })
+})
+
 describe('authorize', () => {
   const status = (run: () => void) => {
     try {

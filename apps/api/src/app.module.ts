@@ -1,5 +1,14 @@
 import { Module } from '@nestjs/common'
 import { APP_GUARD } from '@nestjs/core'
+import {
+  AssignmentsController,
+  AttemptsController,
+  QuestionsController,
+  TestsController,
+} from './assessment/assessment.controller'
+import { AssessmentRepository } from './assessment/assessment.repository'
+import { AssessmentService } from './assessment/assessment.service'
+import { DeadlineSweeper } from './assessment/deadline-sweeper'
 import { AuthController } from './auth/auth.controller'
 import { AuthService } from './auth/auth.service'
 import { BotApi } from './bot/bot-api'
@@ -31,6 +40,7 @@ import { OutboxRepository } from './outbox/outbox.repository'
 import { OutboxService } from './outbox/outbox.service'
 import { OutboxWorker } from './outbox/outbox.worker'
 import { TelegramSender } from './outbox/telegram-sender'
+import { ObjectStorage } from './storage/object-storage'
 import { KV, createKvFromEnv } from './redis/kv'
 import { SessionsRepository } from './users/sessions.repository'
 import { UsersRepository } from './users/users.repository'
@@ -48,6 +58,10 @@ import { UsersRepository } from './users/users.repository'
     LivekitWebhookController,
     NotificationsController,
     CoursesController,
+    QuestionsController,
+    TestsController,
+    AssignmentsController,
+    AttemptsController,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ActorGuard },
@@ -75,6 +89,10 @@ import { UsersRepository } from './users/users.repository'
     OutboxService,
     OutboxWorker,
     CoursesService,
+    { provide: ObjectStorage, useFactory: () => new ObjectStorage() },
+    AssessmentRepository,
+    AssessmentService,
+    DeadlineSweeper,
   ],
 })
 export class AppModule {}
