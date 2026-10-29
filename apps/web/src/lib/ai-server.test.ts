@@ -216,6 +216,9 @@ describe('handleAsk', () => {
     const res = await ask({ question: 'my name is ali, explain gerunds' })
     expect(res.status).toBe(422)
     expect(await res.json()).toEqual({ error: 'personal_info' })
+    // The phone redaction swallows the '.' and line break that end the quote.
+    const phone = '"My name is Ali 12.\n34567 How do I use "since"?'
+    expect((await ask({ question: phone })).status).toBe(422)
     expect(prompts).toHaveLength(0)
     expect((await ask()).status).toBe(200)
     expect((await ask()).status).toBe(200)

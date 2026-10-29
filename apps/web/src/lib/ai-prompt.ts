@@ -31,7 +31,8 @@ const PII_PATTERNS: RegExp[] = [
 // (stray ", word-final ' in tog', '90s), so no other quote ever hides a
 // phrase; a phrase in the middle of a quote is refused (fails closed). A
 // closing ' or ’ must not be followed by a letter, so contractions
-// ('my name's Ali') stay inside, except a short Uzbek suffix ('…'ni).
+// ('my name's Ali') stay inside. No Uzbek suffix after it: '…'ni cannot be
+// told apart from ko'cha, so it is refused.
 const CLOSERS: Record<string, string> = {
   "'": "'",
   '‘': '’',
@@ -41,15 +42,17 @@ const CLOSERS: Record<string, string> = {
   '«': '»',
 }
 const OPENS_HERE = /(?<![\p{L}\p{N}])(['‘"“„«])[ \t]*$/u
-const SUFFIX = '(?:ni|ga|da|dan|ning|dagi|dir|lar|mi|cha|gacha)?'
-const SENTENCE_END = /[.?!…]\s|\n/
+// A quoted example is one clause: a sentence end, a line break or a , ; :
+// before the closer means the quote does not cover the phrase.
+const SENTENCE_END =
+  /[,;:]|[.?!…。！？](?=[^.?!…。！？\p{N}])|[\n\r\u0085\u2028\u2029]/u
 
 function quotedExampleAt(text: string, at: number): boolean {
   const open = OPENS_HERE.exec(text.slice(0, at))?.[1]
   if (!open) return false
   const close = CLOSERS[open]
   const closing = new RegExp(
-    open === "'" || open === '‘' ? `${close}${SUFFIX}(?!\\p{L})` : close,
+    open === "'" || open === '‘' ? `${close}(?!\\p{L})` : close,
     'iu',
   ).exec(text.slice(at))
   return (
@@ -57,22 +60,30 @@ function quotedExampleAt(text: string, at: number): boolean {
   )
 }
 
-const APOSTROPHE = "['’ʼ]"
+// Every apostrophe an Uzbek keyboard produces; NFKC turns ´ into a space
+// plus U+0301.
+const APOSTROPHE = "(?:['’ʼʻ‘`]|\\u0301)"
+// Invisible characters (default-ignorables such as zero-width space, soft
+// hyphen, joiners, variation selectors, plus the Braille blank)
+// may sit between any two letters or words of a phrase.
+const HIDDEN = '[\\p{DI}\\u2800]*'
+const GAP = '[\\s\\p{DI}\\u2800]*'
+const word = (w: string) => [...w].join(HIDDEN)
+const words = (...ws: string[]) => ws.map(word).join(GAP)
 // A full phrase, any spacing or case, ending at a word boundary, then any
 // non-letters (spaces, digits, punctuation, symbols, emoji), then a letter
 // (the name). The name part is a lookahead so a match never swallows the
 // next phrase.
 const NAME_PHRASE = new RegExp(
-  `(?<![\\p{L}])(?:my\\s+name(?:\\s*${APOSTROPHE}\\s*s|\\s+is)|mening\\s+ismim|ismim|менинг\\s+исмим|исмим|меня\\s+зовут|мо[её]\\s+имя)(?![\\p{L}])(?=\\P{L}*\\p{L})`,
+  `(?<![\\p{L}])(?:${words('my', 'name')}(?:${GAP}${APOSTROPHE}${GAP}${word('s')}|${GAP}${word('is')})|${words('mening', 'ismim')}|${word('ismim')}|${words('менинг', 'исмим')}|${word('исмим')}|${words('меня', 'зовут')}|${words('моё', 'имя')}|${words('мое', 'имя')})(?![\\p{L}])(?=\\P{L}*\\p{L})`,
   'giu',
 )
 
+// Blank-looking characters that are not whitespace.
+const FILLERS = /[\u2800\u3164\u115f\u1160\uffa0]/gu
+
 export function mentionsOwnName(raw: string): boolean {
-  // Soft hyphens vanish; other invisible format characters act as spaces.
-  const text = raw
-    .normalize('NFKC')
-    .replace(/\u00ad/g, '')
-    .replace(/\p{Cf}/gu, ' ')
+  const text = raw.normalize('NFKC').replace(FILLERS, ' ')
   for (const m of text.matchAll(NAME_PHRASE)) {
     if (!quotedExampleAt(text, m.index)) return true
   }

@@ -128,6 +128,41 @@ describe('cleanQuestion', () => {
       '"my name is Ali',
       "'\nmy name is Ali'",
       '“\nmy name is Ali”',
+      'my name‘s Ali',
+      'my nameʻs Ali',
+      'my name`s Ali',
+      'my name´s Ali',
+      '"my name is Ali\rhow do I say "hi"',
+      '"my name is Ali.How do I say "hi"',
+      "'my name is Ali, men tog' tomon boraman",
+      "'my name is Ali, I like rock 'n' roll",
+      '"my name is Ali; how do I say "hi"?',
+      "'my name is Ali.🙂 Hello'",
+      '"My name is Ali.(I am 20) What does "run" mean?',
+      '"My name is Ali.— what does "run" mean?',
+      'mynameis Ali',
+      "'my name is'larni tarjima qil",
+      "'My name is Ali men ko'chada yashayman. What does run mean?",
+      'my\u2800name\u2800is Ali',
+      'my\u3164name is Ali',
+      'is\u200bmim Ali',
+      'mening\u200bis\u200bmim Ali',
+      'меня\u200bзо\u200bвут Али',
+      'Hello\u200bmy na\u200bme is Ali',
+      'my\u2060name\u00adis Ali',
+      "'My name is Ali men ko'cha bo'ylab yuraman. What does run mean?",
+      '‘My name is Ali ko’cha nima degani?',
+      'my\u034fname is Ali',
+      'is\ufe0fmim Ali',
+      'my name\u17b4is Ali',
+      'my\u180bname is Ali',
+      // Fails closed on purpose: a suffix after the closer reads like ko'cha.
+      "'my name is Ali'ni tarjima qiling",
+      '‘my name is Ali’ni tarjima qiling',
+      "'my name is Ali'mi?",
+      "'my name is Ali'NI tarjima",
+      "'ismim'dek so'z",
+      "'ismim'lik so'z",
       "'my name is Ali. Hi'",
       'My name is → Ali',
       'my name is 😊 Ali',
@@ -158,15 +193,21 @@ describe('cleanQuestion', () => {
       'I am confused. Explain articles.',
       'I am learning. Explain gerunds.',
       'Explain “my name is” in a sentence',
-      "'my name is Ali'ni tarjima qiling",
-      '‘my name is Ali’ni tarjima qiling',
-      "'my name is Ali'mi?",
-      "'my name is Ali'NI tarjima",
+      '"my name is Ali!" ok?',
+      '“my name is” means what?',
+      '"my name is..." how do I end it?',
+      'Is "My name is Ali 3.5 m" ok?',
       '„my name is Ali“ tarjimasi',
       '«меня зовут Али» — что это?',
     ]) {
       expect(mentionsOwnName(q), q).toBe(false)
     }
+  })
+
+  it('stays fast on stacked Uzbek suffixes', () => {
+    const started = performance.now()
+    mentionsOwnName(`'my name is Ali'${'gacha'.repeat(110)}x`)
+    expect(performance.now() - started).toBeLessThan(100)
   })
 
   it('rejects over-long raw input before scanning it', () => {
