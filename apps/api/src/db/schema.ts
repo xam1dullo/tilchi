@@ -1,6 +1,7 @@
 import { sql } from 'drizzle-orm'
 import {
   bigint,
+  boolean,
   check,
   index,
   integer,
@@ -79,6 +80,18 @@ export const sessions = pgTable(
     ),
   ],
 )
+
+export const courses = pgTable('courses', {
+  id: uuid('id').primaryKey(),
+  title: text('title').notNull(),
+  description: text('description').notNull(),
+  segment: text('segment').notNull(),
+  level: text('level').notNull(),
+  published: boolean('published').notNull().default(false),
+  createdAt: tstz('created_at').notNull().defaultNow(),
+  updatedAt: tstz('updated_at').notNull().defaultNow(),
+  deletedAt: tstz('deleted_at'),
+})
 
 export const groups = pgTable(
   'groups',

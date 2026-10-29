@@ -88,6 +88,13 @@ describe('can', () => {
   it('denies a group action when there is no group', () => {
     expect(can(admin, 'lesson.start')).toBe(false)
   })
+
+  it('allows only admins to manage the course catalog', () => {
+    expect(can(admin, 'course.manage')).toBe(true)
+    for (const actor of [owner, visiting, outsider, learner, stranger]) {
+      expect(can(actor, 'course.manage')).toBe(false)
+    }
+  })
 })
 
 describe('authorize', () => {

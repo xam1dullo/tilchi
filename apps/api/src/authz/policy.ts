@@ -11,6 +11,7 @@ export type Actor = {
 export type GroupScope = { teacherId: string; memberIds: string[] }
 
 export type Action =
+  | 'course.manage'
   | 'group.create'
   | 'teacher.list'
   | 'group.view'
@@ -40,7 +41,11 @@ const manages = (actor: Actor, group: GroupScope) =>
  */
 export function can(actor: Actor, action: Action, group?: GroupScope): boolean {
   if (action === 'group.create') return isManager(actor)
-  if (action === 'group.addMember' || action === 'teacher.list') {
+  if (
+    action === 'group.addMember' ||
+    action === 'teacher.list' ||
+    action === 'course.manage'
+  ) {
     return actor.role === 'admin'
   }
   if (!group) return false

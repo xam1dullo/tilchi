@@ -81,6 +81,7 @@ describeWithDatabase('runMigrations on a real database', (current) => {
   it('builds the whole v1 schema from an empty database', async () => {
     expect(await tables(current().url)).toEqual([
       'attendance_events',
+      'courses',
       'group_members',
       'groups',
       'lessons',
