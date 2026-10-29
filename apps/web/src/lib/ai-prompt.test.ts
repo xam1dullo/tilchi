@@ -189,6 +189,12 @@ describe('cleanQuestion', () => {
     }
   })
 
+  it('stays fast on stacked Uzbek suffixes', () => {
+    const started = performance.now()
+    mentionsOwnName(`'my name is Ali'${'gacha'.repeat(110)}x`)
+    expect(performance.now() - started).toBeLessThan(100)
+  })
+
   it('rejects over-long raw input before scanning it', () => {
     const huge = 'a'.repeat(200_000)
     const started = performance.now()

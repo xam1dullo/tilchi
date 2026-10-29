@@ -41,8 +41,10 @@ const CLOSERS: Record<string, string> = {
   '«': '»',
 }
 const OPENS_HERE = /(?<![\p{L}\p{N}])(['‘"“„«])[ \t]*$/u
+// ponytail: at most 3 suffixes; an unbounded * backtracks exponentially
+// (gacha = ga+cha).
 const SUFFIX =
-  '(?:ni|ga|da|dan|ning|dagi|dir|lar|mi|cha|gacha|dek|day|lik|siz|ku|chi)*'
+  '(?:ni|ga|da|dan|ning|dagi|dir|lar|mi|cha|gacha|dek|day|lik|siz|ku|chi){0,3}'
 // A quoted example is one clause: a sentence end, a line break or a , ; :
 // before the closer means the quote does not cover the phrase.
 const SENTENCE_END =
