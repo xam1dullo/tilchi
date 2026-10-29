@@ -26,16 +26,17 @@ const PII_PATTERNS: RegExp[] = [
 // (PRD Compliance): this is a guard, not a guarantee — a name typed without
 // such a phrase still reaches the model; consent and the UI warning cover it.
 // Quoted examples are ignored: a phrase that starts inside "…", “…”, «…», ‘…’
-// or '…' does not count. Straight single quotes open and close only outside
-// words, and may contain contractions ('my name's Ali'). The text itself is
+// or '…' does not count. Single quotes (' and ‘…’) open and close only outside
+// words, and may contain contractions ('my name's Ali', ‘my name’s Ali’). The text itself is
 // not changed, so a quoted name after an unquoted phrase is still caught.
 const QUOTED =
-  /"[^"]*"|“[^”]*”|«[^»]*»|‘[^’]*’|(?<![\p{L}])'(?:[^']|(?<=\p{L})'(?=\p{L}))*'(?![\p{L}])/gu
+  /"[^"]*"|“[^”]*”|«[^»]*»|(?<![\p{L}])‘(?:[^’]|(?<=\p{L})’(?=\p{L}))*’(?![\p{L}])|(?<![\p{L}])'(?:[^']|(?<=\p{L})'(?=\p{L}))*'(?![\p{L}])/gu
 const APOSTROPHE = "['’ʼ]"
 // A full phrase, any spacing or case, ending at a word boundary, then optional
-// punctuation, then a letter (the name).
+// punctuation, then a letter (the name). The name part is a lookahead so a
+// match never swallows the start of the next phrase.
 const NAME_PHRASE = new RegExp(
-  `(?<![\\p{L}])(?:my\\s+name(?:\\s*${APOSTROPHE}\\s*s|\\s+is)|mening\\s+ismim|ismim|меня\\s+зовут|мо[её]\\s+имя)(?![\\p{L}])[\\s\\p{P}]*\\p{L}`,
+  `(?<![\\p{L}])(?:my\\s+name(?:\\s*${APOSTROPHE}\\s*s|\\s+is)|mening\\s+ismim|ismim|меня\\s+зовут|мо[её]\\s+имя)(?![\\p{L}])(?=[\\s\\p{P}]*\\p{L})`,
   'giu',
 )
 
