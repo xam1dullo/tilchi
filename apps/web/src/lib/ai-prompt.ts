@@ -41,10 +41,10 @@ const CLOSERS: Record<string, string> = {
   '«': '»',
 }
 const OPENS_HERE = /(?<![\p{L}\p{N}])(['‘"“„«])[ \t]*$/u
-// ponytail: at most 3 suffixes; an unbounded * backtracks exponentially
-// (gacha = ga+cha).
+// One suffix only: chains read ko'chada as a closer, and an unbounded chain
+// backtracks exponentially (gacha = ga+cha).
 const SUFFIX =
-  '(?:ni|ga|da|dan|ning|dagi|dir|lar|mi|cha|gacha|dek|day|lik|siz|ku|chi){0,3}'
+  '(?:ni|ga|da|dan|ning|dagi|dir|lar|mi|cha|gacha|dek|day|lik|siz|ku|chi)?'
 // A quoted example is one clause: a sentence end, a line break or a , ; :
 // before the closer means the quote does not cover the phrase.
 const SENTENCE_END =
@@ -75,16 +75,27 @@ const NAME_PHRASE = new RegExp(
   'giu',
 )
 
-export function mentionsOwnName(raw: string): boolean {
-  // Soft hyphens vanish; other invisible format characters act as spaces.
-  const text = raw
-    .normalize('NFKC')
-    .replace(/\u00ad/g, '')
-    .replace(/\p{Cf}/gu, ' ')
+// Blank-looking characters that are not whitespace.
+const FILLERS = /[\u2800\u3164\u115f\u1160\uffa0]/gu
+
+function phraseOutsideQuotes(text: string): boolean {
   for (const m of text.matchAll(NAME_PHRASE)) {
     if (!quotedExampleAt(text, m.index)) return true
   }
   return false
+}
+
+export function mentionsOwnName(raw: string): boolean {
+  // Invisible format characters may split a word (is\u200bmim) or two words
+  // (my\u200bname), so check both readings.
+  const text = raw
+    .normalize('NFKC')
+    .replace(/\u00ad/g, '')
+    .replace(FILLERS, ' ')
+  return (
+    phraseOutsideQuotes(text.replace(/\p{Cf}/gu, ' ')) ||
+    phraseOutsideQuotes(text.replace(/\p{Cf}/gu, ''))
+  )
 }
 
 export function stripPii(text: string): string {
