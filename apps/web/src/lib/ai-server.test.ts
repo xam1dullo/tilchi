@@ -191,8 +191,41 @@ describe('handleAsk', () => {
     expect((await ask()).status).toBe(502)
   })
 
+  it('in production a missing account is 502 whatever the preview header says', async () => {
+    const { ask, prompts } = setup({
+      fetchImpl: async (url) =>
+        String(url).endsWith('/auth/session')
+          ? Response.json({ user: null })
+          : Response.json(lessonBody),
+    })
+    for (const role of ['learner', 'arbitrary-1']) {
+      const headers = {
+        cookie: `__Host-tilchi_sid=${A}`,
+        'X-Tilchi-Preview-Role': role,
+      }
+      expect((await ask(undefined, headers)).status).toBe(502)
+    }
+    expect(prompts).toHaveLength(0)
+  })
+
+  it('in dev preview an unknown role is 502', async () => {
+    const { ask } = setup({
+      previewAllowed: true,
+      fetchImpl: async (url) =>
+        String(url).endsWith('/auth/session')
+          ? Response.json({ user: null })
+          : Response.json(lessonBody),
+    })
+    const headers = {
+      cookie: `__Host-tilchi_sid=${A}`,
+      'X-Tilchi-Preview-Role': 'arbitrary-1',
+    }
+    expect((await ask(undefined, headers)).status).toBe(502)
+  })
+
   it('in preview (no account) shares one budget per preview role', async () => {
     const { ask } = setup({
+      previewAllowed: true,
       fetchImpl: async (url) =>
         String(url).endsWith('/auth/session')
           ? Response.json({ user: null })

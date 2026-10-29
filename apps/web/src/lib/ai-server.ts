@@ -1,4 +1,6 @@
 import type { Limiter } from './ai-limit'
+import type { AppRole } from './nav'
+import { parsePreviewRole } from './preview'
 import {
   MAX_OUTPUT_TOKENS,
   buildPrompt,
@@ -26,6 +28,8 @@ export type AskDeps = {
   apiBase: string
   fetchImpl?: typeof fetch
   stream: TextStream
+  /** Dev/test only: a preview role may stand in for a missing account. */
+  previewAllowed?: boolean
 }
 
 const PREVIEW_HEADER = 'X-Tilchi-Preview-Role'
@@ -87,13 +91,14 @@ export function configFromEnv(
 
 // The budget follows the account, not the session cookie: logging in again
 // mints a new cookie but must not mint a new budget (XAM-897). With no
-// account (dev/test preview only; production has no preview actors) every
-// preview of one role shares a budget.
+// account, dev/test preview shares one budget per known role; anywhere else
+// it is 502, because the session can expire between the lesson call and
+// this one and the preview header is the client's to choose.
 async function accountKey(
   fetchImpl: typeof fetch,
   apiBase: string,
   headers: Headers,
-  preview: string | null,
+  preview: AppRole | null,
 ): Promise<string | null> {
   try {
     const res = await fetchImpl(`${apiBase}/auth/session`, { headers })
@@ -129,7 +134,12 @@ export async function handleAsk(
     headers,
   })
   // In parallel; never rejects, so an early return leaves nothing unhandled.
-  const account = accountKey(fetchImpl, deps.apiBase, headers, preview)
+  const account = accountKey(
+    fetchImpl,
+    deps.apiBase,
+    headers,
+    deps.previewAllowed ? parsePreviewRole(preview) : null,
+  )
   let lessonResponse: Response
   try {
     lessonResponse = await lesson
