@@ -47,7 +47,8 @@ export async function readLimited(
     if (done) break
     size += value.byteLength
     if (size > max) {
-      await reader.cancel().catch(() => undefined)
+      // Fire and forget: a stream whose cancel never settles must not hang us.
+      reader.cancel().catch(() => undefined)
       return null
     }
     chunks.push(value)

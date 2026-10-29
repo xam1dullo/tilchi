@@ -91,17 +91,12 @@ describe('cleanQuestion', () => {
       'my name is ali ibn valiyev',
       'MY NAME IS ALI',
       "my name's sardor",
-      'call me Bek, explain articles',
+      'Mening ismim: Ali. Present perfect nima?',
+      'my name is: sardor',
       'Mening ismim Ali. Present perfect nima?',
       'ismim sardor',
       'Меня зовут Али',
       'моё имя али',
-      'I am Ali, help me',
-      'I am ali.',
-      'men ali',
-      'Men Ali, savol bor',
-      'я али',
-      'Я Али, что такое gerund?',
     ]) {
       expect(mentionsOwnName(q), q).toBe(true)
     }
@@ -114,6 +109,9 @@ describe('cleanQuestion', () => {
       'Men ingliz tilini o‘rganyapman',
       'Я не понимаю present perfect',
       'What does "call me a taxi" mean?',
+      'What does call me a taxi mean?',
+      'I am confused. Explain articles.',
+      'I am learning. Explain gerunds.',
       'Explain “my name is” in a sentence',
     ]) {
       expect(mentionsOwnName(q), q).toBe(false)

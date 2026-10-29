@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import { describe, expect, it } from 'vitest'
 import { createLimiter } from './ai-limit'
 import {
@@ -7,6 +8,7 @@ import {
   handleAsk,
 } from './ai-server'
 
+const sha = (v: string) => createHash('sha256').update(v).digest('hex')
 const tok = (c: string) => c.repeat(43)
 const A = tok('a')
 
@@ -206,15 +208,15 @@ describe('handleAsk', () => {
     expect((await ask()).status).toBe(200)
   })
 
-  it('stops reading an endless body after 8 KB', async () => {
-    const { prompts } = setup()
-    const deps = setup()
+  it('stops reading an endless body after 8 KB, even if cancel never settles', async () => {
+    const { deps, prompts } = setup()
     let pulled = 0
     const endless = new ReadableStream<Uint8Array>({
       pull(controller) {
         pulled += 1
         controller.enqueue(new Uint8Array(1024))
       },
+      cancel: () => new Promise<void>(() => {}),
     })
     const res = await handleAsk(
       new Request('http://web/ai/lessons/l1/ask', {
@@ -225,11 +227,12 @@ describe('handleAsk', () => {
         duplex: 'half',
       }),
       'l1',
-      deps.deps,
+      deps,
     )
     expect(res.status).toBe(413)
     expect(pulled).toBeLessThan(20)
     expect(prompts).toHaveLength(0)
+    expect(deps.limiter.check(sha(A))).toBe(0)
   })
 
   it('refuses an oversized body with 413 before parsing it', async () => {

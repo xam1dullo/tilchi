@@ -19,21 +19,19 @@ const PII_PATTERNS: RegExp[] = [
   /\d{5,}/g,
 ]
 
-// A learner introducing themselves. Rewriting names out of free text proved
-// leaky (casing, word order, surnames), so such questions are refused instead
-// and the UI asks to rephrase. Quoted text is ignored ("call me a taxi").
-// ponytail: phrase list, not NER — sign-offs like "— Ali" still pass.
+// A learner introducing themselves by name. Rewriting names out of free text
+// proved leaky, and guessing at "I am …" blocked ordinary questions ("I am
+// confused."), so only unambiguous name phrases are refused (any case, any
+// punctuation after them); quoted examples are ignored. PM decision
+// (PRD Compliance): this is a guard, not a guarantee — a name typed without
+// such a phrase still reaches the model; consent and the UI warning cover it.
 const QUOTED = /"[^"]*"|“[^”]*”|«[^»]*»/g
-const EXPLICIT_INTRO =
-  /(?<![\p{L}])(?:my name(?:'s|’s| is)|call me|mening ismim|ismim|меня зовут|мо[её] имя)\s+\p{L}/iu
-// "I am" / "Men" / "Я" start ordinary sentences too: only a capitalised word
-// after them, or a single word ending the clause ("I am ali."), counts.
-const IMPLICIT_INTRO =
-  /(?<![\p{L}])(?:(?:I am|I['’]m|[Mm]en|[Яя])\s+(?![ABC][12](?![\p{L}\d]))\p{Lu}|(?:[Ii] am|[Ii]['’]m|[Mm]en|[Яя])\s+(?![ABCabc][12](?![\p{L}\d]))[\p{L}'’-]+\s*(?:[.,!?;]|$))/u
+const NAME_PHRASE =
+  /(?<![\p{L}])(?:my name(?:'s|’s| is)|mening ismim|ismim|меня зовут|мо[её] имя)[\s:,\-–—]*\p{L}/iu
 
 export function mentionsOwnName(text: string): boolean {
   const unquoted = text.replace(QUOTED, ' ')
-  return EXPLICIT_INTRO.test(unquoted) || IMPLICIT_INTRO.test(unquoted)
+  return NAME_PHRASE.test(unquoted)
 }
 
 export function stripPii(text: string): string {
