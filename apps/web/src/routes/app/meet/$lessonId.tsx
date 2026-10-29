@@ -1,3 +1,4 @@
+import { Suspense, lazy } from 'react'
 import {
   Link,
   createFileRoute,
@@ -15,6 +16,9 @@ type LessonBody = {
   group: GroupRecord
   meeting: { id: string; livekitRoom: string } | null
 }
+
+// Own chunk: the helper must not add to the initial JS of / and /app.
+const AiHelper = lazy(() => import('../../../components/ai/ai-helper'))
 
 export const Route = createFileRoute('/app/meet/$lessonId')({
   loader: async ({ context, params }) => {
@@ -47,6 +51,15 @@ function MeetPage() {
       </p>
       <h2 id="meet-title">{copy.meetTitle}</h2>
       <p className="hint">{group.name}</p>
+      <div className="meet-tools">
+        <Suspense fallback={null}>
+          <AiHelper
+            lessonId={lessonId}
+            previewRole={previewRole}
+            locale={locale}
+          />
+        </Suspense>
+      </div>
       <MeetEntry
         key={lessonId}
         status={lesson.status}
