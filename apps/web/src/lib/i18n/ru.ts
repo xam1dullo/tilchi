@@ -1,6 +1,16 @@
 export const ru = {
   skip: 'К содержанию',
   groups: 'Группы',
+  notifications: 'Уведомления',
+  notificationsUnread: 'Непрочитано',
+  notificationsRefresh: 'Обновить',
+  notificationsEmpty: 'Уведомлений пока нет.',
+  notificationsNew: 'Новое',
+  notificationsOpen: 'Открыть',
+  notificationsMarkRead: 'Отметить прочитанным',
+  notificationsSaving: 'Сохранение…',
+  notificationsReadError: 'Не удалось сохранить. Попробуйте ещё раз.',
+  notificationsLimit: 'Показаны последние 50 уведомлений.',
   emptyTitle: 'У вас пока нет группы',
   emptyBody:
     'Когда преподаватель добавит вас в группу, занятия появятся здесь.',

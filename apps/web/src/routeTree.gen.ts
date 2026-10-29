@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as AppIndexRouteImport } from './routes/app/index'
 import { Route as AppForbiddenRouteImport } from './routes/app/forbidden'
+import { Route as AppNotificationsRouteImport } from './routes/app/notifications'
 import { Route as AppGroupsGroupIdRouteImport } from './routes/app/groups/$groupId'
 import { Route as AppMeetLessonIdRouteImport } from './routes/app/meet/$lessonId'
 
@@ -36,6 +37,11 @@ const AppForbiddenRoute = AppForbiddenRouteImport.update({
   path: '/forbidden',
   getParentRoute: () => AppRoute,
 } as any)
+const AppNotificationsRoute = AppNotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppGroupsGroupIdRoute = AppGroupsGroupIdRouteImport.update({
   id: '/groups/$groupId',
   path: '/groups/$groupId',
@@ -51,6 +57,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
   '/app/forbidden': typeof AppForbiddenRoute
+  '/app/notifications': typeof AppNotificationsRoute
   '/app/': typeof AppIndexRoute
   '/app/groups/$groupId': typeof AppGroupsGroupIdRoute
   '/app/meet/$lessonId': typeof AppMeetLessonIdRoute
@@ -58,6 +65,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/app/forbidden': typeof AppForbiddenRoute
+  '/app/notifications': typeof AppNotificationsRoute
   '/app': typeof AppIndexRoute
   '/app/groups/$groupId': typeof AppGroupsGroupIdRoute
   '/app/meet/$lessonId': typeof AppMeetLessonIdRoute
@@ -67,6 +75,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
   '/app/forbidden': typeof AppForbiddenRoute
+  '/app/notifications': typeof AppNotificationsRoute
   '/app/': typeof AppIndexRoute
   '/app/groups/$groupId': typeof AppGroupsGroupIdRoute
   '/app/meet/$lessonId': typeof AppMeetLessonIdRoute
@@ -77,6 +86,7 @@ export interface FileRouteTypes {
     | '/'
     | '/app'
     | '/app/forbidden'
+    | '/app/notifications'
     | '/app/'
     | '/app/groups/$groupId'
     | '/app/meet/$lessonId'
@@ -84,6 +94,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/app/forbidden'
+    | '/app/notifications'
     | '/app'
     | '/app/groups/$groupId'
     | '/app/meet/$lessonId'
@@ -92,6 +103,7 @@ export interface FileRouteTypes {
     | '/'
     | '/app'
     | '/app/forbidden'
+    | '/app/notifications'
     | '/app/'
     | '/app/groups/$groupId'
     | '/app/meet/$lessonId'
@@ -132,6 +144,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppForbiddenRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/notifications': {
+      id: '/app/notifications'
+      path: '/notifications'
+      fullPath: '/app/notifications'
+      preLoaderRoute: typeof AppNotificationsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/groups/$groupId': {
       id: '/app/groups/$groupId'
       path: '/groups/$groupId'
@@ -151,6 +170,7 @@ declare module '@tanstack/react-router' {
 
 interface AppRouteChildren {
   AppForbiddenRoute: typeof AppForbiddenRoute
+  AppNotificationsRoute: typeof AppNotificationsRoute
   AppIndexRoute: typeof AppIndexRoute
   AppGroupsGroupIdRoute: typeof AppGroupsGroupIdRoute
   AppMeetLessonIdRoute: typeof AppMeetLessonIdRoute
@@ -158,6 +178,7 @@ interface AppRouteChildren {
 
 const AppRouteChildren: AppRouteChildren = {
   AppForbiddenRoute: AppForbiddenRoute,
+  AppNotificationsRoute: AppNotificationsRoute,
   AppIndexRoute: AppIndexRoute,
   AppGroupsGroupIdRoute: AppGroupsGroupIdRoute,
   AppMeetLessonIdRoute: AppMeetLessonIdRoute,
