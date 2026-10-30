@@ -24,6 +24,10 @@ export type AttemptQuestion = {
   options: { id: string; text: string }[] | null
   /** Only once graded. */
   result?: { points: number; max: number }
+  /** Manager view only: never sent to the learner. */
+  answerKey?: string[] | null
+  /** Manager view only; null for speaking. */
+  autoCorrect?: boolean | null
 }
 
 /** `GET /api/attempts/:id` as its learner sees it: never the answer key. */

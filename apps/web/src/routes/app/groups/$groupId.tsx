@@ -143,6 +143,8 @@ function GroupPage() {
           assignments={assignments}
           copy={copy}
           locale={locale}
+          canGrade={group.can.gradeAttempts}
+          previewRole={previewRole}
         />
       ) : null}
       {group.can.seeMembers ? (

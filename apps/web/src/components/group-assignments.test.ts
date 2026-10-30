@@ -1,15 +1,53 @@
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import type { AssignmentRecord } from '../lib/assignments'
 import { messages } from '../lib/i18n'
-import { AssignmentsList } from './group-assignments'
+
+vi.mock('@tanstack/react-router', () => ({
+  Link: ({
+    children,
+    params,
+  }: {
+    children: unknown
+    params: { attemptId: string }
+  }) =>
+    createElement(
+      'a',
+      { href: `/app/attempts/${params.attemptId}` },
+      children as string,
+    ),
+  useRouter: () => ({}),
+}))
+const { AssignmentsList } = await import('./group-assignments')
 
 const copy = messages('en')
-const render = (assignments: AssignmentRecord[]) =>
+const render = (assignments: AssignmentRecord[], canGrade = false) =>
   renderToStaticMarkup(
-    createElement(AssignmentsList, { assignments, copy, locale: 'en' }),
+    createElement(AssignmentsList, {
+      assignments,
+      copy,
+      locale: 'en',
+      canGrade,
+      previewRole: null,
+    }),
   )
+const one: AssignmentRecord = {
+  id: 'a',
+  testId: 't',
+  title: 'T',
+  deadline: '',
+  attempts: [
+    {
+      id: 'x9',
+      userId: 'u',
+      name: 'Aziz',
+      status: 'submitted',
+      score: null,
+      submittedAt: null,
+    },
+  ],
+}
 
 describe('AssignmentsList', () => {
   it('shows counts per status and each learner without links', () => {
@@ -57,5 +95,12 @@ describe('AssignmentsList', () => {
     ])
     expect(html).toContain(copy.attemptNoLearners)
     expect(html).not.toContain('<details')
+  })
+
+  it('links each learner to the attempt only when the server allows grading', () => {
+    expect(render([one], true)).toContain(
+      '<th scope="row"><a href="/app/attempts/x9">Aziz</a></th>',
+    )
+    expect(render([one], false)).not.toContain('<a ')
   })
 })

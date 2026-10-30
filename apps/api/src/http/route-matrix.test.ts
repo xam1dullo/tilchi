@@ -674,15 +674,18 @@ describe.skipIf(!hasTestDatabase)('route x role matrix', () => {
       seeMembers: true,
       assignTest: true,
       viewAssignments: true,
+      gradeAttempts: true,
     })
     expect((await detail('owner')).group.can).toMatchObject({
       assignTest: true,
       viewAssignments: true,
+      gradeAttempts: true,
     })
     expect((await detail('member')).group.can).toMatchObject({
       seeMembers: false,
       assignTest: false,
       viewAssignments: false,
+      gradeAttempts: false,
     })
     expect((await detail('member')).lesson.can).toEqual({
       start: false,
