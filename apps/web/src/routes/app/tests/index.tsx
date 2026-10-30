@@ -4,7 +4,7 @@ import {
   useRouteContext,
   useRouter,
 } from '@tanstack/react-router'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   QuestionForm,
   QuestionView,
@@ -19,7 +19,10 @@ import {
   draftFromQuestion,
   emptyDraft,
   filterQuestions,
+  MAX_TITLE,
   type QuestionRecord,
+  questionRowView,
+  type RowConfirm,
   type QuestionStatus,
   testErrors,
   type TestSummary,
@@ -41,10 +44,26 @@ export const Route = createFileRoute('/app/tests/')({
     return { questions: bank.questions, tests: list.tests }
   },
   component: TestsPage,
+  errorComponent: BankError,
 })
 
 type Filter = QuestionStatus | 'all'
 type ErrorKey = keyof Copy
+/** Which request is in flight, so only its own button says "Saving…". */
+type Pending = 'question' | 'test' | 'row' | null
+
+function BankError({ reset }: { reset: () => void }) {
+  const { locale } = useRouteContext({ from: '__root__' })
+  const copy = messages(locale)
+  return (
+    <div role="alert" className="error-row">
+      <p>{copy.error}</p>
+      <button type="button" className="btn btn-outline" onClick={reset}>
+        {copy.retry}
+      </button>
+    </div>
+  )
+}
 
 function TestsPage() {
   const { locale } = useRouteContext({ from: '__root__' })
@@ -53,21 +72,37 @@ function TestsPage() {
   const copy = messages(locale)
   const router = useRouter()
   const search = keepAppSearch(previewRole)
+  const promptRef = useRef<HTMLTextAreaElement>(null)
 
   const [filter, setFilter] = useState<Filter>('all')
   const [draft, setDraft] = useState(emptyDraft())
   const [editing, setEditing] = useState<QuestionRecord | null>(null)
   const [formErrors, setFormErrors] = useState<ErrorKey[]>([])
   const [listError, setListError] = useState<ErrorKey | null>(null)
-  const [confirmId, setConfirmId] = useState<string | null>(null)
-  const [busy, setBusy] = useState(false)
+  const [confirm, setConfirm] = useState<RowConfirm>(null)
+  const [pending, setPending] = useState<Pending>(null)
+  const [attempt, setAttempt] = useState(0)
   const [title, setTitle] = useState('')
   const [picked, setPicked] = useState<string[]>([])
   const [testErrs, setTestErrs] = useState<ErrorKey[]>([])
+  const busy = pending !== null
+
+  useEffect(() => {
+    if (!editing) return
+    promptRef.current?.focus({ preventScroll: true })
+    promptRef.current?.scrollIntoView({ block: 'center' })
+  }, [editing])
 
   /** Null on success, else the copy key of the failure. */
-  async function send(path: string, method: string, body?: object) {
-    setBusy(true)
+  async function send(
+    kind: Exclude<Pending, null>,
+    path: string,
+    method: string,
+    body?: object,
+  ) {
+    setPending(kind)
+    setListError(null)
+    setAttempt((n) => n + 1)
     try {
       await apiFetch(path, {
         method,
@@ -79,7 +114,7 @@ function TestsPage() {
     } catch (error) {
       return bankError(error)
     } finally {
-      setBusy(false)
+      setPending(null)
     }
   }
 
@@ -91,38 +126,57 @@ function TestsPage() {
 
   async function saveQuestion() {
     if (busy) return
+    setListError(null)
+    setAttempt((n) => n + 1)
     const errors = draftErrors(draft)
     setFormErrors(errors)
     if (errors.length) return
     if (editing) {
       const patch = toQuestionPatch(draft, editing)
       if (!patch) return resetForm()
-      const failed = await send(questionPath(editing.id), 'PATCH', patch)
+      const failed = await send(
+        'question',
+        questionPath(editing.id),
+        'PATCH',
+        patch,
+      )
       return failed ? setFormErrors([failed]) : resetForm()
     }
-    const failed = await send('/api/questions', 'POST', toQuestionBody(draft))
+    const failed = await send(
+      'question',
+      '/api/questions',
+      'POST',
+      toQuestionBody(draft),
+    )
     return failed ? setFormErrors([failed]) : resetForm()
   }
 
-  async function act(q: QuestionRecord, method: 'PATCH' | 'DELETE') {
+  async function act(q: QuestionRecord, action: 'publish' | 'delete') {
     if (busy) return
-    setListError(null)
     const failed = await send(
+      'row',
       questionPath(q.id),
-      method,
-      method === 'PATCH' ? { status: 'published' } : undefined,
+      action === 'publish' ? 'PATCH' : 'DELETE',
+      action === 'publish' ? { status: 'published' } : undefined,
     )
     if (failed) return setListError(failed)
-    setConfirmId(null)
+    setConfirm(null)
     if (editing?.id === q.id) resetForm()
   }
 
   async function createTest() {
     if (busy) return
+    setListError(null)
+    setAttempt((n) => n + 1)
     const errors = testErrors(title, picked)
     setTestErrs(errors)
     if (errors.length) return
-    const failed = await send('/api/tests', 'POST', toTestBody(title, picked))
+    const failed = await send(
+      'test',
+      '/api/tests',
+      'POST',
+      toTestBody(title, picked),
+    )
     if (failed) return setTestErrs([failed])
     setTitle('')
     setPicked([])
@@ -154,14 +208,17 @@ function TestsPage() {
           copy={copy}
           draft={draft}
           editing={editing !== null}
-          busy={busy}
+          locked={busy}
+          saving={pending === 'question'}
           errors={formErrors}
+          attempt={attempt}
+          promptRef={promptRef}
           onChange={setDraft}
           onSubmit={() => void saveQuestion()}
           onCancel={resetForm}
         />
         {listError ? (
-          <p role="alert" className="notice" data-tone="error">
+          <p key={attempt} role="alert" className="notice" data-tone="error">
             {copy[listError]}
           </p>
         ) : null}
@@ -169,66 +226,99 @@ function TestsPage() {
           <p className="hint">{copy.questionEmpty}</p>
         ) : (
           <ul className="rows question-list">
-            {shown.map((q) => (
-              <li className="row question-row" key={q.id}>
-                <QuestionView copy={copy} question={q} />
-                {q.status === 'draft' ? (
+            {shown.map((q) => {
+              const row = questionRowView(q, editing?.id ?? null, confirm)
+              const hintId = `publish-hint-${q.id}`
+              return (
+                <li className="row question-row" key={q.id}>
+                  <QuestionView copy={copy} question={q} />
                   <div className="lesson-actions">
-                    <button
-                      type="button"
-                      className="btn btn-outline"
-                      disabled={busy}
-                      onClick={() => {
-                        setEditing(q)
-                        setDraft(draftFromQuestion(q))
-                        setFormErrors([])
-                        setConfirmId(null)
-                      }}
-                    >
-                      {copy.courseEdit}
-                    </button>
-                    <button
-                      type="button"
-                      className="btn btn-outline"
-                      disabled={busy}
-                      onClick={() => void act(q, 'PATCH')}
-                    >
-                      {copy.questionPublish}
-                    </button>
-                    {confirmId === q.id ? (
+                    {row.confirming ? (
                       <>
-                        <span>{copy.questionDeletePrompt}</span>
+                        <span>
+                          {row.confirming === 'publish'
+                            ? copy.questionPublishPrompt
+                            : copy.questionDeletePrompt}
+                        </span>
                         <button
                           type="button"
                           className="btn btn-outline"
                           disabled={busy}
-                          onClick={() => void act(q, 'DELETE')}
+                          onClick={() =>
+                            void act(q, row.confirming ?? 'delete')
+                          }
                         >
-                          {copy.courseDeleteConfirm}
+                          {pending === 'row'
+                            ? copy.courseSaving
+                            : row.confirming === 'publish'
+                              ? copy.questionPublishConfirm
+                              : copy.courseDeleteConfirm}
                         </button>
                         <button
                           type="button"
                           className="btn btn-outline"
                           disabled={busy}
-                          onClick={() => setConfirmId(null)}
+                          onClick={() => setConfirm(null)}
                         >
                           {copy.courseCancel}
                         </button>
                       </>
                     ) : (
-                      <button
-                        type="button"
-                        className="btn btn-outline"
-                        disabled={busy}
-                        onClick={() => setConfirmId(q.id)}
-                      >
-                        {copy.courseDelete}
-                      </button>
+                      <>
+                        {row.edit ? (
+                          <button
+                            type="button"
+                            className="btn btn-outline"
+                            disabled={busy}
+                            onClick={() => {
+                              setEditing(q)
+                              setDraft(draftFromQuestion(q))
+                              setFormErrors([])
+                              setListError(null)
+                              setConfirm(null)
+                            }}
+                          >
+                            {copy.courseEdit}
+                          </button>
+                        ) : null}
+                        {row.publish ? (
+                          <button
+                            type="button"
+                            className="btn btn-outline"
+                            disabled={busy || row.publishBlocked}
+                            aria-describedby={
+                              row.publishBlocked ? hintId : undefined
+                            }
+                            onClick={() => {
+                              setListError(null)
+                              setConfirm({ id: q.id, action: 'publish' })
+                            }}
+                          >
+                            {copy.questionPublish}
+                          </button>
+                        ) : null}
+                        <button
+                          type="button"
+                          className="btn btn-outline"
+                          disabled={busy}
+                          onClick={() => {
+                            setListError(null)
+                            setConfirm({ id: q.id, action: 'delete' })
+                          }}
+                        >
+                          {copy.courseDelete}
+                        </button>
+                        {row.publishBlocked ? (
+                          <span id={hintId} className="hint">
+                            {copy.questionPublishEditing}
+                          </span>
+                        ) : null}
+                      </>
                     )}
                   </div>
-                ) : null}
-              </li>
-            ))}
+                </li>
+              )
+            })}
           </ul>
         )}
       </section>
@@ -243,49 +333,51 @@ function TestsPage() {
             void createTest()
           }}
         >
-          <label>
-            {copy.testTitle}
-            <input
-              value={title}
-              maxLength={120}
-              required
-              onChange={(event) => setTitle(event.target.value)}
-            />
-          </label>
-          <fieldset className="question-wide question-options">
-            <legend>{copy.testPick}</legend>
-            {published.length === 0 ? (
-              <p className="hint">{copy.testNoPublished}</p>
-            ) : (
-              <>
-                <p className="hint">{copy.testPickHint}</p>
-                {published.map((q) => {
-                  const position = picked.indexOf(q.id)
-                  return (
-                    <label className="catalog-publish" key={q.id}>
-                      <input
-                        type="checkbox"
-                        checked={position >= 0}
-                        onChange={() => setPicked(togglePick(picked, q.id))}
-                      />{' '}
-                      {position >= 0 ? (
-                        <span className="num">{position + 1}.</span>
-                      ) : null}{' '}
-                      {q.prompt}
-                    </label>
-                  )
-                })}
-              </>
-            )}
+          <fieldset className="question-lock" disabled={busy}>
+            <label>
+              {copy.testTitle}
+              <input
+                value={title}
+                maxLength={MAX_TITLE}
+                required
+                onChange={(event) => setTitle(event.target.value)}
+              />
+            </label>
+            <fieldset className="question-wide question-options">
+              <legend>{copy.testPick}</legend>
+              {published.length === 0 ? (
+                <p className="hint">{copy.testNoPublished}</p>
+              ) : (
+                <>
+                  <p className="hint">{copy.testPickHint}</p>
+                  {published.map((q) => {
+                    const position = picked.indexOf(q.id)
+                    return (
+                      <label className="catalog-publish" key={q.id}>
+                        <input
+                          type="checkbox"
+                          checked={position >= 0}
+                          onChange={() => setPicked(togglePick(picked, q.id))}
+                        />{' '}
+                        {position >= 0 ? (
+                          <span className="num">{position + 1}.</span>
+                        ) : null}{' '}
+                        {q.prompt}
+                      </label>
+                    )
+                  })}
+                </>
+              )}
+            </fieldset>
+            <div className="lesson-actions question-wide">
+              <button className="btn btn-primary" type="submit">
+                {pending === 'test' ? copy.courseSaving : copy.testCreate}
+              </button>
+            </div>
           </fieldset>
-          <div className="lesson-actions question-wide">
-            <button className="btn btn-primary" type="submit" disabled={busy}>
-              {busy ? copy.courseSaving : copy.testCreate}
-            </button>
-          </div>
           {testErrs.map((key) => (
             <p
-              key={key}
+              key={`${attempt}-${key}`}
               className="notice question-wide"
               data-tone="error"
               role="alert"

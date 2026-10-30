@@ -1,4 +1,5 @@
 import { redirect } from '@tanstack/react-router'
+import type { Ref } from 'react'
 import { apiFetch } from '../lib/api'
 import type { Copy } from '../lib/i18n'
 import type { AppRole } from '../lib/nav'
@@ -22,8 +23,14 @@ export type QuestionFormProps = {
   copy: Copy
   draft: QuestionDraft
   editing: boolean
-  busy: boolean
+  /** Any request in flight: the controls freeze so no edit is lost. */
+  locked: boolean
+  /** This form's own save is in flight. */
+  saving: boolean
   errors: (keyof Copy)[]
+  /** Bumped on every submit so the same alert is announced again. */
+  attempt: number
+  promptRef?: Ref<HTMLTextAreaElement>
   onChange: (draft: QuestionDraft) => void
   onSubmit: () => void
   onCancel: () => void
@@ -40,8 +47,11 @@ export function QuestionForm({
   copy,
   draft,
   editing,
-  busy,
+  locked,
+  saving,
   errors,
+  attempt,
+  promptRef,
   onChange,
   onSubmit,
   onCancel,
@@ -58,104 +68,107 @@ export function QuestionForm({
       <h3 id="question-form-heading">
         {editing ? copy.questionEditTitle : copy.questionNew}
       </h3>
-      <label>
-        {copy.questionType}
-        <select
-          value={draft.type}
-          disabled={editing}
-          onChange={(event) =>
-            onChange(withType(draft, event.target.value as QuestionType))
-          }
-        >
-          {TYPES.map(([type, key]) => (
-            <option key={type} value={type}>
-              {copy[key]}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label className="question-wide">
-        {copy.questionPrompt}
-        <textarea
-          value={draft.prompt}
-          maxLength={MAX_PROMPT}
-          required
-          onChange={(event) =>
-            onChange({ ...draft, prompt: event.target.value })
-          }
-        />
-      </label>
-      {draft.type === 'speaking' ? null : (
-        <fieldset className="question-wide question-options">
-          <legend>{copy.questionOptions}</legend>
-          {draft.options.map((text, index) => (
-            // biome-ignore lint/suspicious/noArrayIndexKey: options have no id until saved
-            <div className="question-option" key={index}>
-              <label>
-                <span>
-                  {copy.questionOption} {index + 1}
-                </span>
-                <input
-                  value={text}
-                  maxLength={MAX_OPTION}
-                  required
-                  onChange={(event) =>
-                    onChange(setOption(draft, index, event.target.value))
-                  }
-                />
-              </label>
-              <label className="catalog-publish">
-                <input
-                  type={draft.type === 'single' ? 'radio' : 'checkbox'}
-                  name="correct"
-                  checked={draft.correct.includes(index)}
-                  onChange={() => onChange(toggleCorrect(draft, index))}
-                />{' '}
-                {copy.questionCorrect}
-              </label>
-              <button
-                type="button"
-                className="btn btn-outline"
-                disabled={draft.options.length <= MIN_OPTIONS}
-                aria-label={`${copy.questionRemoveOption}: ${copy.questionOption} ${index + 1}`}
-                onClick={() => onChange(removeOption(draft, index))}
-              >
-                {copy.questionRemoveOption}
-              </button>
-            </div>
-          ))}
-          <button
-            type="button"
-            className="btn btn-outline"
-            disabled={draft.options.length >= MAX_OPTIONS}
-            onClick={() => onChange(addOption(draft))}
+      <fieldset className="question-lock" disabled={locked}>
+        <label>
+          {copy.questionType}
+          <select
+            value={draft.type}
+            disabled={editing}
+            onChange={(event) =>
+              onChange(withType(draft, event.target.value as QuestionType))
+            }
           >
-            {copy.questionAddOption}
+            {TYPES.map(([type, key]) => (
+              <option key={type} value={type}>
+                {copy[key]}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="question-wide">
+          {copy.questionPrompt}
+          <textarea
+            ref={promptRef}
+            value={draft.prompt}
+            maxLength={MAX_PROMPT}
+            required
+            onChange={(event) =>
+              onChange({ ...draft, prompt: event.target.value })
+            }
+          />
+        </label>
+        {draft.type === 'speaking' ? null : (
+          <fieldset className="question-wide question-options">
+            <legend>{copy.questionOptions}</legend>
+            {draft.options.map((text, index) => (
+              // biome-ignore lint/suspicious/noArrayIndexKey: options have no id until saved
+              <div className="question-option" key={index}>
+                <label>
+                  <span>
+                    {copy.questionOption} {index + 1}
+                  </span>
+                  <input
+                    value={text}
+                    maxLength={MAX_OPTION}
+                    required
+                    onChange={(event) =>
+                      onChange(setOption(draft, index, event.target.value))
+                    }
+                  />
+                </label>
+                <label className="catalog-publish">
+                  <input
+                    aria-label={`${copy.questionCorrect}: ${copy.questionOption} ${index + 1}`}
+                    type={draft.type === 'single' ? 'radio' : 'checkbox'}
+                    name="correct"
+                    checked={draft.correct.includes(index)}
+                    onChange={() => onChange(toggleCorrect(draft, index))}
+                  />{' '}
+                  {copy.questionCorrect}
+                </label>
+                <button
+                  type="button"
+                  className="btn btn-outline"
+                  disabled={draft.options.length <= MIN_OPTIONS}
+                  aria-label={`${copy.questionRemoveOption}: ${copy.questionOption} ${index + 1}`}
+                  onClick={() => onChange(removeOption(draft, index))}
+                >
+                  {copy.questionRemoveOption}
+                </button>
+              </div>
+            ))}
+            <button
+              type="button"
+              className="btn btn-outline"
+              disabled={draft.options.length >= MAX_OPTIONS}
+              onClick={() => onChange(addOption(draft))}
+            >
+              {copy.questionAddOption}
+            </button>
+          </fieldset>
+        )}
+        <div className="lesson-actions question-wide">
+          <button className="btn btn-primary" type="submit">
+            {saving
+              ? copy.courseSaving
+              : editing
+                ? copy.courseSave
+                : copy.questionCreate}
           </button>
-        </fieldset>
-      )}
-      <div className="lesson-actions question-wide">
-        <button className="btn btn-primary" type="submit" disabled={busy}>
-          {busy
-            ? copy.courseSaving
-            : editing
-              ? copy.courseSave
-              : copy.questionCreate}
-        </button>
-        {editing ? (
-          <button
-            className="btn btn-outline"
-            type="button"
-            disabled={busy}
-            onClick={onCancel}
-          >
-            {copy.courseCancel}
-          </button>
-        ) : null}
-      </div>
+          {editing ? (
+            <button
+              className="btn btn-outline"
+              type="button"
+              onClick={onCancel}
+            >
+              {copy.courseCancel}
+            </button>
+          ) : null}
+        </div>
+      </fieldset>
       {errors.map((key) => (
         <p
-          key={key}
+          key={`${attempt}-${key}`}
           className="notice question-wide"
           data-tone="error"
           role="alert"

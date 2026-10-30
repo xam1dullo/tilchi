@@ -170,4 +170,13 @@ export const ru = {
   testMaxScore: 'Максимальный балл:',
   testTitleInvalid: 'Введите название теста (до 120 символов).',
   testQuestionsInvalid: 'Выберите от 1 до 50 опубликованных вопросов.',
+  questionInvalid:
+    'Неверные данные вопроса. Обновите страницу и попробуйте снова.',
+  questionTypeInvalid: 'Выберите тип вопроса.',
+  questionStatusInvalid: 'Не удалось изменить статус вопроса.',
+  testInvalid: 'Неверные данные теста. Обновите страницу и попробуйте снова.',
+  testNotFound: 'Тест не найден.',
+  questionPublishPrompt: 'Опубликованный вопрос нельзя изменить. Опубликовать?',
+  questionPublishConfirm: 'Да, опубликовать',
+  questionPublishEditing: 'Сначала сохраните или отмените правку.',
 }

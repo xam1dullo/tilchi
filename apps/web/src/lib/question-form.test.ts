@@ -10,9 +10,11 @@ import {
   filterQuestions,
   type QuestionDraft,
   type QuestionRecord,
+  questionRowView,
   removeOption,
   setOption,
   testErrors,
+  testLoadError,
   toQuestionBody,
   toQuestionPatch,
   toTestBody,
@@ -185,6 +187,10 @@ describe('bankError', () => {
       'not_found',
       'invalid_title',
       'invalid_questions',
+      'invalid_question',
+      'invalid_type',
+      'invalid_status',
+      'invalid_test',
     ]
     for (const code of codes) {
       const key = bankError(new ApiError(400, { error: code }))
@@ -198,5 +204,46 @@ describe('bankError', () => {
       'courseUnavailable',
     )
     expect(bankError(new TypeError('network'))).toBe('courseUnavailable')
+  })
+})
+
+describe('questionRowView', () => {
+  const published = { ...record, status: 'published' as const }
+  it('lets any question be deleted, only drafts be edited or published', () => {
+    expect(questionRowView(record, null, null)).toEqual({
+      edit: true,
+      publish: true,
+      publishBlocked: false,
+      confirming: null,
+    })
+    expect(questionRowView(published, null, null)).toEqual({
+      edit: false,
+      publish: false,
+      publishBlocked: false,
+      confirming: null,
+    })
+  })
+
+  it('blocks publishing the draft open in the editor', () => {
+    expect(questionRowView(record, 'q1', null).publishBlocked).toBe(true)
+    expect(questionRowView(record, 'other', null).publishBlocked).toBe(false)
+  })
+
+  it('confirms only on the row it was asked for', () => {
+    const confirm = { id: 'q1', action: 'publish' as const }
+    expect(questionRowView(record, null, confirm).confirming).toBe('publish')
+    expect(
+      questionRowView({ ...record, id: 'q2' }, null, confirm).confirming,
+    ).toBeNull()
+  })
+})
+
+describe('testLoadError', () => {
+  it('says not found only for a 404', () => {
+    expect(testLoadError(new ApiError(404, { error: 'not_found' }))).toBe(
+      'testNotFound',
+    )
+    expect(testLoadError(new ApiError(500, null))).toBe('error')
+    expect(testLoadError(new TypeError('network'))).toBe('error')
   })
 })

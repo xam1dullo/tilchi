@@ -500,3 +500,7 @@
   color: var(--accent-ink);
   font-weight: 600;
 }
+
+.question-lock {
+  display: contents;
+}

@@ -173,4 +173,15 @@ export const uz = {
   testMaxScore: 'Maksimal ball:',
   testTitleInvalid: 'Test nomini yozing (120 belgigacha).',
   testQuestionsInvalid: '1 tadan 50 tagacha nashr qilingan savol tanlang.',
+  questionInvalid:
+    'Savol ma’lumotlari noto‘g‘ri. Sahifani yangilab, qayta urinib ko‘ring.',
+  questionTypeInvalid: 'Savol turini tanlang.',
+  questionStatusInvalid: 'Savol holatini o‘zgartirib bo‘lmadi.',
+  testInvalid:
+    'Test ma’lumotlari noto‘g‘ri. Sahifani yangilab, qayta urinib ko‘ring.',
+  testNotFound: 'Test topilmadi.',
+  questionPublishPrompt:
+    'Nashr qilingan savolni o‘zgartirib bo‘lmaydi. Nashr qilasizmi?',
+  questionPublishConfirm: 'Ha, nashr qilish',
+  questionPublishEditing: 'Avval tahrirni saqlang yoki bekor qiling.',
 }
