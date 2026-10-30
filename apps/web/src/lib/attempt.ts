@@ -174,16 +174,23 @@ export type Upload = {
 
 type PresignBody = { questionId: string; contentType: AudioType; size: number }
 
-/** Presign, then PUT the blob with exactly the headers the url was signed for. */
+/**
+ * Presign, then PUT the blob with exactly the headers the url was signed for.
+ * `onSending` runs before the presign request leaves: the server repoints at
+ * the new take when it presigns, even if its answer is then lost, so from that
+ * moment the old take can no longer be trusted. Local refusals never reach it.
+ */
 export async function uploadAudio(
   fetchImpl: typeof fetch,
   presign: (body: PresignBody) => Promise<Upload>,
   questionId: string,
   blob: Blob,
   contentType: AudioType,
+  onSending: () => void,
 ) {
   if (blob.size < 1 || blob.size > MAX_AUDIO_BYTES)
     throw new Error('audio_too_large')
+  onSending()
   const upload = await presign({ questionId, contentType, size: blob.size })
   const response = await fetchImpl(upload.url, {
     method: upload.method,
@@ -193,18 +200,10 @@ export async function uploadAudio(
   if (!response?.ok) throw new Error('upload_failed')
 }
 
-/**
- * Leaves the Telegram WebView for the real browser. Telegram's script is
- * loaded on demand when `openLink` is missing; without it, `fallback` opens.
- */
-export async function openOutside(
-  host: Pick<Window, 'Telegram'>,
-  url: string,
-  load: () => Promise<void>,
-  fallback: (url: string) => void,
-) {
-  if (!host.Telegram?.WebApp?.openLink) await load().catch(() => undefined)
+/** Leaves the Telegram WebView for the real browser; false: let the link open. */
+export function openOutside(host: Pick<Window, 'Telegram'>, url: string) {
   const app = host.Telegram?.WebApp
-  if (app?.openLink) app.openLink(url)
-  else fallback(url)
+  if (!app?.openLink) return false
+  app.openLink(url)
+  return true
 }

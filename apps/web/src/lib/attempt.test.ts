@@ -128,7 +128,9 @@ describe('uploadAudio', () => {
     const blob = new Blob(['abc'], { type: 'audio/webm;codecs=opus' })
     const presign = vi.fn(async () => upload)
     const put = vi.fn(async () => new Response(null, { status: 200 }))
-    await uploadAudio(put, presign, 'q1', blob, 'audio/webm')
+    const sending = vi.fn()
+    await uploadAudio(put, presign, 'q1', blob, 'audio/webm', sending)
+    expect(sending).toHaveBeenCalledTimes(1)
     expect(presign).toHaveBeenCalledWith({
       questionId: 'q1',
       contentType: 'audio/webm',
@@ -144,13 +146,16 @@ describe('uploadAudio', () => {
   it('refuses an empty or oversized take before asking the server', async () => {
     const presign = vi.fn(async () => upload)
     const put = vi.fn()
+    const sending = vi.fn()
     const big = new Blob([new Uint8Array(MAX_AUDIO_BYTES + 1)])
     await expect(
-      uploadAudio(put, presign, 'q', big, 'audio/mp4'),
+      uploadAudio(put, presign, 'q', big, 'audio/mp4', sending),
     ).rejects.toThrow('audio_too_large')
     await expect(
-      uploadAudio(put, presign, 'q', new Blob([]), 'audio/mp4'),
+      uploadAudio(put, presign, 'q', new Blob([]), 'audio/mp4', sending),
     ).rejects.toThrow('audio_too_large')
+    // Never reached the server: the old take is still the one it holds.
+    expect(sending).not.toHaveBeenCalled()
     expect(presign).not.toHaveBeenCalled()
     expect(put).not.toHaveBeenCalled()
   })
@@ -163,72 +168,42 @@ describe('uploadAudio', () => {
       throw new TypeError('network')
     }
     await expect(
-      uploadAudio(refused, presign, 'q', blob, 'audio/webm'),
+      uploadAudio(refused, presign, 'q', blob, 'audio/webm', () => {}),
     ).rejects.toThrow('upload_failed')
     await expect(
-      uploadAudio(offline, presign, 'q', blob, 'audio/webm'),
+      uploadAudio(offline, presign, 'q', blob, 'audio/webm', () => {}),
     ).rejects.toThrow('upload_failed')
   })
 
-  it('passes a presign refusal through untouched', async () => {
+  it('drops the old take before presigning, even if the presign answer is lost', async () => {
     const put = vi.fn()
+    const order: string[] = []
     const refusal = new ApiError(409, { error: 'deadline_passed' })
     await expect(
       uploadAudio(
         put,
         async () => {
+          order.push('presign')
           throw refusal
         },
         'q',
         new Blob(['x']),
         'audio/webm',
+        () => order.push('sending'),
       ),
     ).rejects.toBe(refusal)
+    expect(order).toEqual(['sending', 'presign'])
     expect(put).not.toHaveBeenCalled()
   })
 })
 
 describe('openOutside', () => {
-  it('uses Telegram openLink at once when it is already there', async () => {
+  it('uses Telegram openLink when inside the WebView, else lets the link open', () => {
     const openLink = vi.fn()
-    const load = vi.fn(async () => {})
-    const fallback = vi.fn()
-    await openOutside(
-      { Telegram: { WebApp: { openLink } } },
-      'u',
-      load,
-      fallback,
-    )
+    expect(openOutside({ Telegram: { WebApp: { openLink } } }, 'u')).toBe(true)
     expect(openLink).toHaveBeenCalledWith('u')
-    expect(load).not.toHaveBeenCalled()
-    expect(fallback).not.toHaveBeenCalled()
-  })
-
-  it('loads the Telegram script first, then uses openLink', async () => {
-    const openLink = vi.fn()
-    const host: Pick<Window, 'Telegram'> = {}
-    const load = vi.fn(async () => {
-      host.Telegram = { WebApp: { openLink } }
-    })
-    const fallback = vi.fn()
-    await openOutside(host, 'u', load, fallback)
-    expect(load).toHaveBeenCalledTimes(1)
-    expect(openLink).toHaveBeenCalledWith('u')
-    expect(fallback).not.toHaveBeenCalled()
-  })
-
-  it('falls back to a plain open when the script brings no openLink or fails', async () => {
-    const fallback = vi.fn()
-    await openOutside({}, 'u', async () => {}, fallback)
-    await openOutside(
-      {},
-      'v',
-      async () => {
-        throw new Error('script_failed')
-      },
-      fallback,
-    )
-    expect(fallback.mock.calls).toEqual([['u'], ['v']])
+    expect(openOutside({ Telegram: { WebApp: {} } }, 'u')).toBe(false)
+    expect(openOutside({}, 'u')).toBe(false)
   })
 })
 

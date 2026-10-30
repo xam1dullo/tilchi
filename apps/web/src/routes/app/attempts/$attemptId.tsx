@@ -86,18 +86,16 @@ function AttemptPage() {
     try {
       await uploadAudio(
         fetch,
-        async (body) => {
-          const signed = await apiFetch<Upload>(
-            `${attemptPath(attempt.id)}/audio/presign`,
-            { method: 'POST', previewRole, body: JSON.stringify(body) },
-          )
-          // From here the server points at the new take: the old one is gone.
-          setRecorded((ids) => ids.filter((id) => id !== questionId))
-          return signed
-        },
+        (body) =>
+          apiFetch<Upload>(`${attemptPath(attempt.id)}/audio/presign`, {
+            method: 'POST',
+            previewRole,
+            body: JSON.stringify(body),
+          }),
         questionId,
         blob,
         type,
+        () => setRecorded((ids) => ids.filter((id) => id !== questionId)),
       )
       setRecorded((ids) => [...new Set([...ids, questionId])])
       return null

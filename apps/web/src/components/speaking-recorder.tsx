@@ -8,7 +8,6 @@ import {
   recorderSlots,
 } from '../lib/attempt'
 import type { Copy } from '../lib/i18n'
-import { loadWebApp } from '../lib/login-miniapp'
 
 type Phase =
   | 'checking'
@@ -49,9 +48,13 @@ export default function SpeakingRecorder({
   const slots = useRef(recorderSlots())
   const active = phase === 'starting' || phase === 'recording' || uploading
 
+  // The latest callback, so a new one each render does not re-run the effect.
+  const report = useRef(onActive)
+  report.current = onActive
   useEffect(() => {
-    onActive(active)
-  }, [active, onActive])
+    report.current(active)
+    return () => report.current(false)
+  }, [active])
 
   useEffect(() => {
     setPhase(
@@ -155,10 +158,7 @@ export default function SpeakingRecorder({
             target="_blank"
             rel="noopener noreferrer"
             onClick={(event) => {
-              event.preventDefault()
-              void openOutside(window, url, loadWebApp, (u) =>
-                window.open(u, '_blank', 'noopener'),
-              )
+              if (openOutside(window, url)) event.preventDefault()
             }}
           >
             {copy.recordOpenBrowser}
@@ -176,8 +176,12 @@ export default function SpeakingRecorder({
         <button
           type="button"
           className="btn btn-primary"
-          disabled={phase === 'starting'}
-          onClick={() => live.current?.recorder.stop()}
+          onClick={() => {
+            if (live.current) return live.current.recorder.stop()
+            // Still waiting on the microphone: give up; a late stream is stopped.
+            slots.current.cancel()
+            setPhase('ready')
+          }}
         >
           {copy.recordStop}
         </button>

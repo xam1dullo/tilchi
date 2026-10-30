@@ -4,10 +4,18 @@ import { confirmLogin, miniAppLogin, startLogin } from '../lib/api'
 import { messages } from '../lib/i18n'
 import type { Locale } from '../lib/locale'
 import { initialLogin, type LoginState } from '../lib/login-flow'
-import { isMiniAppLaunch, loadWebApp, readInitData } from '../lib/login-miniapp'
+import {
+  WEBAPP_SCRIPT,
+  injectScript,
+  isMiniAppLaunch,
+  memoizeLoad,
+  readInitData,
+} from '../lib/login-miniapp'
 import { LoginRunner } from '../lib/login-runner'
 import { enterApp } from '../lib/session'
 import { LoginPanel } from './login-panel'
+
+const loadWebApp = memoizeLoad(() => injectScript(WEBAPP_SCRIPT))
 
 /** The sign-in screen of /app: wires a runner per mount to the browser and router. */
 export function LoginScreen({ locale }: { locale: Locale }) {
