@@ -169,10 +169,13 @@ describe('views', () => {
       seeMembers: false,
       assignTest: false,
       viewAssignments: false,
+      gradeAttempts: false,
     })
     expect(groupView(learner, group).can.seeMembers).toBe(false)
     expect(groupView(learner, group).can.assignTest).toBe(false)
     expect(groupView(learner, group).can.viewAssignments).toBe(false)
+    expect(groupView(learner, group).can.gradeAttempts).toBe(false)
+    expect(groupView(owner, group).can.gradeAttempts).toBe(true)
     expect(groupView(owner, group).can.assignTest).toBe(true)
     expect(groupView(owner, group).can.viewAssignments).toBe(true)
     expect(groupView(owner, group)).toHaveProperty('memberIds')
@@ -183,6 +186,7 @@ describe('views', () => {
       seeMembers: true,
       assignTest: true,
       viewAssignments: true,
+      gradeAttempts: true,
     })
   })
 

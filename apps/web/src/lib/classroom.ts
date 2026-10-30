@@ -5,6 +5,7 @@ export type GroupCan = {
   seeMembers: boolean
   assignTest: boolean
   viewAssignments: boolean
+  gradeAttempts: boolean
 }
 
 export type GroupRecord = {

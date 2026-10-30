@@ -141,10 +141,15 @@ export function AssignmentsList({
   assignments,
   copy,
   locale,
+  canGrade,
+  previewRole,
 }: {
   assignments: AssignmentRecord[] | null
   copy: Copy
   locale: string
+  /** The server's `can.gradeAttempts`: only then does a row open the attempt. */
+  canGrade: boolean
+  previewRole: AppRole | null
 }) {
   return (
     <section className="assignments" aria-labelledby="assignments-title">
@@ -196,7 +201,17 @@ export function AssignmentsList({
                         {assignment.attempts.map((a) => (
                           <tr key={a.id}>
                             <th scope="row">
-                              {displayName({ id: a.userId, name: a.name })}
+                              {canGrade ? (
+                                <Link
+                                  to="/app/attempts/$attemptId"
+                                  params={{ attemptId: a.id }}
+                                  search={keepAppSearch(previewRole)}
+                                >
+                                  {displayName({ id: a.userId, name: a.name })}
+                                </Link>
+                              ) : (
+                                displayName({ id: a.userId, name: a.name })
+                              )}
                             </th>
                             <td>
                               <span className="tag">

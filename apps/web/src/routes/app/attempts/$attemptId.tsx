@@ -5,6 +5,7 @@ import {
   useRouter,
 } from '@tanstack/react-router'
 import { Suspense, lazy, useState } from 'react'
+import { GradeAttempt } from '../../../components/grade-attempt'
 import { RetryButton } from '../../../components/retry-button'
 import { ApiError, apiFetch } from '../../../lib/api'
 import { statusKey } from '../../../lib/assignments'
@@ -24,6 +25,7 @@ import {
   AttemptSummary,
 } from '../../../components/attempt-view'
 import { formatLessonTime } from '../../../lib/classroom'
+import { isManagerView } from '../../../lib/grading'
 import { type Copy, messages } from '../../../lib/i18n'
 import { keepAppSearch } from '../../../lib/preview'
 
@@ -64,6 +66,53 @@ function AttemptError({ error }: { error: unknown }) {
 }
 
 function AttemptPage() {
+  const attempt = Route.useLoaderData()
+  return isManagerView(attempt) ? <ManagerAttempt /> : <LearnerAttempt />
+}
+
+function AttemptHead({
+  attempt,
+  copy,
+}: {
+  attempt: AttemptRecord
+  copy: Copy
+}) {
+  const { locale } = useRouteContext({ from: '__root__' })
+  return (
+    <div className="classroom-head">
+      <div>
+        <h2 id="attempt-heading">{attempt.title}</h2>
+        <p className="hint">
+          <span className="tag">{copy[statusKey[attempt.status]]}</span>{' '}
+          {copy.assignmentDeadline} {formatLessonTime(attempt.deadline, locale)}
+        </p>
+      </div>
+    </div>
+  )
+}
+
+function ManagerAttempt() {
+  const { locale } = useRouteContext({ from: '__root__' })
+  const { previewRole } = useRouteContext({ from: '/app' })
+  const attempt = Route.useLoaderData()
+  const copy = messages(locale)
+  return (
+    <section className="classroom" aria-labelledby="attempt-heading">
+      <p className="eyebrow">
+        <Link to="/app" search={keepAppSearch(previewRole)}>
+          {copy.groups}
+        </Link>
+      </p>
+      <AttemptHead attempt={attempt} copy={copy} />
+      {attempt.status === 'graded' ? (
+        <AttemptSummary attempt={attempt} copy={copy} />
+      ) : null}
+      <GradeAttempt attempt={attempt} copy={copy} previewRole={previewRole} />
+    </section>
+  )
+}
+
+function LearnerAttempt() {
   const { locale } = useRouteContext({ from: '__root__' })
   const { previewRole } = useRouteContext({ from: '/app' })
   const attempt = Route.useLoaderData()
@@ -134,16 +183,7 @@ function AttemptPage() {
           {copy.myTests}
         </Link>
       </p>
-      <div className="classroom-head">
-        <div>
-          <h2 id="attempt-heading">{attempt.title}</h2>
-          <p className="hint">
-            <span className="tag">{copy[statusKey[attempt.status]]}</span>{' '}
-            {copy.assignmentDeadline}{' '}
-            {formatLessonTime(attempt.deadline, locale)}
-          </p>
-        </div>
-      </div>
+      <AttemptHead attempt={attempt} copy={copy} />
       <AttemptSummary attempt={attempt} copy={copy} />
       {error ? (
         <p key={tries} className="notice" data-tone="error" role="alert">

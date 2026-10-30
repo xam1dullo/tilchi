@@ -7,6 +7,7 @@ const can = {
   seeMembers: false,
   assignTest: false,
   viewAssignments: false,
+  gradeAttempts: false,
 }
 
 describe('groupsView', () => {
