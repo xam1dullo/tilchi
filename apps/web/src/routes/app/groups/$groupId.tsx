@@ -13,6 +13,13 @@ import {
   type LessonRecord,
 } from '../../../lib/classroom'
 import { EnrolPanel } from '../../../components/enrol-panel'
+import {
+  AssignForm,
+  AssignmentsList,
+} from '../../../components/group-assignments'
+import { RetryButton } from '../../../components/retry-button'
+import type { AssignmentRecord } from '../../../lib/assignments'
+import type { TestSummary } from '../../../lib/question-form'
 import { displayName, type Member } from '../../../lib/enrol'
 import { messages, type Copy } from '../../../lib/i18n'
 import { keepAppSearch } from '../../../lib/preview'
@@ -28,21 +35,42 @@ export const Route = createFileRoute('/app/groups/$groupId')({
         { previewRole: context.previewRole },
       ),
     ])
-    const { members } = group.can.seeMembers
-      ? await apiFetch<{ members: Member[] }>(
-          `/api/groups/${params.groupId}/members`,
-          { previewRole: context.previewRole },
-        )
-      : { members: [] }
-    return { group, lessons: lessons.lessons, members }
+    const { previewRole } = context
+    const path = `/api/groups/${params.groupId}`
+    const [{ members }, { tests }, { assignments }] = await Promise.all([
+      group.can.seeMembers
+        ? apiFetch<{ members: Member[] }>(`${path}/members`, { previewRole })
+        : { members: [] },
+      group.can.assignTest
+        ? apiFetch<{ tests: TestSummary[] }>('/api/tests', { previewRole })
+        : { tests: [] },
+      group.can.viewAssignments
+        ? apiFetch<{ assignments: AssignmentRecord[] }>(`${path}/assignments`, {
+            previewRole,
+          })
+        : { assignments: [] },
+    ])
+    return { group, lessons: lessons.lessons, members, tests, assignments }
   },
   component: GroupPage,
+  errorComponent: GroupError,
 })
+
+function GroupError() {
+  const { locale } = useRouteContext({ from: '__root__' })
+  const copy = messages(locale)
+  return (
+    <div role="alert" className="error-row">
+      <p>{copy.error}</p>
+      <RetryButton label={copy.retry} />
+    </div>
+  )
+}
 
 function GroupPage() {
   const { locale } = useRouteContext({ from: '__root__' })
   const { previewRole } = useRouteContext({ from: '/app' })
-  const { group, lessons, members } = Route.useLoaderData()
+  const { group, lessons, members, tests, assignments } = Route.useLoaderData()
   const copy = messages(locale)
   const search = keepAppSearch(previewRole)
   return (
@@ -108,6 +136,21 @@ function GroupPage() {
           })}
         </ul>
       )}
+      {group.can.assignTest ? (
+        <AssignForm
+          groupId={group.id}
+          previewRole={previewRole}
+          tests={tests}
+          copy={copy}
+        />
+      ) : null}
+      {group.can.viewAssignments ? (
+        <AssignmentsList
+          assignments={assignments}
+          copy={copy}
+          locale={locale}
+        />
+      ) : null}
       {group.can.seeMembers ? (
         <MembersList members={members} copy={copy} />
       ) : null}

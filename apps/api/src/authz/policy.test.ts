@@ -167,14 +167,22 @@ describe('views', () => {
       createLesson: false,
       manageMembers: false,
       seeMembers: false,
+      assignTest: false,
+      viewAssignments: false,
     })
     expect(groupView(learner, group).can.seeMembers).toBe(false)
+    expect(groupView(learner, group).can.assignTest).toBe(false)
+    expect(groupView(learner, group).can.viewAssignments).toBe(false)
+    expect(groupView(owner, group).can.assignTest).toBe(true)
+    expect(groupView(owner, group).can.viewAssignments).toBe(true)
     expect(groupView(owner, group)).toHaveProperty('memberIds')
     expect(groupView(owner, group).can.seeMembers).toBe(true)
     expect(groupView(admin, group).can).toEqual({
       createLesson: true,
       manageMembers: true,
       seeMembers: true,
+      assignTest: true,
+      viewAssignments: true,
     })
   })
 

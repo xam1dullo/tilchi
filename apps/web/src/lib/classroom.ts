@@ -3,6 +3,8 @@ export type GroupCan = {
   createLesson: boolean
   manageMembers: boolean
   seeMembers: boolean
+  assignTest: boolean
+  viewAssignments: boolean
 }
 
 export type GroupRecord = {
