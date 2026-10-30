@@ -7,6 +7,8 @@ export type GroupCan = {
   createLesson: boolean
   manageMembers: boolean
   seeMembers: boolean
+  assignTest: boolean
+  viewAssignments: boolean
 }
 export type LessonCan = {
   start: boolean
@@ -25,6 +27,8 @@ export function groupView(
     createLesson: can(actor, 'lesson.create', group),
     manageMembers: can(actor, 'group.addMember'),
     seeMembers: can(actor, 'group.seeMembers', group),
+    assignTest: can(actor, 'test.assign', group),
+    viewAssignments: can(actor, 'assignment.view', group),
   }
   if (allowed.seeMembers) return { ...group, can: allowed }
   const { memberIds: _ids, ...rest } = group

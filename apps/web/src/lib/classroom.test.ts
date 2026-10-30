@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import { groupsView, tashkentInputToIso } from './classroom'
 
-const can = { createLesson: false, manageMembers: false, seeMembers: false }
+const can = {
+  createLesson: false,
+  manageMembers: false,
+  seeMembers: false,
+  assignTest: false,
+  viewAssignments: false,
+}
 
 describe('groupsView', () => {
   it('keeps the empty state when the session has no groups', () => {
