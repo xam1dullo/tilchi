@@ -203,4 +203,43 @@ export const en = {
   attemptScore: 'Score',
   attemptSubmittedAt: 'Submitted at',
   attemptNoLearners: 'No learners were in the group.',
+  myTests: 'My tests',
+  myTestsEmpty: 'No tests have been assigned to you yet.',
+  attemptNotFound: 'Test not found.',
+  attemptForbidden: 'You can’t open this test.',
+  attemptAlreadySubmitted: 'This test has already been submitted.',
+  attemptDeadlinePassed:
+    'The deadline has passed; answers are no longer accepted.',
+  attemptInvalid:
+    'The answers were not accepted. Reload the page and try again.',
+  attemptRecorderBusy:
+    'Wait for the recording to finish and upload, then submit.',
+  attemptIncomplete:
+    'Answer every question and record every speaking answer before submitting.',
+  attemptSubmit: 'Submit',
+  attemptSubmitPrompt:
+    'You can’t change your answers after submitting. Submit now?',
+  attemptSubmitConfirm: 'Yes, submit',
+  attemptSubmitting: 'Submitting…',
+  attemptFeedback: 'Teacher’s feedback',
+  attemptAwaitingGrade:
+    'Your answers were received. Wait for your teacher to grade them.',
+  recordStart: 'Start recording',
+  recordStop: 'Stop',
+  recordAgain: 'Record again',
+  recordRecording: 'Recording… (3 minutes at most)',
+  recordUploading: 'Uploading…',
+  recordSaved: 'Recording saved.',
+  recordRetry: 'Upload again',
+  recordMissing: 'No recording.',
+  recordLoading: 'Loading the recorder…',
+  recordTooLarge:
+    'The recording is too large (10 MB at most). Record a shorter one.',
+  recordUnsupported: 'This browser can’t record in a supported format.',
+  recordUploadFailed: 'The recording didn’t upload. Try again.',
+  recordNoMic:
+    'The microphone isn’t available here. Open the test in your browser.',
+  recordDenied:
+    'Microphone access was denied. Allow it or open the test in your browser.',
+  recordOpenBrowser: 'Open in browser',
 }

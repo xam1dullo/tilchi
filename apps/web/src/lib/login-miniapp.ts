@@ -2,7 +2,13 @@ export const WEBAPP_SCRIPT = 'https://telegram.org/js/telegram-web-app.js'
 
 declare global {
   interface Window {
-    Telegram?: { WebApp?: { initData?: string; ready?: () => void } }
+    Telegram?: {
+      WebApp?: {
+        initData?: string
+        ready?: () => void
+        openLink?: (url: string) => void
+      }
+    }
   }
 }
 
