@@ -5,7 +5,9 @@ import {
   consentByValid,
   displayName,
   enrolError,
+  markConsented,
   needsConsent,
+  openConsent,
   searchPath,
   type LearnerHit,
 } from './enrol'
@@ -54,5 +56,30 @@ describe('enrol helpers', () => {
   it('falls back to a short id when a person has no name', () => {
     expect(displayName({ id: 'abcdef123456', name: null })).toBe('abcdef12')
     expect(displayName({ id: 'x', name: 'Ali' })).toBe('Ali')
+  })
+})
+
+describe('consent form', () => {
+  it('clears the guardian when it opens for another learner', () => {
+    expect(openConsent({ for: 'a', by: 'Mother' }, 'b')).toEqual({
+      for: 'b',
+      by: '',
+    })
+    expect(openConsent({ for: null, by: 'Mother' }, 'b').by).toBe('')
+  })
+
+  it('keeps what was typed when it reopens for the same learner', () => {
+    expect(openConsent({ for: 'a', by: 'Mother' }, 'a')).toEqual({
+      for: 'a',
+      by: 'Mother',
+    })
+  })
+
+  it('after consent a retry only adds, it never asks for consent again', () => {
+    const hits = [hit(false), { ...hit(false), id: 'u2' }]
+    const after = markConsented(hits, 'u1')
+    expect(needsConsent('kids', after?.[0] as LearnerHit)).toBe(false)
+    expect(needsConsent('kids', after?.[1] as LearnerHit)).toBe(true)
+    expect(markConsented(null, 'u1')).toBeNull()
   })
 })

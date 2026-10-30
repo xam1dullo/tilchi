@@ -8,7 +8,9 @@ import {
   consentByValid,
   displayName,
   enrolError,
+  markConsented,
   needsConsent,
+  openConsent,
   searchPath,
   type EnrolError,
   type LearnerHit,
@@ -43,18 +45,14 @@ export function EnrolPanel({
 
   /** A new learner never inherits the guardian typed for another one. */
   const askConsent = (userId: string) => {
-    if (consentFor !== userId) setConsentBy('')
-    setConsentFor(userId)
+    const next = openConsent({ for: consentFor, by: consentBy }, userId)
+    setConsentFor(next.for)
+    setConsentBy(next.by)
   }
 
   /** Consent is on record now: a retry only adds, it never re-posts consent. */
   const consented = (userId: string) => {
-    setHits(
-      (all) =>
-        all?.map((h) =>
-          h.id === userId ? { ...h, guardianConsent: true } : h,
-        ) ?? null,
-    )
+    setHits((all) => markConsented(all, userId))
     setConsentFor(null)
   }
 
