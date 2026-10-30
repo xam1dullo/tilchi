@@ -28,4 +28,12 @@ describe('navForRole', () => {
     expect(tos('admin')).toContain('/app/tests')
     expect(tos('learner')).not.toContain('/app/tests')
   })
+
+  it('shows my tests to learners only', () => {
+    const tos = (role: 'learner' | 'teacher' | 'admin') =>
+      navForRole(role).map((item) => item.to)
+    expect(tos('learner')).toContain('/app/assignments')
+    expect(tos('teacher')).not.toContain('/app/assignments')
+    expect(tos('admin')).not.toContain('/app/assignments')
+  })
 })

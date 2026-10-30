@@ -13,9 +13,11 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as CoursesRouteImport } from './routes/courses'
 import { Route as AppIndexRouteImport } from './routes/app/index'
+import { Route as AppAssignmentsRouteImport } from './routes/app/assignments'
 import { Route as AppCoursesRouteImport } from './routes/app/courses'
 import { Route as AppForbiddenRouteImport } from './routes/app/forbidden'
 import { Route as AppNotificationsRouteImport } from './routes/app/notifications'
+import { Route as AppAttemptsAttemptIdRouteImport } from './routes/app/attempts/$attemptId'
 import { Route as AppGroupsGroupIdRouteImport } from './routes/app/groups/$groupId'
 import { Route as AppMeetLessonIdRouteImport } from './routes/app/meet/$lessonId'
 import { Route as AppTestsIndexRouteImport } from './routes/app/tests/index'
@@ -42,6 +44,11 @@ const AppIndexRoute = AppIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAssignmentsRoute = AppAssignmentsRouteImport.update({
+  id: '/assignments',
+  path: '/assignments',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppCoursesRoute = AppCoursesRouteImport.update({
   id: '/courses',
   path: '/courses',
@@ -55,6 +62,11 @@ const AppForbiddenRoute = AppForbiddenRouteImport.update({
 const AppNotificationsRoute = AppNotificationsRouteImport.update({
   id: '/notifications',
   path: '/notifications',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAttemptsAttemptIdRoute = AppAttemptsAttemptIdRouteImport.update({
+  id: '/attempts/$attemptId',
+  path: '/attempts/$attemptId',
   getParentRoute: () => AppRoute,
 } as any)
 const AppGroupsGroupIdRoute = AppGroupsGroupIdRouteImport.update({
@@ -87,10 +99,12 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
   '/courses': typeof CoursesRoute
+  '/app/assignments': typeof AppAssignmentsRoute
   '/app/courses': typeof AppCoursesRoute
   '/app/forbidden': typeof AppForbiddenRoute
   '/app/notifications': typeof AppNotificationsRoute
   '/app/': typeof AppIndexRoute
+  '/app/attempts/$attemptId': typeof AppAttemptsAttemptIdRoute
   '/app/groups/$groupId': typeof AppGroupsGroupIdRoute
   '/app/meet/$lessonId': typeof AppMeetLessonIdRoute
   '/app/tests/$testId': typeof AppTestsTestIdRoute
@@ -100,10 +114,12 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/courses': typeof CoursesRoute
+  '/app/assignments': typeof AppAssignmentsRoute
   '/app/courses': typeof AppCoursesRoute
   '/app/forbidden': typeof AppForbiddenRoute
   '/app/notifications': typeof AppNotificationsRoute
   '/app': typeof AppIndexRoute
+  '/app/attempts/$attemptId': typeof AppAttemptsAttemptIdRoute
   '/app/groups/$groupId': typeof AppGroupsGroupIdRoute
   '/app/meet/$lessonId': typeof AppMeetLessonIdRoute
   '/app/tests/$testId': typeof AppTestsTestIdRoute
@@ -115,10 +131,12 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
   '/courses': typeof CoursesRoute
+  '/app/assignments': typeof AppAssignmentsRoute
   '/app/courses': typeof AppCoursesRoute
   '/app/forbidden': typeof AppForbiddenRoute
   '/app/notifications': typeof AppNotificationsRoute
   '/app/': typeof AppIndexRoute
+  '/app/attempts/$attemptId': typeof AppAttemptsAttemptIdRoute
   '/app/groups/$groupId': typeof AppGroupsGroupIdRoute
   '/app/meet/$lessonId': typeof AppMeetLessonIdRoute
   '/app/tests/$testId': typeof AppTestsTestIdRoute
@@ -131,10 +149,12 @@ export interface FileRouteTypes {
     | '/'
     | '/app'
     | '/courses'
+    | '/app/assignments'
     | '/app/courses'
     | '/app/forbidden'
     | '/app/notifications'
     | '/app/'
+    | '/app/attempts/$attemptId'
     | '/app/groups/$groupId'
     | '/app/meet/$lessonId'
     | '/app/tests/$testId'
@@ -144,10 +164,12 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/courses'
+    | '/app/assignments'
     | '/app/courses'
     | '/app/forbidden'
     | '/app/notifications'
     | '/app'
+    | '/app/attempts/$attemptId'
     | '/app/groups/$groupId'
     | '/app/meet/$lessonId'
     | '/app/tests/$testId'
@@ -158,10 +180,12 @@ export interface FileRouteTypes {
     | '/'
     | '/app'
     | '/courses'
+    | '/app/assignments'
     | '/app/courses'
     | '/app/forbidden'
     | '/app/notifications'
     | '/app/'
+    | '/app/attempts/$attemptId'
     | '/app/groups/$groupId'
     | '/app/meet/$lessonId'
     | '/app/tests/$testId'
@@ -206,6 +230,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/assignments': {
+      id: '/app/assignments'
+      path: '/assignments'
+      fullPath: '/app/assignments'
+      preLoaderRoute: typeof AppAssignmentsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/courses': {
       id: '/app/courses'
       path: '/courses'
@@ -225,6 +256,13 @@ declare module '@tanstack/react-router' {
       path: '/notifications'
       fullPath: '/app/notifications'
       preLoaderRoute: typeof AppNotificationsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/attempts/$attemptId': {
+      id: '/app/attempts/$attemptId'
+      path: '/attempts/$attemptId'
+      fullPath: '/app/attempts/$attemptId'
+      preLoaderRoute: typeof AppAttemptsAttemptIdRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/groups/$groupId': {
@@ -266,10 +304,12 @@ declare module '@tanstack/react-router' {
 }
 
 interface AppRouteChildren {
+  AppAssignmentsRoute: typeof AppAssignmentsRoute
   AppCoursesRoute: typeof AppCoursesRoute
   AppForbiddenRoute: typeof AppForbiddenRoute
   AppNotificationsRoute: typeof AppNotificationsRoute
   AppIndexRoute: typeof AppIndexRoute
+  AppAttemptsAttemptIdRoute: typeof AppAttemptsAttemptIdRoute
   AppGroupsGroupIdRoute: typeof AppGroupsGroupIdRoute
   AppMeetLessonIdRoute: typeof AppMeetLessonIdRoute
   AppTestsTestIdRoute: typeof AppTestsTestIdRoute
@@ -277,10 +317,12 @@ interface AppRouteChildren {
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppAssignmentsRoute: AppAssignmentsRoute,
   AppCoursesRoute: AppCoursesRoute,
   AppForbiddenRoute: AppForbiddenRoute,
   AppNotificationsRoute: AppNotificationsRoute,
   AppIndexRoute: AppIndexRoute,
+  AppAttemptsAttemptIdRoute: AppAttemptsAttemptIdRoute,
   AppGroupsGroupIdRoute: AppGroupsGroupIdRoute,
   AppMeetLessonIdRoute: AppMeetLessonIdRoute,
   AppTestsTestIdRoute: AppTestsTestIdRoute,

@@ -6,6 +6,7 @@ import {
   attempts,
   audioObjects,
   groupMembers,
+  groups,
   questions,
   testQuestions,
   tests,
@@ -198,6 +199,7 @@ export class AssessmentRepository {
         attemptId: attempts.id,
         assignmentId: assignments.id,
         groupId: assignments.groupId,
+        groupName: groups.name,
         title: tests.title,
         deadline: assignments.deadline,
         status: attempts.status,
@@ -207,6 +209,7 @@ export class AssessmentRepository {
       .from(attempts)
       .innerJoin(assignments, eq(assignments.id, attempts.assignmentId))
       .innerJoin(tests, eq(tests.id, assignments.testId))
+      .innerJoin(groups, eq(groups.id, assignments.groupId))
       .where(eq(attempts.userId, userId))
       .orderBy(desc(assignments.deadline), desc(attempts.id))
   }

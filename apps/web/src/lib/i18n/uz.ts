@@ -210,4 +210,38 @@ export const uz = {
   attemptScore: 'Ball',
   attemptSubmittedAt: 'Topshirilgan vaqt',
   attemptNoLearners: 'Guruhda o‘quvchi yo‘q edi.',
+  myTests: 'Mening testlarim',
+  myTestsEmpty: 'Hozircha sizga test berilmagan.',
+  attemptNotFound: 'Test topilmadi.',
+  attemptForbidden: 'Bu testni ochishga ruxsat yo‘q.',
+  attemptAlreadySubmitted: 'Test allaqachon topshirilgan.',
+  attemptDeadlinePassed: 'Muddat o‘tib ketdi, javoblar qabul qilinmaydi.',
+  attemptInvalid:
+    'Javoblar qabul qilinmadi. Sahifani yangilab, qayta urinib ko‘ring.',
+  attemptIncomplete:
+    'Topshirishdan oldin barcha savollarga javob bering va har bir og‘zaki javobni yozib oling.',
+  attemptSubmit: 'Topshirish',
+  attemptSubmitPrompt:
+    'Topshirgandan keyin javoblarni o‘zgartirib bo‘lmaydi. Topshirasizmi?',
+  attemptSubmitConfirm: 'Ha, topshirish',
+  attemptSubmitting: 'Topshirilmoqda…',
+  attemptFeedback: 'O‘qituvchi izohi',
+  attemptAwaitingGrade:
+    'Javoblaringiz qabul qilindi. O‘qituvchi baholashini kuting.',
+  recordStart: 'Yozishni boshlash',
+  recordStop: 'To‘xtatish',
+  recordAgain: 'Qayta yozish',
+  recordRecording: 'Yozilmoqda… (ko‘pi bilan 3 daqiqa)',
+  recordUploading: 'Yuklanmoqda…',
+  recordSaved: 'Yozuv saqlandi.',
+  recordRetry: 'Qayta yuklash',
+  recordMissing: 'Yozuv yo‘q.',
+  recordLoading: 'Yozish vositasi yuklanmoqda…',
+  recordTooLarge: 'Yozuv juda katta (10 MB gacha). Qisqaroq yozing.',
+  recordUnsupported: 'Bu brauzer yozuv formatini qo‘llab-quvvatlamaydi.',
+  recordUploadFailed: 'Yozuv yuklanmadi. Qayta urinib ko‘ring.',
+  recordNoMic: 'Bu yerda mikrofon ishlamaydi. Testni brauzerda oching.',
+  recordDenied:
+    'Mikrofonga ruxsat berilmadi. Ruxsat bering yoki testni brauzerda oching.',
+  recordOpenBrowser: 'Brauzerda ochish',
 }

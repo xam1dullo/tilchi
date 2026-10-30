@@ -315,8 +315,14 @@ describe.skipIf(!hasTestDatabase)('tests, assignments and grading', () => {
     await worker.drainOnce(new Date())
     const view = await call('ana', 'GET', `/api/attempts/${t.attemptId}`)
     expect(view.status).toBe(200)
-    expect(view.body.status).toBe('assigned')
+    expect(view.body).toMatchObject({ status: 'assigned', title: 'Unit 1' })
     expect(JSON.stringify(view.body)).not.toContain('answerKey')
+    const listed = await call('ana', 'GET', '/api/me/assignments')
+    expect(listed.body.assignments[0]).toMatchObject({
+      attemptId: t.attemptId,
+      title: 'Unit 1',
+      groupName: 'G',
+    })
 
     const presign = await call(
       'ana',

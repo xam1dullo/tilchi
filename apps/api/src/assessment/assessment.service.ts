@@ -340,12 +340,13 @@ export class AssessmentService {
 
   async getAttempt(actor: Actor, id: string) {
     const ctx = await this.context(actor, id, 'either')
-    const questionsOfTest = await this.loadTest(ctx.assignment.testId)
+    const found = await this.repo.getTest(ctx.assignment.testId)
+    if (!found) return notFound()
     const audio = await this.repo.audioFor(ctx.attempt.id)
     return this.view(
       ctx.attempt,
-      ctx.assignment,
-      questionsOfTest,
+      { ...ctx.assignment, title: found.test.title },
+      found.questions.map(toTestQuestion),
       audio,
       ctx.as,
     )
@@ -353,7 +354,7 @@ export class AssessmentService {
 
   private view(
     attempt: AttemptRow,
-    assignment: AssignmentRow,
+    assignment: AssignmentRow & { title: string },
     test: TestQuestion[],
     audio: AudioRow[],
     as: 'owner' | 'manager',
@@ -368,6 +369,7 @@ export class AssessmentService {
     return {
       id: attempt.id,
       assignmentId: assignment.id,
+      title: assignment.title,
       userId: attempt.userId,
       status,
       deadline: assignment.deadline,
