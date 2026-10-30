@@ -280,8 +280,19 @@ function RecordingPlayer({
   }
 
   if (url) {
-    // biome-ignore lint/a11y/useMediaCaption: a learner's spoken answer, no captions exist
-    return <audio controls autoPlay src={url} />
+    // The signed link expires; on a media error drop it so Listen fetches a fresh one.
+    return (
+      // biome-ignore lint/a11y/useMediaCaption: a learner's spoken answer, no captions exist
+      <audio
+        controls
+        autoPlay
+        src={url}
+        onError={() => {
+          setUrl(null)
+          setError('error')
+        }}
+      />
+    )
   }
   return (
     <div className="lesson-actions">
