@@ -194,6 +194,19 @@ describe('messages', () => {
     expect(message?.body).toContain('02.01 10:00')
   })
 
+  it('links test messages to a page the recipient can open', () => {
+    const test = {
+      assignmentId: 'A',
+      groupId: 'G',
+      deadline: '2030-01-01T04:00:00Z',
+    }
+    const done = { ...test, attemptId: 'T', userId: 'U' }
+    expect(renderMessage('test.assigned', test)?.link).toBe('/app/assignments')
+    expect(renderMessage('test.reminder', test)?.link).toBe('/app/assignments')
+    expect(renderMessage('test.submitted', done)?.link).toBe('/app/attempts/T')
+    expect(renderMessage('test.graded', done)?.link).toBe('/app/attempts/T')
+  })
+
   it('has no text for a task event', () => {
     expect(renderMessage('meeting.close', {})).toBeNull()
   })

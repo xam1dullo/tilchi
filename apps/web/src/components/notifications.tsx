@@ -14,14 +14,14 @@ export type Notification = {
 
 export type Inbox = { notifications: Notification[]; unread: number }
 
-/** Outbox links point only to group and meeting pages inside the app. */
+/** Outbox links point only to group, meeting, attempt and my-tests pages inside the app. */
 export function notificationLink(
   link: string | null,
   previewRole: AppRole | null,
 ) {
   if (
     !link ||
-    !/^\/app\/(groups|meet)\/[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i.test(
+    !/^\/app\/((groups|meet|attempts)\/[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}|assignments)$/i.test(
       link,
     )
   )
