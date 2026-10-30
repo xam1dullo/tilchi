@@ -18,6 +18,8 @@ import { Route as AppForbiddenRouteImport } from './routes/app/forbidden'
 import { Route as AppNotificationsRouteImport } from './routes/app/notifications'
 import { Route as AppGroupsGroupIdRouteImport } from './routes/app/groups/$groupId'
 import { Route as AppMeetLessonIdRouteImport } from './routes/app/meet/$lessonId'
+import { Route as AppTestsIndexRouteImport } from './routes/app/tests/index'
+import { Route as AppTestsTestIdRouteImport } from './routes/app/tests/$testId'
 import { Route as AiLessonsLessonIdAskRouteImport } from './routes/ai.lessons.$lessonId.ask'
 
 const IndexRoute = IndexRouteImport.update({
@@ -65,6 +67,16 @@ const AppMeetLessonIdRoute = AppMeetLessonIdRouteImport.update({
   path: '/meet/$lessonId',
   getParentRoute: () => AppRoute,
 } as any)
+const AppTestsIndexRoute = AppTestsIndexRouteImport.update({
+  id: '/tests/',
+  path: '/tests/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppTestsTestIdRoute = AppTestsTestIdRouteImport.update({
+  id: '/tests/$testId',
+  path: '/tests/$testId',
+  getParentRoute: () => AppRoute,
+} as any)
 const AiLessonsLessonIdAskRoute = AiLessonsLessonIdAskRouteImport.update({
   id: '/ai/lessons/$lessonId/ask',
   path: '/ai/lessons/$lessonId/ask',
@@ -81,6 +93,8 @@ export interface FileRoutesByFullPath {
   '/app/': typeof AppIndexRoute
   '/app/groups/$groupId': typeof AppGroupsGroupIdRoute
   '/app/meet/$lessonId': typeof AppMeetLessonIdRoute
+  '/app/tests/$testId': typeof AppTestsTestIdRoute
+  '/app/tests/': typeof AppTestsIndexRoute
   '/ai/lessons/$lessonId/ask': typeof AiLessonsLessonIdAskRoute
 }
 export interface FileRoutesByTo {
@@ -92,6 +106,8 @@ export interface FileRoutesByTo {
   '/app': typeof AppIndexRoute
   '/app/groups/$groupId': typeof AppGroupsGroupIdRoute
   '/app/meet/$lessonId': typeof AppMeetLessonIdRoute
+  '/app/tests/$testId': typeof AppTestsTestIdRoute
+  '/app/tests': typeof AppTestsIndexRoute
   '/ai/lessons/$lessonId/ask': typeof AiLessonsLessonIdAskRoute
 }
 export interface FileRoutesById {
@@ -105,6 +121,8 @@ export interface FileRoutesById {
   '/app/': typeof AppIndexRoute
   '/app/groups/$groupId': typeof AppGroupsGroupIdRoute
   '/app/meet/$lessonId': typeof AppMeetLessonIdRoute
+  '/app/tests/$testId': typeof AppTestsTestIdRoute
+  '/app/tests/': typeof AppTestsIndexRoute
   '/ai/lessons/$lessonId/ask': typeof AiLessonsLessonIdAskRoute
 }
 export interface FileRouteTypes {
@@ -119,6 +137,8 @@ export interface FileRouteTypes {
     | '/app/'
     | '/app/groups/$groupId'
     | '/app/meet/$lessonId'
+    | '/app/tests/$testId'
+    | '/app/tests/'
     | '/ai/lessons/$lessonId/ask'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -130,6 +150,8 @@ export interface FileRouteTypes {
     | '/app'
     | '/app/groups/$groupId'
     | '/app/meet/$lessonId'
+    | '/app/tests/$testId'
+    | '/app/tests'
     | '/ai/lessons/$lessonId/ask'
   id:
     | '__root__'
@@ -142,6 +164,8 @@ export interface FileRouteTypes {
     | '/app/'
     | '/app/groups/$groupId'
     | '/app/meet/$lessonId'
+    | '/app/tests/$testId'
+    | '/app/tests/'
     | '/ai/lessons/$lessonId/ask'
   fileRoutesById: FileRoutesById
 }
@@ -217,6 +241,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppMeetLessonIdRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/tests/': {
+      id: '/app/tests/'
+      path: '/tests'
+      fullPath: '/app/tests/'
+      preLoaderRoute: typeof AppTestsIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/tests/$testId': {
+      id: '/app/tests/$testId'
+      path: '/tests/$testId'
+      fullPath: '/app/tests/$testId'
+      preLoaderRoute: typeof AppTestsTestIdRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/ai/lessons/$lessonId/ask': {
       id: '/ai/lessons/$lessonId/ask'
       path: '/ai/lessons/$lessonId/ask'
@@ -234,6 +272,8 @@ interface AppRouteChildren {
   AppIndexRoute: typeof AppIndexRoute
   AppGroupsGroupIdRoute: typeof AppGroupsGroupIdRoute
   AppMeetLessonIdRoute: typeof AppMeetLessonIdRoute
+  AppTestsTestIdRoute: typeof AppTestsTestIdRoute
+  AppTestsIndexRoute: typeof AppTestsIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
@@ -243,6 +283,8 @@ const AppRouteChildren: AppRouteChildren = {
   AppIndexRoute: AppIndexRoute,
   AppGroupsGroupIdRoute: AppGroupsGroupIdRoute,
   AppMeetLessonIdRoute: AppMeetLessonIdRoute,
+  AppTestsTestIdRoute: AppTestsTestIdRoute,
+  AppTestsIndexRoute: AppTestsIndexRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)

@@ -16,6 +16,7 @@ export class GroupsController {
       can: {
         createGroup: can(actor, 'group.create'),
         assignTeacher: can(actor, 'teacher.list'),
+        manageTests: can(actor, 'test.manage'),
       },
     }
   }

@@ -689,7 +689,15 @@ describe.skipIf(!hasTestDatabase)('route x role matrix', () => {
     expect(((await list.json()) as { can: unknown }).can).toEqual({
       createGroup: false,
       assignTeacher: false,
+      manageTests: false,
     })
+    for (const who of ['owner', 'admin']) {
+      const res = await fetch(`${base}/api/groups`, {
+        headers: { cookie: `__Host-tilchi_sid=${who}` },
+      })
+      const flags = (await res.json()) as { can: Record<string, boolean> }
+      expect(flags.can.manageTests, who).toBe(true)
+    }
   })
 
   it('lets an admin name the teacher, who then manages that group', async () => {
