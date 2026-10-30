@@ -18,8 +18,7 @@ import {
   AssignmentsList,
 } from '../../../components/group-assignments'
 import { RetryButton } from '../../../components/retry-button'
-import type { AssignmentRecord } from '../../../lib/assignments'
-import type { TestSummary } from '../../../lib/question-form'
+import { loadAssessment } from '../../../lib/assignments'
 import { displayName, type Member } from '../../../lib/enrol'
 import { messages, type Copy } from '../../../lib/i18n'
 import { keepAppSearch } from '../../../lib/preview'
@@ -37,18 +36,13 @@ export const Route = createFileRoute('/app/groups/$groupId')({
     ])
     const { previewRole } = context
     const path = `/api/groups/${params.groupId}`
-    const [{ members }, { tests }, { assignments }] = await Promise.all([
+    const [{ members }, { tests, assignments }] = await Promise.all([
       group.can.seeMembers
         ? apiFetch<{ members: Member[] }>(`${path}/members`, { previewRole })
         : { members: [] },
-      group.can.assignTest
-        ? apiFetch<{ tests: TestSummary[] }>('/api/tests', { previewRole })
-        : { tests: [] },
-      group.can.viewAssignments
-        ? apiFetch<{ assignments: AssignmentRecord[] }>(`${path}/assignments`, {
-            previewRole,
-          })
-        : { assignments: [] },
+      loadAssessment(group.can, group.id, (url) =>
+        apiFetch(url, { previewRole }),
+      ),
     ])
     return { group, lessons: lessons.lessons, members, tests, assignments }
   },

@@ -24,7 +24,7 @@ export function AssignForm({
 }: {
   groupId: string
   previewRole: AppRole | null
-  tests: TestSummary[]
+  tests: TestSummary[] | null
   copy: Copy
 }) {
   const router = useRouter()
@@ -63,7 +63,11 @@ export function AssignForm({
   return (
     <section className="assign" aria-labelledby="assign-title">
       <h3 id="assign-title">{copy.assignTitle}</h3>
-      {tests.length === 0 ? (
+      {tests === null ? (
+        <p className="hint" role="alert">
+          {copy.error}
+        </p>
+      ) : tests.length === 0 ? (
         <p className="hint">
           {copy.assignNoTests}{' '}
           <Link to="/app/tests" search={keepAppSearch(previewRole)}>
@@ -138,14 +142,18 @@ export function AssignmentsList({
   copy,
   locale,
 }: {
-  assignments: AssignmentRecord[]
+  assignments: AssignmentRecord[] | null
   copy: Copy
   locale: string
 }) {
   return (
     <section className="assignments" aria-labelledby="assignments-title">
       <h3 id="assignments-title">{copy.assignments}</h3>
-      {assignments.length === 0 ? (
+      {assignments === null ? (
+        <p className="hint" role="alert">
+          {copy.error}
+        </p>
+      ) : assignments.length === 0 ? (
         <p className="hint">{copy.assignmentsEmpty}</p>
       ) : (
         <ul className="rows classroom-list">

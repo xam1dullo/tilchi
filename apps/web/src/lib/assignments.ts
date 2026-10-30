@@ -1,6 +1,7 @@
 import { ApiError } from './api'
 import { tashkentInputToIso } from './classroom'
 import type { Copy } from './i18n'
+import type { TestSummary } from './question-form'
 
 export type AttemptStatus = 'assigned' | 'submitted' | 'graded' | 'missed'
 
@@ -79,4 +80,32 @@ export function assignError(error: unknown): ErrorKey {
   return error instanceof Error && Object.hasOwn(ERRORS, error.message)
     ? ERRORS[error.message]
     : 'courseUnavailable'
+}
+
+/**
+ * The group page's assessment data, fetched only when the server's `can`
+ * allows it. A failed fetch is null so the rest of the page still renders.
+ */
+export async function loadAssessment(
+  can: { assignTest: boolean; viewAssignments: boolean },
+  groupId: string,
+  get: <T>(path: string) => Promise<T>,
+) {
+  const [tests, assignments] = await Promise.all([
+    can.assignTest
+      ? get<{ tests: TestSummary[] }>('/api/tests').then(
+          (r) => r.tests,
+          () => null,
+        )
+      : [],
+    can.viewAssignments
+      ? get<{ assignments: AssignmentRecord[] }>(
+          `/api/groups/${encodeURIComponent(groupId)}/assignments`,
+        ).then(
+          (r) => r.assignments,
+          () => null,
+        )
+      : [],
+  ])
+  return { tests, assignments }
 }
