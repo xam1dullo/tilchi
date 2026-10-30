@@ -1,3 +1,4 @@
+import { RetryButton } from '../../components/retry-button'
 import {
   createFileRoute,
   useRouteContext,
@@ -47,15 +48,13 @@ export const Route = createFileRoute('/app/courses')({
   errorComponent: CourseError,
 })
 
-function CourseError({ reset }: { reset: () => void }) {
+function CourseError() {
   const { locale } = useRouteContext({ from: '__root__' })
   const copy = messages(locale)
   return (
     <div role="alert" className="error-row">
       <p>{copy.catalogError}</p>
-      <button type="button" className="btn btn-outline" onClick={reset}>
-        {copy.retry}
-      </button>
+      <RetryButton label={copy.retry} />
     </div>
   )
 }

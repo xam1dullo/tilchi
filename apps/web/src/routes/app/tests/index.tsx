@@ -1,3 +1,4 @@
+import { RetryButton } from '../../../components/retry-button'
 import {
   Link,
   createFileRoute,
@@ -52,15 +53,13 @@ type ErrorKey = keyof Copy
 /** Which request is in flight, so only its own button says "Saving…". */
 type Pending = 'question' | 'test' | 'row' | null
 
-function BankError({ reset }: { reset: () => void }) {
+function BankError() {
   const { locale } = useRouteContext({ from: '__root__' })
   const copy = messages(locale)
   return (
     <div role="alert" className="error-row">
       <p>{copy.error}</p>
-      <button type="button" className="btn btn-outline" onClick={reset}>
-        {copy.retry}
-      </button>
+      <RetryButton label={copy.retry} />
     </div>
   )
 }
@@ -161,6 +160,8 @@ function TestsPage() {
     )
     if (failed) return setListError(failed)
     setConfirm(null)
+    // A deleted question can no longer be picked, nor unticked once hidden.
+    if (action === 'delete') setPicked((ids) => ids.filter((id) => id !== q.id))
     if (editing?.id === q.id) resetForm()
   }
 

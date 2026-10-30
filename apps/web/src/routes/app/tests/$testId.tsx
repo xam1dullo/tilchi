@@ -1,3 +1,4 @@
+import { RetryButton } from '../../../components/retry-button'
 import { Link, createFileRoute, useRouteContext } from '@tanstack/react-router'
 import { apiFetch } from '../../../lib/api'
 import { messages } from '../../../lib/i18n'
@@ -20,7 +21,7 @@ export const Route = createFileRoute('/app/tests/$testId')({
   errorComponent: TestError,
 })
 
-function TestError({ error, reset }: { error: unknown; reset: () => void }) {
+function TestError({ error }: { error: unknown }) {
   const { locale } = useRouteContext({ from: '__root__' })
   const { previewRole } = useRouteContext({ from: '/app' })
   const copy = messages(locale)
@@ -37,9 +38,7 @@ function TestError({ error, reset }: { error: unknown; reset: () => void }) {
           {copy.tests}
         </Link>
       ) : (
-        <button type="button" className="btn btn-outline" onClick={reset}>
-          {copy.retry}
-        </button>
+        <RetryButton label={copy.retry} />
       )}
     </div>
   )

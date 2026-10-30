@@ -1,3 +1,4 @@
+import { RetryButton } from '../components/retry-button'
 import { Link, createFileRoute, useRouteContext } from '@tanstack/react-router'
 import { Outlet } from '@tanstack/react-router'
 import { LocaleSwitch } from '../components/locale-switch'
@@ -99,15 +100,13 @@ export function SkeletonRows() {
   )
 }
 
-function LoadError({ reset }: { reset: () => void }) {
+function LoadError() {
   const { locale } = useRouteContext({ from: '__root__' })
   const copy = messages(locale)
   return (
     <div className="row error-row" role="alert">
       <p>{copy.error}</p>
-      <button className="btn btn-outline" type="button" onClick={reset}>
-        {copy.retry}
-      </button>
+      <RetryButton label={copy.retry} />
     </div>
   )
 }
