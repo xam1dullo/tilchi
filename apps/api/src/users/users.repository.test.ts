@@ -200,10 +200,11 @@ describeWithDatabase('UsersRepository', (current) => {
 
     it('never rewrites a consent already on record, even when racing', async () => {
       const user = await repo().upsertTelegram('43', 'Kid')
-      const first = new Date('2026-10-30T10:00:00Z')
+      const mother = new Date('2026-10-30T10:00:00Z')
+      const neighbour = new Date('2026-10-30T11:00:00Z')
       const results = await Promise.all([
-        repo().recordGuardianConsent(user.id, 'Mother', first),
-        repo().recordGuardianConsent(user.id, 'Neighbour', first),
+        repo().recordGuardianConsent(user.id, 'Mother', mother),
+        repo().recordGuardianConsent(user.id, 'Neighbour', neighbour),
       ])
       expect(results).toEqual([true, true])
       const later = new Date('2026-10-31T10:00:00Z')
@@ -214,8 +215,10 @@ describeWithDatabase('UsersRepository', (current) => {
         .database.db.select()
         .from(users)
         .where(eq(users.id, user.id))
+      // One racer wins whole: its giver with its own time, never a mix.
+      const won = row.guardianConsentBy === 'Mother' ? mother : neighbour
       expect(['Mother', 'Neighbour']).toContain(row.guardianConsentBy)
-      expect(row.guardianConsentAt).toEqual(first)
+      expect(row.guardianConsentAt).toEqual(won)
     })
 
     it('is for learners only', async () => {

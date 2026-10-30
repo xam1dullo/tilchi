@@ -52,3 +52,14 @@ export function enrolError(error: unknown): EnrolError {
 
 export const displayName = (person: { id: string; name: string | null }) =>
   person.name ?? person.id.slice(0, 8)
+
+export type ConsentForm = { for: string | null; by: string }
+
+/** Opening the form for another learner never carries the last guardian over. */
+export const openConsent = (form: ConsentForm, userId: string): ConsentForm =>
+  form.for === userId ? form : { for: userId, by: '' }
+
+/** Consent is on record: the hit no longer asks for it, so a retry only adds. */
+export const markConsented = (hits: LearnerHit[] | null, userId: string) =>
+  hits?.map((h) => (h.id === userId ? { ...h, guardianConsent: true } : h)) ??
+  null
