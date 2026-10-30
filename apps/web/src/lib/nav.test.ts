@@ -20,4 +20,12 @@ describe('navForRole', () => {
       '/app/courses',
     )
   })
+
+  it('shows tests to teachers and admins, not learners', () => {
+    const tos = (role: 'learner' | 'teacher' | 'admin') =>
+      navForRole(role).map((item) => item.to)
+    expect(tos('teacher')).toContain('/app/tests')
+    expect(tos('admin')).toContain('/app/tests')
+    expect(tos('learner')).not.toContain('/app/tests')
+  })
 })
