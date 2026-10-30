@@ -251,15 +251,34 @@ export class UsersRepository {
     }))
   }
 
-  /** Records who gave a guardian's consent; false when no active user has `id`. */
+  /**
+   * Records who gave a learner's guardian consent. The first record is the
+   * evidence (PRD G7) and is never rewritten: a repeat is a no-op success.
+   * False when no active learner has `id`.
+   */
   async recordGuardianConsent(id: string, by: string, now = new Date()) {
     if (!isUuid(id)) return false
+    const learner = and(
+      eq(users.id, id),
+      eq(users.role, 'learner'),
+      isNull(users.deletedAt),
+    )
     const updated = await this.database.db
       .update(users)
       .set({ guardianConsentBy: by, guardianConsentAt: now })
-      .where(and(eq(users.id, id), isNull(users.deletedAt)))
+      .where(
+        and(
+          learner,
+          or(isNull(users.guardianConsentBy), isNull(users.guardianConsentAt)),
+        ),
+      )
       .returning({ id: users.id })
-    return updated.length > 0
+    if (updated.length > 0) return true
+    const [found] = await this.database.db
+      .select({ id: users.id })
+      .from(users)
+      .where(learner)
+    return Boolean(found)
   }
 
   /** A user with a fixed id, created once and never rewritten (demo seed). */

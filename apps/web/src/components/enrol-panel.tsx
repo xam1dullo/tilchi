@@ -41,6 +41,23 @@ export function EnrolPanel({
   const addMember = (userId: string) =>
     post(`/api/groups/${group.id}/members`, { userId })
 
+  /** A new learner never inherits the guardian typed for another one. */
+  const askConsent = (userId: string) => {
+    if (consentFor !== userId) setConsentBy('')
+    setConsentFor(userId)
+  }
+
+  /** Consent is on record now: a retry only adds, it never re-posts consent. */
+  const consented = (userId: string) => {
+    setHits(
+      (all) =>
+        all?.map((h) =>
+          h.id === userId ? { ...h, guardianConsent: true } : h,
+        ) ?? null,
+    )
+    setConsentFor(null)
+  }
+
   /** A 409 for missing consent opens the consent form instead of an error. */
   const enrol = (userId: string, work: () => Promise<unknown>) => {
     setBusy(true)
@@ -55,7 +72,7 @@ export function EnrolPanel({
       })
       .catch((caught: unknown) => {
         const key = enrolError(caught)
-        if (key === 'guardianConsentRequired') setConsentFor(userId)
+        if (key === 'guardianConsentRequired') askConsent(userId)
         else setError(key)
       })
       .finally(() => setBusy(false))
@@ -63,7 +80,7 @@ export function EnrolPanel({
 
   const add = (hit: LearnerHit) =>
     needsConsent(group.kind, hit)
-      ? setConsentFor(hit.id)
+      ? askConsent(hit.id)
       : enrol(hit.id, () => addMember(hit.id))
 
   return (
@@ -77,6 +94,7 @@ export function EnrolPanel({
           setBusy(true)
           setError(null)
           setConsentFor(null)
+          setConsentBy('')
           void apiFetch<{ users: LearnerHit[] }>(searchPath(q), { previewRole })
             .then((found) => setHits(found.users))
             .catch(() => setError('searchFailed'))
@@ -135,6 +153,7 @@ export function EnrolPanel({
                       await post(`/api/users/${hit.id}/guardian-consent`, {
                         by: consentBy.trim(),
                       })
+                      consented(hit.id)
                       await addMember(hit.id)
                     })
                   }}
