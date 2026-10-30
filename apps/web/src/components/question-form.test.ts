@@ -11,14 +11,16 @@ import { QuestionForm, QuestionView } from './question-form'
 
 const copy = messages('en')
 
-const form = (draft: QuestionDraft) =>
+const form = (draft: QuestionDraft, locked = false) =>
   renderToStaticMarkup(
     createElement(QuestionForm, {
       copy,
       draft,
       editing: false,
-      busy: false,
+      locked,
+      saving: false,
       errors: [],
+      attempt: 0,
       onChange: () => {},
       onSubmit: () => {},
       onCancel: () => {},
@@ -32,6 +34,19 @@ describe('QuestionForm', () => {
     const speaking = form(emptyDraft('speaking'))
     expect(speaking).not.toContain(copy.questionOptions)
     expect(speaking).not.toContain('type="radio"')
+  })
+
+  it('freezes every control while a request is in flight', () => {
+    expect(form(emptyDraft(), true)).toContain(
+      '<fieldset class="question-lock" disabled="">',
+    )
+    expect(form(emptyDraft())).not.toContain('question-lock" disabled')
+  })
+
+  it('names each correct-answer control by its option number', () => {
+    expect(form(emptyDraft('single'))).toContain(
+      `aria-label="${copy.questionCorrect}: ${copy.questionOption} 2"`,
+    )
   })
 })
 

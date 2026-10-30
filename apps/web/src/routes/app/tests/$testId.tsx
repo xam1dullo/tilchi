@@ -1,8 +1,9 @@
+import { RetryButton } from '../../../components/retry-button'
 import { Link, createFileRoute, useRouteContext } from '@tanstack/react-router'
 import { apiFetch } from '../../../lib/api'
 import { messages } from '../../../lib/i18n'
 import { keepAppSearch } from '../../../lib/preview'
-import type { TestRecord } from '../../../lib/question-form'
+import { type TestRecord, testLoadError } from '../../../lib/question-form'
 import {
   QuestionView,
   requireManageTests,
@@ -17,7 +18,31 @@ export const Route = createFileRoute('/app/tests/$testId')({
     )
   },
   component: TestPage,
+  errorComponent: TestError,
 })
+
+function TestError({ error }: { error: unknown }) {
+  const { locale } = useRouteContext({ from: '__root__' })
+  const { previewRole } = useRouteContext({ from: '/app' })
+  const copy = messages(locale)
+  const key = testLoadError(error)
+  return (
+    <div role="alert" className="error-row">
+      <p>{copy[key]}</p>
+      {key === 'testNotFound' ? (
+        <Link
+          className="btn btn-outline"
+          to="/app/tests"
+          search={keepAppSearch(previewRole)}
+        >
+          {copy.tests}
+        </Link>
+      ) : (
+        <RetryButton label={copy.retry} />
+      )}
+    </div>
+  )
+}
 
 function TestPage() {
   const { locale } = useRouteContext({ from: '__root__' })

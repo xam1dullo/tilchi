@@ -1,3 +1,4 @@
+import { ApiError } from './api'
 import type { Copy } from './i18n'
 
 export type QuestionType = 'single' | 'multi' | 'speaking'
@@ -169,6 +170,10 @@ const ERRORS: Record<string, ErrorKey> = {
   not_found: 'questionNotFound',
   invalid_title: 'testTitleInvalid',
   invalid_questions: 'testQuestionsInvalid',
+  invalid_question: 'questionInvalid',
+  invalid_type: 'questionTypeInvalid',
+  invalid_status: 'questionStatusInvalid',
+  invalid_test: 'testInvalid',
 }
 
 /** Copy key for a failed bank request; unknown codes get the generic one. */
@@ -205,4 +210,32 @@ export function testErrors(title: string, ids: string[]): ErrorKey[] {
 
 export function toTestBody(title: string, ids: string[]) {
   return { title: title.trim(), questionIds: ids }
+}
+
+export type RowConfirm = { id: string; action: 'publish' | 'delete' } | null
+
+/**
+ * What a bank row offers. Any question may be deleted (the server refuses one
+ * in use); only drafts are edited or published, and never the one open in the
+ * editor, which would publish the stored text and drop the unsaved edits.
+ */
+export function questionRowView(
+  q: QuestionRecord,
+  editingId: string | null,
+  confirm: RowConfirm,
+) {
+  const draft = q.status === 'draft'
+  return {
+    edit: draft,
+    publish: draft,
+    publishBlocked: draft && editingId === q.id,
+    confirming: confirm?.id === q.id ? confirm.action : null,
+  }
+}
+
+/** Copy key for a failed test page load: 404 is "not found", the rest generic. */
+export function testLoadError(error: unknown): ErrorKey {
+  return error instanceof ApiError && error.status === 404
+    ? 'testNotFound'
+    : 'error'
 }

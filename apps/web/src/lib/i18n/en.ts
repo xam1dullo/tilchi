@@ -169,4 +169,13 @@ export const en = {
   testMaxScore: 'Max score:',
   testTitleInvalid: 'Write a test title (up to 120 characters).',
   testQuestionsInvalid: 'Pick 1 to 50 published questions.',
+  questionInvalid:
+    'The question data is not valid. Reload the page and try again.',
+  questionTypeInvalid: 'Choose a question type.',
+  questionStatusInvalid: 'Could not change the question status.',
+  testInvalid: 'The test data is not valid. Reload the page and try again.',
+  testNotFound: 'Test not found.',
+  questionPublishPrompt: 'A published question cannot be edited. Publish it?',
+  questionPublishConfirm: 'Yes, publish',
+  questionPublishEditing: 'Save or cancel your edit first.',
 }
