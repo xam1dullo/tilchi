@@ -801,6 +801,48 @@ describe.skipIf(!hasTestDatabase)('tests, assignments and grading', () => {
     )
   })
 
+  it('gives a learner who joins later every open test, and none that closed', async () => {
+    const open = await setup()
+    const closed = await setup()
+    await db.database.db.execute(
+      sql`update assignments set deadline = now() - interval '1 hour' where id = ${closed.assignmentId}`,
+    )
+    await worker.drainOnce(new Date())
+    const assignedTo = async (name: string) =>
+      (await inboxOf(name)).filter((e) => e === 'test.assigned').length
+    expect(await assignedTo('ana')).toBe(2)
+    await groups.putMember(group, who.eve)
+    await worker.drainOnce(new Date())
+    // Only eve hears about the open test; nobody is told twice.
+    expect(await assignedTo('eve')).toBe(1)
+    expect(await assignedTo('ana')).toBe(2)
+    const mine = await call('eve', 'GET', '/api/me/assignments')
+    expect(mine.status).toBe(200)
+    expect(
+      mine.body.assignments.map(
+        (a: { assignmentId: string }) => a.assignmentId,
+      ),
+    ).toEqual([open.assignmentId])
+    const attempt = await call(
+      'eve',
+      'GET',
+      `/api/attempts/${mine.body.assignments[0].attemptId}`,
+    )
+    expect(attempt.body.status).toBe('assigned')
+  })
+
+  it('drops a late joiner’s own notice if they are deleted before it is sent', async () => {
+    await setup()
+    await worker.drainOnce(new Date())
+    await groups.putMember(group, who.eve)
+    await db.database.db.execute(
+      sql`update users set deleted_at = now() where id = ${who.eve}`,
+    )
+    await worker.drainOnce(new Date())
+    const assigned = (await inboxOf('ana')).filter((e) => e === 'test.assigned')
+    expect(assigned).toHaveLength(1)
+  })
+
   it('refuses a deadline more than a year away', async () => {
     const t = await setup()
     const far = await call(

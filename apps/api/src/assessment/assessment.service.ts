@@ -6,6 +6,7 @@ import {
   assignments,
   attempts,
   audioObjects,
+  groups,
   questions,
   testQuestions,
   tests,
@@ -228,6 +229,13 @@ export class AssessmentService {
     const found = await this.repo.getTest(input.testId)
     if (!found) return notFound()
     const assignment = await this.repo.db.transaction(async (tx) => {
+      // Same lock as adding a member: a learner joining right now gets an
+      // attempt either here or there, never neither.
+      await tx
+        .select({ id: groups.id })
+        .from(groups)
+        .where(eq(groups.id, groupId))
+        .for('update')
       const [created] = await tx
         .insert(assignments)
         .values({
