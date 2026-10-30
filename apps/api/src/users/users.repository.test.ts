@@ -197,5 +197,39 @@ describeWithDatabase('UsersRepository', (current) => {
       await repo().softDelete(user.id)
       expect(await repo().recordGuardianConsent(user.id, 'Father')).toBe(false)
     })
+
+    it('never rewrites a consent already on record, even when racing', async () => {
+      const user = await repo().upsertTelegram('43', 'Kid')
+      const first = new Date('2026-10-30T10:00:00Z')
+      const results = await Promise.all([
+        repo().recordGuardianConsent(user.id, 'Mother', first),
+        repo().recordGuardianConsent(user.id, 'Neighbour', first),
+      ])
+      expect(results).toEqual([true, true])
+      const later = new Date('2026-10-31T10:00:00Z')
+      expect(await repo().recordGuardianConsent(user.id, 'Uncle', later)).toBe(
+        true,
+      )
+      const [row] = await current()
+        .database.db.select()
+        .from(users)
+        .where(eq(users.id, user.id))
+      expect(['Mother', 'Neighbour']).toContain(row.guardianConsentBy)
+      expect(row.guardianConsentAt).toEqual(first)
+    })
+
+    it('is for learners only', async () => {
+      const teacher = await repo().ensure({
+        id: uuidv7(),
+        role: 'teacher',
+        name: 'T',
+      })
+      expect(await repo().recordGuardianConsent(teacher.id, 'X')).toBe(false)
+      const [row] = await current()
+        .database.db.select()
+        .from(users)
+        .where(eq(users.id, teacher.id))
+      expect(row.guardianConsentBy).toBeNull()
+    })
   })
 })
