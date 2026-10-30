@@ -12,7 +12,9 @@ import {
   type GroupRecord,
   type LessonRecord,
 } from '../../../lib/classroom'
-import { messages } from '../../../lib/i18n'
+import { EnrolPanel } from '../../../components/enrol-panel'
+import { displayName, type Member } from '../../../lib/enrol'
+import { messages, type Copy } from '../../../lib/i18n'
 import { keepAppSearch } from '../../../lib/preview'
 
 export const Route = createFileRoute('/app/groups/$groupId')({
@@ -26,7 +28,13 @@ export const Route = createFileRoute('/app/groups/$groupId')({
         { previewRole: context.previewRole },
       ),
     ])
-    return { group, lessons: lessons.lessons }
+    const { members } = group.can.seeMembers
+      ? await apiFetch<{ members: Member[] }>(
+          `/api/groups/${params.groupId}/members`,
+          { previewRole: context.previewRole },
+        )
+      : { members: [] }
+    return { group, lessons: lessons.lessons, members }
   },
   component: GroupPage,
 })
@@ -34,7 +42,7 @@ export const Route = createFileRoute('/app/groups/$groupId')({
 function GroupPage() {
   const { locale } = useRouteContext({ from: '__root__' })
   const { previewRole } = useRouteContext({ from: '/app' })
-  const { group, lessons } = Route.useLoaderData()
+  const { group, lessons, members } = Route.useLoaderData()
   const copy = messages(locale)
   const search = keepAppSearch(previewRole)
   return (
@@ -100,6 +108,33 @@ function GroupPage() {
           })}
         </ul>
       )}
+      {group.can.seeMembers ? (
+        <MembersList members={members} copy={copy} />
+      ) : null}
+      {group.can.manageMembers ? (
+        <EnrolPanel group={group} previewRole={previewRole} copy={copy} />
+      ) : null}
+    </section>
+  )
+}
+
+function MembersList({ members, copy }: { members: Member[]; copy: Copy }) {
+  const role = {
+    learner: copy.roleLearner,
+    teacher: copy.roleTeacher,
+    admin: copy.roleAdmin,
+  }
+  return (
+    <section className="members" aria-labelledby="members-title">
+      <h3 id="members-title">{copy.members}</h3>
+      <ul className="rows classroom-list">
+        {members.map((member) => (
+          <li key={member.id} className="row classroom-row">
+            <strong>{displayName(member)}</strong>
+            <span className="tag">{role[member.role]}</span>
+          </li>
+        ))}
+      </ul>
     </section>
   )
 }

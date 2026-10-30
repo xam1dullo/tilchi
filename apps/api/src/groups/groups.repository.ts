@@ -182,6 +182,17 @@ export class GroupsRepository {
     })
   }
 
+  /** Who is in the group, in the order they joined: id, name and role only. */
+  async members(groupId: string) {
+    if (!isUuid(groupId)) return []
+    return this.database.db
+      .select({ id: users.id, name: users.name, role: users.role })
+      .from(groupMembers)
+      .innerJoin(users, eq(users.id, groupMembers.userId))
+      .where(eq(groupMembers.groupId, groupId))
+      .orderBy(asc(groupMembers.addedAt), asc(groupMembers.userId))
+  }
+
   private async withMembers(
     rows: (typeof groups.$inferSelect)[],
   ): Promise<GroupRecord[]> {

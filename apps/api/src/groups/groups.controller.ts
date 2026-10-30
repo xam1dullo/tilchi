@@ -41,6 +41,11 @@ export class GroupsController {
     return groupView(actor, await this.groups.visible(actor, groupId))
   }
 
+  @Get(':groupId/members')
+  async members(@Param('groupId') groupId: string, @Actor() actor: Actor) {
+    return { members: await this.groups.members(actor, groupId) }
+  }
+
   @Post(':groupId/members')
   async addMember(
     @Param('groupId') groupId: string,

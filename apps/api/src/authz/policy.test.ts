@@ -85,6 +85,15 @@ describe('can', () => {
     expect(can(owner, 'group.addMember')).toBe(false)
   })
 
+  it('lets only admins search learners and record guardian consent', () => {
+    for (const action of ['user.search', 'user.recordConsent'] as const) {
+      expect(can(admin, action), action).toBe(true)
+      for (const actor of [owner, visiting, outsider, learner, stranger]) {
+        expect(can(actor, action), action).toBe(false)
+      }
+    }
+  })
+
   it('denies a group action when there is no group', () => {
     expect(can(admin, 'lesson.start')).toBe(false)
   })
@@ -157,11 +166,15 @@ describe('views', () => {
     expect(groupView(visiting, group).can).toEqual({
       createLesson: false,
       manageMembers: false,
+      seeMembers: false,
     })
+    expect(groupView(learner, group).can.seeMembers).toBe(false)
     expect(groupView(owner, group)).toHaveProperty('memberIds')
+    expect(groupView(owner, group).can.seeMembers).toBe(true)
     expect(groupView(admin, group).can).toEqual({
       createLesson: true,
       manageMembers: true,
+      seeMembers: true,
     })
   })
 

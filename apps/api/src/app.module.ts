@@ -43,6 +43,7 @@ import { TelegramSender } from './outbox/telegram-sender'
 import { ObjectStorage } from './storage/object-storage'
 import { KV, createKvFromEnv } from './redis/kv'
 import { SessionsRepository } from './users/sessions.repository'
+import { UsersController } from './users/users.controller'
 import { UsersRepository } from './users/users.repository'
 
 @Module({
@@ -53,6 +54,7 @@ import { UsersRepository } from './users/users.repository'
     DemoController,
     GroupsController,
     TeachersController,
+    UsersController,
     LessonsController,
     MeetController,
     LivekitWebhookController,

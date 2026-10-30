@@ -258,6 +258,28 @@ const ROWS: Row[] = [
     expect: [401, 403, 403, 403, 403, 200],
   },
   {
+    name: 'search learners',
+    handler: 'UsersController.search',
+    method: 'GET',
+    path: () => '/api/users?q=ta',
+    expect: [401, 403, 403, 403, 403, 200],
+  },
+  {
+    name: 'record guardian consent',
+    handler: 'UsersController.guardianConsent',
+    method: 'POST',
+    path: (c) => `/api/users/${c.target}/guardian-consent`,
+    body: () => ({ by: 'Mother' }),
+    expect: [401, 403, 403, 403, 403, 201],
+  },
+  {
+    name: 'list group members',
+    handler: 'GroupsController.members',
+    method: 'GET',
+    path: (c) => `/api/groups/${c.group}/members`,
+    expect: [401, 403, 404, 200, 404, 200],
+  },
+  {
     name: 'get group',
     handler: 'GroupsController.get',
     method: 'GET',
@@ -649,7 +671,9 @@ describe.skipIf(!hasTestDatabase)('route x role matrix', () => {
     expect((await detail('admin')).group.can).toEqual({
       createLesson: true,
       manageMembers: true,
+      seeMembers: true,
     })
+    expect((await detail('member')).group.can.seeMembers).toBe(false)
     expect((await detail('member')).lesson.can).toEqual({
       start: false,
       end: false,
