@@ -212,6 +212,8 @@ export const en = {
     'The deadline has passed; answers are no longer accepted.',
   attemptInvalid:
     'The answers were not accepted. Reload the page and try again.',
+  attemptRecorderBusy:
+    'Wait for the recording to finish and upload, then submit.',
   attemptIncomplete:
     'Answer every question and record every speaking answer before submitting.',
   attemptSubmit: 'Submit',

@@ -218,6 +218,8 @@ export const uz = {
   attemptDeadlinePassed: 'Muddat o‘tib ketdi, javoblar qabul qilinmaydi.',
   attemptInvalid:
     'Javoblar qabul qilinmadi. Sahifani yangilab, qayta urinib ko‘ring.',
+  attemptRecorderBusy:
+    'Yozuv tugashi va yuklanishini kuting, keyin topshiring.',
   attemptIncomplete:
     'Topshirishdan oldin barcha savollarga javob bering va har bir og‘zaki javobni yozib oling.',
   attemptSubmit: 'Topshirish',

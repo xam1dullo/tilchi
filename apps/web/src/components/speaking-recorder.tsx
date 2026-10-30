@@ -5,17 +5,25 @@ import {
   micSupported,
   openOutside,
   pickMime,
+  recorderSlots,
 } from '../lib/attempt'
 import type { Copy } from '../lib/i18n'
+import { loadWebApp } from '../lib/login-miniapp'
 
-type Phase = 'checking' | 'unsupported' | 'denied' | 'ready' | 'recording'
+type Phase =
+  | 'checking'
+  | 'unsupported'
+  | 'denied'
+  | 'ready'
+  | 'starting'
+  | 'recording'
 type Take = { blob: Blob; type: AudioType; url: string }
 type Live = { recorder: MediaRecorder; stream: MediaStream; timer: number }
 
-function release(current: Live) {
-  clearTimeout(current.timer)
-  if (current.recorder.state !== 'inactive') current.recorder.stop()
-  for (const track of current.stream.getTracks()) track.stop()
+function release({ recorder, stream, timer }: Live) {
+  clearTimeout(timer)
+  if (recorder.state !== 'inactive') recorder.stop()
+  for (const track of stream.getTracks()) track.stop()
 }
 
 /** Loaded lazily: MediaRecorder code stays out of the main bundle. */
@@ -23,34 +31,39 @@ export default function SpeakingRecorder({
   copy,
   recorded,
   onUpload,
+  onActive,
 }: {
   copy: Copy
   /** The server already holds a recording for this question. */
   recorded: boolean
   /** Null on success, else the copy key of the failure. */
   onUpload: (blob: Blob, type: AudioType) => Promise<keyof Copy | null>
+  /** True while starting, recording or uploading: the page holds Submit. */
+  onActive: (active: boolean) => void
 }) {
   const [phase, setPhase] = useState<Phase>('checking')
   const [take, setTake] = useState<Take | null>(null)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<keyof Copy | null>(null)
   const live = useRef<Live | null>(null)
-  const mounted = useRef(true)
+  const slots = useRef(recorderSlots())
+  const active = phase === 'starting' || phase === 'recording' || uploading
 
   useEffect(() => {
-    mounted.current = true
+    onActive(active)
+  }, [active, onActive])
+
+  useEffect(() => {
     setPhase(
       micSupported(navigator, globalThis.MediaRecorder)
         ? 'ready'
         : 'unsupported',
     )
+    const current = slots.current
     return () => {
-      mounted.current = false
-      const current = live.current
-      if (!current) return
+      current.cancel()
+      if (live.current) release(live.current)
       live.current = null
-      current.recorder.onstop = null
-      release(current)
     }
   }, [])
 
@@ -69,44 +82,51 @@ export default function SpeakingRecorder({
   }
 
   async function start() {
+    const id = slots.current.begin()
+    if (id === null) return
+    setPhase('starting')
+    setError(null)
     const type = pickMime((t) => MediaRecorder.isTypeSupported(t))
-    if (!type) return setPhase('unsupported')
-    let stream: MediaStream
+    let stream: MediaStream | null = null
+    let recorder: MediaRecorder | null = null
     try {
-      stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      if (type) {
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+        recorder = new MediaRecorder(stream, { mimeType: type })
+      }
     } catch {
-      return setPhase('denied')
+      // A stream without a recorder: the browser cannot write this type.
     }
-    if (!mounted.current) {
-      for (const track of stream.getTracks()) track.stop()
+    if (!slots.current.isCurrent(id)) {
+      for (const track of stream?.getTracks() ?? []) track.stop()
       return
     }
-    let recorder: MediaRecorder
-    try {
-      recorder = new MediaRecorder(stream, { mimeType: type })
-    } catch {
-      for (const track of stream.getTracks()) track.stop()
-      return setPhase('unsupported')
+    if (!type || !stream || !recorder) {
+      for (const track of stream?.getTracks() ?? []) track.stop()
+      slots.current.end(id)
+      return setPhase(stream || !type ? 'unsupported' : 'denied')
     }
     const chunks: Blob[] = []
+    const own: Live = {
+      recorder,
+      stream,
+      timer: window.setTimeout(() => recorder.stop(), MAX_RECORDING_MS),
+    }
     recorder.ondataavailable = (event) => {
       if (event.data.size > 0) chunks.push(event.data)
     }
     recorder.onstop = () => {
-      if (live.current) release(live.current)
-      live.current = null
+      release(own)
+      if (live.current?.recorder === recorder) live.current = null
+      if (!slots.current.isCurrent(id)) return
+      slots.current.end(id)
       const blob = new Blob(chunks, { type })
       setTake({ blob, type, url: URL.createObjectURL(blob) })
       setPhase('ready')
       void send(blob, type)
     }
     recorder.start()
-    live.current = {
-      recorder,
-      stream,
-      timer: window.setTimeout(() => recorder.stop(), MAX_RECORDING_MS),
-    }
-    setError(null)
+    live.current = own
     setPhase('recording')
   }
 
@@ -118,27 +138,45 @@ export default function SpeakingRecorder({
         <p className="notice" data-tone="warn" role="alert">
           {phase === 'denied' ? copy.recordDenied : copy.recordNoMic}
         </p>
-        <a
-          className="btn btn-outline"
-          href={url}
-          target="_blank"
-          rel="noopener noreferrer"
-          onClick={(event) => {
-            if (openOutside(window, url)) event.preventDefault()
-          }}
-        >
-          {copy.recordOpenBrowser}
-        </a>
+        <div className="lesson-actions">
+          {phase === 'denied' ? (
+            <button
+              type="button"
+              className="btn btn-outline"
+              onClick={() => void start()}
+            >
+              {copy.retry}
+            </button>
+          ) : null}
+          {/* ponytail: the browser opens signed out; the learner signs in there again. */}
+          <a
+            className="btn btn-outline"
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(event) => {
+              event.preventDefault()
+              void openOutside(window, url, loadWebApp, (u) =>
+                window.open(u, '_blank', 'noopener'),
+              )
+            }}
+          >
+            {copy.recordOpenBrowser}
+          </a>
+        </div>
       </div>
     )
   }
-  if (phase === 'recording') {
+  if (phase === 'starting' || phase === 'recording') {
     return (
       <div className="lesson-actions">
-        <span role="status">{copy.recordRecording}</span>
+        <span role="status">
+          {phase === 'starting' ? copy.recordLoading : copy.recordRecording}
+        </span>
         <button
           type="button"
           className="btn btn-primary"
+          disabled={phase === 'starting'}
           onClick={() => live.current?.recorder.stop()}
         >
           {copy.recordStop}

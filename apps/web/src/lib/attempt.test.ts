@@ -6,10 +6,12 @@ import {
   answersBody,
   attemptError,
   canSubmit,
+  markActive,
   micSupported,
   openOutside,
   pick,
   pickMime,
+  recorderSlots,
   uploadAudio,
 } from './attempt'
 
@@ -63,6 +65,11 @@ describe('canSubmit', () => {
     expect(canSubmit(questions, full, [])).toBe(false)
     expect(canSubmit(questions, { s: ['a'], m: [] }, ['v'])).toBe(false)
     expect(canSubmit(questions, { m: ['b'] }, ['v'])).toBe(false)
+  })
+
+  it('holds while any recorder is starting, recording or uploading', () => {
+    expect(canSubmit(questions, full, ['v'], ['v'])).toBe(false)
+    expect(canSubmit(questions, full, ['v'], [])).toBe(true)
   })
 })
 
@@ -182,11 +189,78 @@ describe('uploadAudio', () => {
 })
 
 describe('openOutside', () => {
-  it('uses Telegram openLink when inside the WebView, else lets the link open', () => {
+  it('uses Telegram openLink at once when it is already there', async () => {
     const openLink = vi.fn()
-    expect(openOutside({ Telegram: { WebApp: { openLink } } }, 'u')).toBe(true)
+    const load = vi.fn(async () => {})
+    const fallback = vi.fn()
+    await openOutside(
+      { Telegram: { WebApp: { openLink } } },
+      'u',
+      load,
+      fallback,
+    )
     expect(openLink).toHaveBeenCalledWith('u')
-    expect(openOutside({ Telegram: { WebApp: {} } }, 'u')).toBe(false)
-    expect(openOutside({}, 'u')).toBe(false)
+    expect(load).not.toHaveBeenCalled()
+    expect(fallback).not.toHaveBeenCalled()
+  })
+
+  it('loads the Telegram script first, then uses openLink', async () => {
+    const openLink = vi.fn()
+    const host: Pick<Window, 'Telegram'> = {}
+    const load = vi.fn(async () => {
+      host.Telegram = { WebApp: { openLink } }
+    })
+    const fallback = vi.fn()
+    await openOutside(host, 'u', load, fallback)
+    expect(load).toHaveBeenCalledTimes(1)
+    expect(openLink).toHaveBeenCalledWith('u')
+    expect(fallback).not.toHaveBeenCalled()
+  })
+
+  it('falls back to a plain open when the script brings no openLink or fails', async () => {
+    const fallback = vi.fn()
+    await openOutside({}, 'u', async () => {}, fallback)
+    await openOutside(
+      {},
+      'v',
+      async () => {
+        throw new Error('script_failed')
+      },
+      fallback,
+    )
+    expect(fallback.mock.calls).toEqual([['u'], ['v']])
+  })
+})
+
+describe('markActive', () => {
+  it('adds and removes once, returning the same array when unchanged', () => {
+    const none: string[] = []
+    const one = markActive(none, 'v', true)
+    expect(one).toEqual(['v'])
+    expect(markActive(one, 'v', true)).toBe(one)
+    expect(markActive(none, 'v', false)).toBe(none)
+    expect(markActive(one, 'v', false)).toEqual([])
+  })
+})
+
+describe('recorderSlots', () => {
+  it('refuses a second start while a take is in flight (double tap)', () => {
+    const slots = recorderSlots()
+    const first = slots.begin()
+    expect(first).not.toBeNull()
+    expect(slots.begin()).toBeNull()
+    slots.end(first as number)
+    expect(slots.begin()).not.toBeNull()
+  })
+
+  it('makes a cancelled take stale so it never records or uploads', () => {
+    const slots = recorderSlots()
+    const old = slots.begin() as number
+    slots.cancel()
+    expect(slots.isCurrent(old)).toBe(false)
+    const next = slots.begin() as number
+    expect(slots.isCurrent(next)).toBe(true)
+    slots.end(old)
+    expect(slots.begin()).toBeNull()
   })
 })

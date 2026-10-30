@@ -72,17 +72,57 @@ export function answersBody(questions: AttemptQuestion[], draft: Draft) {
   return { answers }
 }
 
-/** Every choice answered and every speaking question recorded. */
+/**
+ * Every choice answered and every speaking question recorded, with no
+ * recorder still starting, recording or uploading: presign already points the
+ * server at the new take, so submitting mid-upload would lose the answer.
+ */
 export function canSubmit(
   questions: AttemptQuestion[],
   draft: Draft,
   recorded: readonly string[],
+  active: readonly string[] = [],
 ) {
-  return questions.every((q) =>
-    q.type === 'speaking'
-      ? recorded.includes(q.id)
-      : (draft[q.id]?.length ?? 0) > 0,
+  return (
+    active.length === 0 &&
+    questions.every((q) =>
+      q.type === 'speaking'
+        ? recorded.includes(q.id)
+        : (draft[q.id]?.length ?? 0) > 0,
+    )
   )
+}
+
+/** Adds or removes an id; the same array back when nothing changed. */
+export function markActive(ids: string[], id: string, on: boolean) {
+  if (on === ids.includes(id)) return ids
+  return on ? [...ids, id] : ids.filter((x) => x !== id)
+}
+
+/**
+ * One recording at a time per recorder. `begin` refuses while a take is in
+ * flight; `cancel` (unmount) makes every earlier take stale, so a late
+ * getUserMedia or a superseded recorder never records or uploads.
+ */
+export function recorderSlots() {
+  let current = 0
+  let busy = false
+  return {
+    begin(): number | null {
+      if (busy) return null
+      busy = true
+      current += 1
+      return current
+    },
+    isCurrent: (id: number) => id === current,
+    end(id: number) {
+      if (id === current) busy = false
+    },
+    cancel() {
+      current += 1
+      busy = false
+    },
+  }
 }
 
 export function pickMime(
@@ -153,10 +193,18 @@ export async function uploadAudio(
   if (!response?.ok) throw new Error('upload_failed')
 }
 
-/** Leaves the Telegram WebView for the real browser; false: let the link open. */
-export function openOutside(host: Pick<Window, 'Telegram'>, url: string) {
+/**
+ * Leaves the Telegram WebView for the real browser. Telegram's script is
+ * loaded on demand when `openLink` is missing; without it, `fallback` opens.
+ */
+export async function openOutside(
+  host: Pick<Window, 'Telegram'>,
+  url: string,
+  load: () => Promise<void>,
+  fallback: (url: string) => void,
+) {
+  if (!host.Telegram?.WebApp?.openLink) await load().catch(() => undefined)
   const app = host.Telegram?.WebApp
-  if (!app?.openLink) return false
-  app.openLink(url)
-  return true
+  if (app?.openLink) app.openLink(url)
+  else fallback(url)
 }

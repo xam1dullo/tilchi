@@ -211,6 +211,7 @@ export const ru = {
   attemptAlreadySubmitted: 'Тест уже сдан.',
   attemptDeadlinePassed: 'Срок истёк, ответы больше не принимаются.',
   attemptInvalid: 'Ответы не приняты. Обновите страницу и попробуйте ещё раз.',
+  attemptRecorderBusy: 'Дождитесь окончания записи и загрузки, затем сдавайте.',
   attemptIncomplete:
     'Перед сдачей ответьте на все вопросы и запишите каждый устный ответ.',
   attemptSubmit: 'Сдать',

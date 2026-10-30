@@ -59,3 +59,5 @@ export function injectScript(src: string) {
     document.head.append(script)
   })
 }
+
+export const loadWebApp = memoizeLoad(() => injectScript(WEBAPP_SCRIPT))

@@ -15,6 +15,7 @@ import {
   answersBody,
   attemptError,
   canSubmit,
+  markActive,
   pick,
   uploadAudio,
 } from '../../../lib/attempt'
@@ -71,11 +72,12 @@ function AttemptPage() {
   const open = attempt.status === 'assigned'
   const [draft, setDraft] = useState(attempt.answers)
   const [recorded, setRecorded] = useState(attempt.recorded)
+  const [active, setActive] = useState<string[]>([])
   const [confirming, setConfirming] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<keyof Copy | null>(null)
   const [tries, setTries] = useState(0)
-  const ready = canSubmit(attempt.questions, draft, recorded)
+  const ready = canSubmit(attempt.questions, draft, recorded, active)
   // Once closed, show what the server kept, not what this page last held.
   const answers = open ? draft : attempt.answers
   const kept = open ? recorded : attempt.recorded
@@ -84,12 +86,15 @@ function AttemptPage() {
     try {
       await uploadAudio(
         fetch,
-        (body) =>
-          apiFetch<Upload>(`${attemptPath(attempt.id)}/audio/presign`, {
-            method: 'POST',
-            previewRole,
-            body: JSON.stringify(body),
-          }),
+        async (body) => {
+          const signed = await apiFetch<Upload>(
+            `${attemptPath(attempt.id)}/audio/presign`,
+            { method: 'POST', previewRole, body: JSON.stringify(body) },
+          )
+          // From here the server points at the new take: the old one is gone.
+          setRecorded((ids) => ids.filter((id) => id !== questionId))
+          return signed
+        },
         questionId,
         blob,
         type,
@@ -97,15 +102,12 @@ function AttemptPage() {
       setRecorded((ids) => [...new Set([...ids, questionId])])
       return null
     } catch (failure) {
-      // The server points at the new take as soon as it presigns, so a failed
-      // upload leaves no usable recording either way.
-      setRecorded((ids) => ids.filter((id) => id !== questionId))
       return attemptError(failure)
     }
   }
 
   async function submit() {
-    if (busy) return
+    if (busy || !ready) return
     setBusy(true)
     setError(null)
     setTries((n) => n + 1)
@@ -177,6 +179,9 @@ function AttemptPage() {
                         copy={copy}
                         recorded={recorded.includes(q.id)}
                         onUpload={(blob, type) => upload(q.id, blob, type)}
+                        onActive={(on) =>
+                          setActive((ids) => markActive(ids, q.id, on))
+                        }
                       />
                     </Suspense>
                   ) : (
@@ -198,6 +203,8 @@ function AttemptPage() {
                   <button
                     type="button"
                     className="btn btn-primary"
+                    disabled={!ready}
+                    aria-describedby={ready ? undefined : 'attempt-blocked'}
                     onClick={() => void submit()}
                   >
                     {busy ? copy.attemptSubmitting : copy.attemptSubmitConfirm}
@@ -211,21 +218,21 @@ function AttemptPage() {
                   </button>
                 </>
               ) : (
-                <>
-                  <button
-                    type="submit"
-                    className="btn btn-primary"
-                    disabled={!ready}
-                    aria-describedby={ready ? undefined : 'attempt-incomplete'}
-                  >
-                    {copy.attemptSubmit}
-                  </button>
-                  {ready ? null : (
-                    <span id="attempt-incomplete" className="hint">
-                      {copy.attemptIncomplete}
-                    </span>
-                  )}
-                </>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={!ready}
+                  aria-describedby={ready ? undefined : 'attempt-blocked'}
+                >
+                  {copy.attemptSubmit}
+                </button>
+              )}
+              {ready ? null : (
+                <span id="attempt-blocked" className="hint">
+                  {active.length > 0
+                    ? copy.attemptRecorderBusy
+                    : copy.attemptIncomplete}
+                </span>
               )}
             </div>
           ) : null}
