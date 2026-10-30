@@ -151,6 +151,8 @@ export const ru = {
   questionEmpty: 'Вопросов пока нет.',
   questionFilter: 'Статус',
   questionFilterAll: 'Все',
+  questionFilterDraft: 'Черновики',
+  questionFilterPublished: 'Опубликованные',
   questionPromptInvalid: 'Введите текст вопроса (до 2000 символов).',
   questionOptionsInvalid:
     'Введите от 2 до 8 вариантов, каждый до 300 символов.',

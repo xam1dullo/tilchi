@@ -200,8 +200,8 @@ function TestsPage() {
               onChange={(event) => setFilter(event.target.value as Filter)}
             >
               <option value="all">{copy.questionFilterAll}</option>
-              <option value="draft">{copy.courseDraft}</option>
-              <option value="published">{copy.coursePublished}</option>
+              <option value="draft">{copy.questionFilterDraft}</option>
+              <option value="published">{copy.questionFilterPublished}</option>
             </select>
           </label>
         </div>
