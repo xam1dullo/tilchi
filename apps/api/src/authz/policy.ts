@@ -14,6 +14,8 @@ export type Action =
   | 'course.manage'
   | 'group.create'
   | 'teacher.list'
+  | 'user.search'
+  | 'user.recordConsent'
   | 'group.view'
   | 'group.addMember'
   | 'group.seeMembers'
@@ -57,6 +59,8 @@ export function can(actor: Actor, action: Action, group?: GroupScope): boolean {
   if (
     action === 'group.addMember' ||
     action === 'teacher.list' ||
+    action === 'user.search' ||
+    action === 'user.recordConsent' ||
     action === 'course.manage'
   ) {
     return actor.role === 'admin'

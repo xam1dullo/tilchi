@@ -417,3 +417,19 @@
     clip: rect(0 0 0 0);
   }
 }
+
+.members,
+.enrol {
+  margin-top: 32px;
+}
+
+.members h3,
+.enrol h3 {
+  margin: 0 0 12px;
+  font-size: var(--fs-h3);
+}
+
+.enrol .hint {
+  flex-basis: 100%;
+  margin: 0;
+}

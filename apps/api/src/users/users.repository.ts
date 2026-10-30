@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common'
-import { and, asc, eq, isNull, lt, or, sql } from 'drizzle-orm'
+import { and, asc, eq, ilike, isNull, lt, or, sql } from 'drizzle-orm'
 import type { Role } from '../auth/policy'
 import { type Field, type Registration, nextField } from '../bot/registration'
 import { Database, type Tx, inTransaction } from '../db/database'
@@ -14,6 +14,13 @@ export type User = {
   telegramUserId: string | null
   role: Role
   name: string | null
+}
+
+export type LearnerHit = {
+  id: string
+  name: string | null
+  level: string | null
+  guardianConsent: boolean
 }
 
 /** A soft-deleted user stays deleted: no login path may bring them back. */
@@ -209,6 +216,50 @@ export class UsersRepository {
       .from(users)
       .where(and(eq(users.role, 'teacher'), isNull(users.deletedAt)))
       .orderBy(asc(users.name), asc(users.id))
+  }
+
+  /**
+   * Active learners whose name contains `q`, for the admin's enrol search.
+   * Under 2 characters finds nothing; LIKE wildcards in `q` match literally.
+   * Never phone, Telegram id or who gave the guardian consent.
+   */
+  async searchLearners(q: string): Promise<LearnerHit[]> {
+    const text = q.trim().slice(0, 100)
+    if (text.length < 2) return []
+    const pattern = `%${text.replace(/[\\%_]/g, '\\$&')}%`
+    const rows = await this.database.db
+      .select({
+        id: users.id,
+        name: users.name,
+        level: users.level,
+        consentBy: users.guardianConsentBy,
+        consentAt: users.guardianConsentAt,
+      })
+      .from(users)
+      .where(
+        and(
+          eq(users.role, 'learner'),
+          isNull(users.deletedAt),
+          ilike(users.name, pattern),
+        ),
+      )
+      .orderBy(asc(users.name), asc(users.id))
+      .limit(20)
+    return rows.map(({ consentBy, consentAt, ...row }) => ({
+      ...row,
+      guardianConsent: Boolean(consentBy && consentAt),
+    }))
+  }
+
+  /** Records who gave a guardian's consent; false when no active user has `id`. */
+  async recordGuardianConsent(id: string, by: string, now = new Date()) {
+    if (!isUuid(id)) return false
+    const updated = await this.database.db
+      .update(users)
+      .set({ guardianConsentBy: by, guardianConsentAt: now })
+      .where(and(eq(users.id, id), isNull(users.deletedAt)))
+      .returning({ id: users.id })
+    return updated.length > 0
   }
 
   /** A user with a fixed id, created once and never rewritten (demo seed). */

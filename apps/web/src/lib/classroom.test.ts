@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { groupsView, tashkentInputToIso } from './classroom'
 
-const can = { createLesson: false, manageMembers: false }
+const can = { createLesson: false, manageMembers: false, seeMembers: false }
 
 describe('groupsView', () => {
   it('keeps the empty state when the session has no groups', () => {
@@ -14,7 +14,14 @@ describe('groupsView', () => {
 
   it('shows a learner their groups from a count, never a member list', () => {
     const groups = [
-      { id: 'g1', name: 'A1', capacity: 12, learnerCount: 3, can },
+      {
+        id: 'g1',
+        name: 'A1',
+        kind: 'adult' as const,
+        capacity: 12,
+        learnerCount: 3,
+        can,
+      },
     ]
     const view = groupsView({ groups, can: { createGroup: false } })
     expect(view.groups[0]).not.toHaveProperty('memberIds')
@@ -23,7 +30,14 @@ describe('groupsView', () => {
 
   it('takes the create permission from the API, not from the role', () => {
     const groups = [
-      { id: 'g1', name: 'A1', capacity: 12, learnerCount: 0, can },
+      {
+        id: 'g1',
+        name: 'A1',
+        kind: 'adult' as const,
+        capacity: 12,
+        learnerCount: 0,
+        can,
+      },
     ]
     expect(groupsView({ groups, can: { createGroup: true } })).toEqual({
       empty: false,

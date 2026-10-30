@@ -70,6 +70,14 @@ export class GroupsService {
     return group
   }
 
+  /** The members, for the group's teacher and admins; 404 for outsiders. */
+  async members(actor: Actor, id: string) {
+    const group = await this.get(id)
+    if (!group) throw new HttpException({ error: 'not_found' }, 404)
+    authorize(actor, 'group.seeMembers', group)
+    return this.groups.members(id)
+  }
+
   /** Creates the group with `actorId` as its first member, or returns it as it is. */
   async ensure(input: { id: string; name: string; actorId: string }) {
     const created = await this.groups.insert({

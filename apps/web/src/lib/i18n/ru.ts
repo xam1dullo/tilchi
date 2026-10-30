@@ -115,4 +115,20 @@ export const ru = {
   meetSpeaking: 'говорит',
   navMain: 'Основная навигация',
   openApp: 'Войти',
+  addLearner: 'Добавить ученика',
+  learnerSearch: 'Имя ученика',
+  searchLearners: 'Найти',
+  searchHint: 'Введите минимум 2 буквы.',
+  noLearnersFound: 'Ученики не найдены.',
+  addToGroup: 'Добавить',
+  consentNeeded:
+    'Детская группа: сначала запишите согласие родителя или опекуна.',
+  guardianConsentBy: 'Кто дал согласие',
+  recordConsentAndAdd: 'Записать согласие и добавить',
+  groupFull: 'Группа заполнена.',
+  userNotFound: 'Ученик не найден или удалён.',
+  guardianConsentRequired:
+    'Для детской группы нужно согласие родителя или опекуна.',
+  enrolFailed: 'Не удалось добавить. Попробуйте ещё раз.',
+  searchFailed: 'Поиск не сработал. Попробуйте ещё раз.',
 }

@@ -234,6 +234,13 @@ describeWithDatabase('GroupsService', (current) => {
       expect(await outcome(groups().putMember(group.id, kid))).toBe('ok')
     })
 
+    it('adds a learner after an admin records consent through the repository', async () => {
+      const group = await kidsGroup()
+      const kid = await person('learner')
+      expect(await users().recordGuardianConsent(kid, 'Mother')).toBe(true)
+      expect(await outcome(groups().putMember(group.id, kid))).toBe('ok')
+    })
+
     it('needs both who and when', async () => {
       const group = await kidsGroup()
       const kid = await person('learner')
@@ -255,6 +262,45 @@ describeWithDatabase('GroupsService', (current) => {
       expect(
         await outcome(groups().putMember(group.id, await person('learner'))),
       ).toBe('ok')
+    })
+  })
+
+  describe('members', () => {
+    it('shows id, name and role to the teacher and admins only', async () => {
+      const [teacher, learner, visitor, stranger] = await Promise.all([
+        person('teacher'),
+        person('learner'),
+        person('teacher'),
+        person('learner'),
+      ])
+      const group = await groups().create({
+        name: 'A1',
+        actor: actorOf('teacher', teacher),
+      })
+      await groups().putMember(group.id, learner)
+      await groups().putMember(group.id, visitor)
+      const expected = [
+        { id: teacher, name: 'teacher', role: 'teacher' },
+        { id: learner, name: 'learner', role: 'learner' },
+        { id: visitor, name: 'teacher', role: 'teacher' },
+      ]
+      expect(
+        await groups().members(actorOf('teacher', teacher), group.id),
+      ).toEqual(expected)
+      expect(await groups().members(actorOf('admin'), group.id)).toEqual(
+        expected,
+      )
+      const as = (actor: ReturnType<typeof actorOf>) =>
+        outcome(groups().members(actor, group.id))
+      expect(await as(actorOf('learner', learner))).toBe('403 forbidden')
+      expect(await as(actorOf('teacher', visitor))).toBe('403 forbidden')
+      expect(await as(actorOf('learner', stranger))).toBe('404 not_found')
+      expect(await outcome(groups().members(actorOf('admin'), uuidv7()))).toBe(
+        '404 not_found',
+      )
+      expect(await outcome(groups().members(actorOf('admin'), 'nope'))).toBe(
+        '404 not_found',
+      )
     })
   })
 })

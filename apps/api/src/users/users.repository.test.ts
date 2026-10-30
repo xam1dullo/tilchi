@@ -111,4 +111,91 @@ describeWithDatabase('UsersRepository', (current) => {
     })
     expect(second).toEqual(first)
   })
+
+  describe('searchLearners', () => {
+    const learner = (name: string | null, extra = {}) =>
+      current()
+        .database.db.insert(users)
+        .values({ id: uuidv7(), role: 'learner', name, ...extra })
+        .returning({ id: users.id })
+        .then(([row]) => row.id)
+
+    it('finds active learners by name, case-insensitively, without contact details', async () => {
+      const ada = await learner('Ada Lovelace', {
+        level: 'A2',
+        phone: '+998901234567',
+        telegramId: '77',
+        goal: 'IELTS',
+        source: 'ad',
+        guardianConsentBy: 'Mother',
+        guardianConsentAt: new Date(),
+      })
+      const gone = await learner('Ada Gone', { deletedAt: new Date() })
+      await repo().ensure({ id: uuidv7(), role: 'teacher', name: 'Ada T' })
+      await learner(null)
+      const found = await repo().searchLearners('  aDA ')
+      expect(found).toEqual([
+        { id: ada, name: 'Ada Lovelace', level: 'A2', guardianConsent: true },
+      ])
+      expect(found.map((u) => u.id)).not.toContain(gone)
+    })
+
+    it('reports consent only when both who and when are recorded', async () => {
+      await learner('Kid One', { guardianConsentBy: 'Mother' })
+      const [hit] = await repo().searchLearners('kid')
+      expect(hit.guardianConsent).toBe(false)
+    })
+
+    it('treats LIKE wildcards and backslashes in the query literally', async () => {
+      const percent = await learner('50% Off')
+      const under = await learner('a_b')
+      const slash = await learner('x\\y')
+      await learner('5000 Off')
+      await learner('axb')
+      await learner('xzy')
+      expect((await repo().searchLearners('0%')).map((u) => u.id)).toEqual([
+        percent,
+      ])
+      expect((await repo().searchLearners('a_')).map((u) => u.id)).toEqual([
+        under,
+      ])
+      expect((await repo().searchLearners('x\\')).map((u) => u.id)).toEqual([
+        slash,
+      ])
+      expect(await repo().searchLearners('%%')).toEqual([])
+    })
+
+    it('needs 2 characters, caps at 20 and orders by name then id', async () => {
+      await learner('Bo')
+      expect(await repo().searchLearners(' b ')).toEqual([])
+      expect(await repo().searchLearners('')).toEqual([])
+      const names = Array.from(
+        { length: 25 },
+        (_, i) => `Zed ${String(i).padStart(2, '0')}`,
+      )
+      for (const name of [...names].reverse()) await learner(name)
+      const found = await repo().searchLearners('zed')
+      expect(found.map((u) => u.name)).toEqual(names.slice(0, 20))
+    })
+  })
+
+  describe('recordGuardianConsent', () => {
+    it('stores who and when on an active user only', async () => {
+      const user = await repo().upsertTelegram('42', 'Kid')
+      const now = new Date('2026-10-30T10:00:00Z')
+      expect(await repo().recordGuardianConsent(user.id, 'Mother', now)).toBe(
+        true,
+      )
+      const [row] = await current()
+        .database.db.select()
+        .from(users)
+        .where(eq(users.id, user.id))
+      expect(row.guardianConsentBy).toBe('Mother')
+      expect(row.guardianConsentAt).toEqual(now)
+      expect(await repo().recordGuardianConsent(uuidv7(), 'X')).toBe(false)
+      expect(await repo().recordGuardianConsent('nope', 'X')).toBe(false)
+      await repo().softDelete(user.id)
+      expect(await repo().recordGuardianConsent(user.id, 'Father')).toBe(false)
+    })
+  })
 })

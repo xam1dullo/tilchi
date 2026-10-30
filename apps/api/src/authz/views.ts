@@ -3,7 +3,11 @@ import type { Lesson } from '../lessons/lessons.repository'
 import { type Actor, can } from './policy'
 
 /** Server-computed permissions: the web shows only what the API will allow. */
-export type GroupCan = { createLesson: boolean; manageMembers: boolean }
+export type GroupCan = {
+  createLesson: boolean
+  manageMembers: boolean
+  seeMembers: boolean
+}
 export type LessonCan = {
   start: boolean
   end: boolean
@@ -20,8 +24,9 @@ export function groupView(
   const allowed = {
     createLesson: can(actor, 'lesson.create', group),
     manageMembers: can(actor, 'group.addMember'),
+    seeMembers: can(actor, 'group.seeMembers', group),
   }
-  if (can(actor, 'group.seeMembers', group)) return { ...group, can: allowed }
+  if (allowed.seeMembers) return { ...group, can: allowed }
   const { memberIds: _ids, ...rest } = group
   return { ...rest, can: allowed }
 }

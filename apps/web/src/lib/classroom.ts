@@ -1,9 +1,14 @@
 /** Permissions the API computed for this caller; the web never re-derives them. */
-export type GroupCan = { createLesson: boolean; manageMembers: boolean }
+export type GroupCan = {
+  createLesson: boolean
+  manageMembers: boolean
+  seeMembers: boolean
+}
 
 export type GroupRecord = {
   id: string
   name: string
+  kind: 'adult' | 'kids'
   capacity: number
   learnerCount: number
   can: GroupCan
