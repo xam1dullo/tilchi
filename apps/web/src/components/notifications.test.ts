@@ -113,7 +113,15 @@ describe('notifications', () => {
     expect(notificationLink(`/app/groups/${id}`, null)).toBe(
       `/app/groups/${id}`,
     )
+    expect(notificationLink(`/app/attempts/${id}`, null)).toBe(
+      `/app/attempts/${id}`,
+    )
+    expect(notificationLink('/app/assignments', 'learner')).toBe(
+      '/app/assignments?preview=learner',
+    )
     for (const link of [
+      '/app/tests',
+      '/app/assignments/x',
       'https://example.com',
       '//example.com/a',
       '/app/groups/../admin',

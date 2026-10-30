@@ -31,6 +31,8 @@ const reminderTitle = (p: Payload) => {
 
 const groupLink = (p: Payload) =>
   p.groupId ? `/app/groups/${p.groupId}` : null
+const attemptLink = (p: Payload) =>
+  p.attemptId ? `/app/attempts/${p.attemptId}` : null
 const when = (p: Payload) => tashkentTime(p.scheduledAt)
 
 /**
@@ -67,22 +69,22 @@ const RENDER: Partial<Record<OutboxEvent, (p: Payload) => Message>> = {
   'test.assigned': (p) => ({
     title: 'Yangi test',
     body: `Test topshirish muddati: ${tashkentTime(p.deadline)}.`,
-    link: '/app/tests',
+    link: '/app/assignments',
   }),
   'test.reminder': (p) => ({
     title: 'Test muddati yaqin',
     body: `Test topshirish muddati ${tashkentTime(p.deadline)} gacha. ${p.lead === '3h' ? 'Atigi 3 soat qoldi.' : '24 soatdan kam qoldi.'}`,
-    link: '/app/tests',
+    link: '/app/assignments',
   }),
-  'test.submitted': () => ({
+  'test.submitted': (p) => ({
     title: 'Test topshirildi',
     body: 'Bir o‘quvchi testni topshirdi. Baholash uchun oching.',
-    link: '/app/tests',
+    link: attemptLink(p) ?? groupLink(p),
   }),
-  'test.graded': () => ({
+  'test.graded': (p) => ({
     title: 'Test baholandi',
     body: 'Testingiz baholandi. Natijani ko‘rish uchun oching.',
-    link: '/app/tests',
+    link: attemptLink(p) ?? '/app/assignments',
   }),
   'sessions.revoked': () => ({
     title: 'Seanslar tugatildi',
