@@ -151,6 +151,8 @@ export const en = {
   questionEmpty: 'No questions yet.',
   questionFilter: 'Status',
   questionFilterAll: 'All',
+  questionFilterDraft: 'Drafts',
+  questionFilterPublished: 'Published',
   questionPromptInvalid: 'Write the question text (up to 2000 characters).',
   questionOptionsInvalid: 'Write 2 to 8 options, each up to 300 characters.',
   questionKeyInvalid:
