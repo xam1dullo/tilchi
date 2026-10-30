@@ -14,6 +14,17 @@ describe('empty state copy', () => {
     expect(copy.uz.signInHint).toBe('Telegram ilovasi ochiladi')
   })
 
+  it('translates every ru and en string instead of reusing the Uzbek one', () => {
+    const sameInEveryLanguage = new Set(['IELTS', 'Admin', 'Test'])
+    for (const locale of [copy.ru, copy.en]) {
+      const untranslated = Object.entries(copy.uz)
+        .filter(([key, value]) => locale[key as keyof typeof locale] === value)
+        .filter(([, value]) => !sameInEveryLanguage.has(value))
+        .map(([key]) => key)
+      expect(untranslated).toEqual([])
+    }
+  })
+
   it('has the same keys in ru and en, with no exclamation marks', () => {
     const keys = Object.keys(copy.uz)
     expect(Object.keys(copy.ru)).toEqual(keys)
