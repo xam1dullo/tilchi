@@ -741,3 +741,76 @@
   gap: 8px;
   margin: 0 0 8px;
 }
+
+/* Group detail only: shared classroom and attempt styles stay unchanged. */
+.group-page {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.group-page .group-lesson-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+
+.group-page .group-schedule {
+  align-items: end;
+}
+
+.group-page .group-schedule label {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  max-width: 100%;
+  font-size: var(--fs-sm);
+}
+
+.group-page .classroom-form input,
+.group-page .classroom-form select,
+.group-page .assign-field {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.group-page .assignment-counts {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin: 16px 0;
+}
+
+.group-page .assignment-counts > div {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 4px;
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+}
+
+.group-page .assignment-counts dt {
+  color: var(--muted);
+  font-size: var(--fs-xs);
+}
+
+.group-page .assignment-counts dd {
+  margin: 0;
+  font: 400 var(--fs-stat) / 1 var(--font-display);
+  font-variant-numeric: tabular-nums;
+}
+
+.group-page .assignment-details {
+  overflow-x: auto;
+}
+
+.group-page .attempt-table {
+  min-width: 28rem;
+  overflow-wrap: normal;
+}
+
+.group-page .attempt-table a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}

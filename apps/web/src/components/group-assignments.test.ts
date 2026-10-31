@@ -78,9 +78,9 @@ describe('AssignmentsList', () => {
       },
     ])
     expect(html).toContain('Unit 1')
-    expect(html).toContain('Assigned: <span class="num">1</span>')
-    expect(html).toContain('Graded: <span class="num">1</span>')
-    expect(html).toContain('Missed: <span class="num">0</span>')
+    expect(html).toContain('<dt>Assigned</dt><dd class="num">1</dd>')
+    expect(html).toContain('<dt>Graded</dt><dd class="num">1</dd>')
+    expect(html).toContain('<dt>Missed</dt><dd class="num">0</dd>')
     expect(html).toContain('<th scope="row">Aziz</th>')
     expect(html).toContain('<th scope="row">abcdef12</th>')
     expect(html).toContain('<td class="num">7</td>')
@@ -98,6 +98,9 @@ describe('AssignmentsList', () => {
   })
 
   it('links each learner to the attempt only when the server allows grading', () => {
+    expect(render([one], true)).toContain(
+      '<details class="assignment-details" open="">',
+    )
     expect(render([one], true)).toContain(
       '<th scope="row"><a href="/app/attempts/x9">Aziz</a></th>',
     )

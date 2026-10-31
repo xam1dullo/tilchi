@@ -173,18 +173,18 @@ export function AssignmentsList({
                     {formatLessonTime(assignment.deadline, locale)}
                   </span>
                 </p>
-                <p className="assignment-counts">
+                <dl className="assignment-counts">
                   {ATTEMPT_STATUSES.map((status) => (
-                    <span key={status} className="tag">
-                      {copy[statusKey[status]]}:{' '}
-                      <span className="num">{counts[status]}</span>
-                    </span>
+                    <div key={status}>
+                      <dt>{copy[statusKey[status]]}</dt>
+                      <dd className="num">{counts[status]}</dd>
+                    </div>
                   ))}
-                </p>
+                </dl>
                 {assignment.attempts.length === 0 ? (
                   <p className="hint">{copy.attemptNoLearners}</p>
                 ) : (
-                  <details className="assignment-details">
+                  <details className="assignment-details" open>
                     <summary>
                       {copy.assignmentLearners} ({assignment.attempts.length})
                     </summary>

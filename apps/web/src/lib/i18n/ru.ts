@@ -72,6 +72,7 @@ export const ru = {
   teacherRequired: 'Выберите действующего преподавателя для группы.',
   createGroupFailed: 'Не удалось создать группу. Проверьте поля и повторите.',
   scheduleLesson: 'Запланировать урок',
+  lessonDateTime: 'Дата и время урока',
   scheduledAt: 'Время',
   startLesson: 'Начать урок',
   endLesson: 'Завершить урок',

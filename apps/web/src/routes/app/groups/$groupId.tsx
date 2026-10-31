@@ -68,7 +68,7 @@ function GroupPage() {
   const copy = messages(locale)
   const search = keepAppSearch(previewRole)
   return (
-    <section className="classroom">
+    <section className="classroom group-page">
       <p className="eyebrow">
         <Link to="/app" search={search}>
           {copy.groups}
@@ -87,7 +87,7 @@ function GroupPage() {
             previewRole={previewRole}
             copy={{
               schedule: copy.scheduleLesson,
-              time: copy.scheduledAt,
+              time: copy.lessonDateTime,
             }}
           />
         ) : null}
@@ -107,7 +107,7 @@ function GroupPage() {
                     : copy.lessonScheduled
             return (
               <li key={lesson.id} className="row classroom-row lesson-row">
-                <div>
+                <div className="group-lesson-meta">
                   <strong>
                     {formatLessonTime(lesson.scheduledAt, locale)}
                   </strong>
@@ -192,7 +192,7 @@ function ScheduleForm({
   const [busy, setBusy] = useState(false)
   return (
     <form
-      className="classroom-form"
+      className="classroom-form group-schedule"
       onSubmit={(event) => {
         event.preventDefault()
         const iso = tashkentInputToIso(scheduledAt)
@@ -208,7 +208,7 @@ function ScheduleForm({
       }}
     >
       <label>
-        <span className="sr-only">{copy.time} (Asia/Tashkent)</span>
+        <span>{copy.time} (Asia/Tashkent)</span>
         <input
           type="datetime-local"
           required
