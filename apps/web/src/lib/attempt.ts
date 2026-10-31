@@ -35,7 +35,7 @@ export type AttemptQuestion = {
 export type AttemptRecord = {
   id: string
   /** Manager response only. */
-  learnerName?: string
+  learnerName?: string | null
   groupId?: string
   title: string
   status: AttemptStatus

@@ -102,7 +102,7 @@ function ManagerAttempt() {
   return (
     <section className="classroom grade-page" aria-labelledby="attempt-heading">
       <AttemptIdentity
-        name={attempt.learnerName}
+        name={attempt.learnerName ?? undefined}
         groupId={attempt.groupId}
         copy={copy}
         previewRole={previewRole}

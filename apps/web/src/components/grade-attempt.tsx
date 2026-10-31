@@ -118,9 +118,9 @@ export function GradeAttempt({
           <div className="lesson-actions grade-save">
             <span>
               {copy.gradeTotal}{' '}
-              <output className="attempt-score" aria-label={copy.gradeTotal}>
+              <span className="attempt-score">
                 {gradeTotal(questions, recorded, draft)} / {attempt.maxScore}
-              </output>
+              </span>
             </span>
             <button className="btn btn-primary" type="submit" disabled={busy}>
               {busy ? copy.gradeSaving : copy.gradeSave}

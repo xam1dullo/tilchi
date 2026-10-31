@@ -19,10 +19,10 @@ export function AttemptSummary({
     )
   if (attempt.status !== 'graded') return null
   return (
-    <div className="attempt-summary" data-tone="done">
+    <div className="attempt-summary">
       <p>
         {copy.attemptScore}:{' '}
-        <output className="attempt-score" aria-label={copy.attemptScore}>
+        <output className="attempt-score">
           {attempt.score} / {attempt.maxScore}
         </output>
       </p>

@@ -137,7 +137,7 @@ export default function SpeakingRecorder({
   if (phase === 'unsupported' || phase === 'denied') {
     const url = window.location.href
     return (
-      <div>
+      <div className="speaking-recorder">
         <p className="notice" data-tone="warn" role="alert">
           {phase === 'denied' ? copy.recordDenied : copy.recordNoMic}
         </p>
