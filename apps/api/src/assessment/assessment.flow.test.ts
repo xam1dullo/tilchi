@@ -815,20 +815,33 @@ describe.skipIf(!hasTestDatabase)('tests, assignments and grading', () => {
   })
 
   it('gives a learner who joins later every open test, and none that closed', async () => {
+    const assignedTo = async (name: string) =>
+      (await inboxOf(name)).filter((e) => e === 'test.assigned').length
+    const deliverAssignments = async (name: string, count: number) => {
+      // kick() may only join an older drain that missed the new event.
+      // Retry boundedly until delivery is observable, without timing sleeps.
+      for (let pass = 0; pass < 20; pass += 1) {
+        await worker.kick()
+        if ((await assignedTo(name)) === count) return
+      }
+      expect(await assignedTo(name)).toBe(count)
+    }
     const open = await setup()
     const closed = await setup()
+    // Both tests were announced while open; only then close one to new joiners.
+    await deliverAssignments('ana', 2)
+    await deliverAssignments('bob', 2)
     await db.database.db.execute(
       sql`update assignments set deadline = now() - interval '1 hour' where id = ${closed.assignmentId}`,
     )
     await worker.kick()
-    const assignedTo = async (name: string) =>
-      (await inboxOf(name)).filter((e) => e === 'test.assigned').length
     expect(await assignedTo('ana')).toBe(2)
     await groups.putMember(group, who.eve)
-    await worker.kick()
+    await deliverAssignments('eve', 1)
     // Only eve hears about the open test; nobody is told twice.
     expect(await assignedTo('eve')).toBe(1)
     expect(await assignedTo('ana')).toBe(2)
+    expect(await assignedTo('bob')).toBe(2)
     const mine = await call('eve', 'GET', '/api/me/assignments')
     expect(mine.status).toBe(200)
     expect(
