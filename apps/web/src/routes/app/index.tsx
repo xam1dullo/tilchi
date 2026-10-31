@@ -1,3 +1,5 @@
+import { CabinetStats, CabinetIcon } from '../../components/cabinet-stats'
+import { groupStats } from '../../lib/cabinet'
 import { loadForSession, sessionData } from '../../lib/session'
 import { botLink, tgLinkProps } from '@tilchi/content'
 import {
@@ -40,13 +42,12 @@ export const Route = createFileRoute('/app/')({
 
 function GroupsPage() {
   const { locale, botUsername } = useRouteContext({ from: '__root__' })
-  const { previewRole } = useRouteContext({ from: '/app' })
+  const { previewRole, session } = useRouteContext({ from: '/app' })
   const { groups, can, teachers } = sessionData(Route.useLoaderData())
   const copy = messages(locale)
   const view = groupsView({ groups, can })
-  const search = keepAppSearch(previewRole)
   return (
-    <section className="classroom">
+    <section className="classroom groups-page">
       <div className="classroom-head">
         <div>
           <p className="eyebrow">{copy.groups}</p>
@@ -61,6 +62,9 @@ function GroupsPage() {
           />
         ) : null}
       </div>
+      <CabinetStats
+        items={groupStats(groups, copy, session?.role ?? 'learner')}
+      />
       {view.empty ? (
         <EmptyGroups copy={copy} botUsername={botUsername} />
       ) : (
@@ -70,11 +74,15 @@ function GroupsPage() {
               <Link
                 to="/app/groups/$groupId"
                 params={{ groupId: group.id }}
-                search={search}
+                search={keepAppSearch(previewRole)}
               >
+                <CabinetIcon />
                 <strong>{group.name}</strong>
                 <span>
                   {copy.members} {group.learnerCount}/{group.capacity}
+                </span>
+                <span className="cabinet-action">
+                  {copy.cabinetOpen} <span aria-hidden="true">→</span>
                 </span>
               </Link>
             </li>
