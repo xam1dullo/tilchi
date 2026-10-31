@@ -804,6 +804,11 @@
   overflow-x: auto;
 }
 
+.group-page .attempt-table {
+  min-width: 28rem;
+  overflow-wrap: normal;
+}
+
 .group-page .attempt-table a {
   display: inline-flex;
   align-items: center;
