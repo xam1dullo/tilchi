@@ -72,6 +72,7 @@ export const en = {
   createGroupFailed:
     'Could not create the group. Check the fields and try again.',
   scheduleLesson: 'Schedule a lesson',
+  lessonDateTime: 'Lesson date and time',
   scheduledAt: 'Time',
   startLesson: 'Start lesson',
   endLesson: 'End lesson',

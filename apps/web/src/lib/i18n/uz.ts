@@ -76,6 +76,7 @@ export const uz = {
   createGroupFailed:
     "Guruh ochilmadi. Maydonlarni tekshirib, qayta urinib ko'ring.",
   scheduleLesson: 'Dars rejalashtirish',
+  lessonDateTime: 'Dars sanasi va vaqti',
   scheduledAt: 'Vaqt',
   startLesson: 'Darsni boshlash',
   endLesson: 'Darsni yakunlash',
