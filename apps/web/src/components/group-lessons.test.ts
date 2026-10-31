@@ -99,7 +99,7 @@ describe('group lessons rail', () => {
       )
       expect(rail?.indexOf(times[0])).toBeLessThan(rail?.indexOf(times[1]) ?? 0)
       expect(rail?.indexOf(times[1])).toBeLessThan(rail?.indexOf(times[2]) ?? 0)
-      const footer = rail?.slice(rail.indexOf('</ul>'))
+      const footer = rail?.slice(0, rail.indexOf('<ul'))
       if (!teacher) {
         expect(footer).not.toContain('lesson-actions')
         return
@@ -111,7 +111,7 @@ describe('group lessons rail', () => {
     },
   )
   it.each([false, true])(
-    'prioritizes the live lesson in the footer (teacher=%s)',
+    'prioritizes the live lesson above the list (teacher=%s)',
     (teacher) => {
       state.teacher = teacher
       state.lessons = [
@@ -119,7 +119,7 @@ describe('group lessons rail', () => {
         lesson('live', 'live', '2030-01-02T06:00:00Z'),
       ]
       const html = render()
-      const footer = html.slice(html.indexOf('</ul>'), html.indexOf('</aside>'))
+      const footer = html.slice(html.indexOf('<aside'), html.indexOf('<ul'))
       expect(footer).toContain('/app/meet/live')
       expect(footer).not.toContain(copy.startLesson)
       if (teacher) expect(footer).toContain(copy.endLesson)
@@ -127,6 +127,22 @@ describe('group lessons rail', () => {
       expect(html).toContain('<time id="lesson-time-live"')
     },
   )
+  it('keeps overdue row actions while promoting the upcoming lesson', () => {
+    state.teacher = true
+    state.lessons = [
+      lesson('overdue', 'scheduled', '2020-01-01T06:00:00Z'),
+      lesson('upcoming', 'scheduled', '2099-01-01T06:00:00Z'),
+    ]
+    const html = render()
+    const primary = html.slice(html.indexOf('<aside'), html.indexOf('<ul'))
+    expect(primary).toContain('aria-describedby="lesson-time-upcoming"')
+    const rows = html.slice(html.indexOf('<ul'), html.indexOf('</ul>'))
+    expect(rows).toContain(copy.startLesson)
+    expect(html).toContain(
+      '<section class="group-lessons-scroll" aria-labelledby="group-lessons-title"',
+    )
+    expect(html).toContain('tabindex="0"')
+  })
   it('places scheduling before main content and main content before the rail', () => {
     state.teacher = true
     state.lessons = []

@@ -779,6 +779,15 @@
   margin: 0 0 16px;
 }
 
+.group-page .group-lessons-scroll {
+  max-block-size: 28rem;
+  overflow-y: auto;
+}
+
+.group-page .group-lessons > .lesson-actions {
+  margin-bottom: 16px;
+}
+
 .group-page .group-lessons .lesson-row {
   display: grid;
   grid-template-columns: 24px minmax(0, 1fr);

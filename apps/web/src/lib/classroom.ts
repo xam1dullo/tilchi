@@ -49,6 +49,22 @@ export function groupsView(input: {
   }
 }
 
+export function nextGroupLesson<
+  T extends Pick<LessonRecord, 'status' | 'scheduledAt'>,
+>(lessons: readonly T[], now: number): T | undefined {
+  return (
+    lessons.find((lesson) => lesson.status === 'live') ??
+    lessons.reduce<T | undefined>((next, lesson) => {
+      const time = Date.parse(lesson.scheduledAt)
+      return lesson.status === 'scheduled' &&
+        time >= now &&
+        (!next || time < Date.parse(next.scheduledAt))
+        ? lesson
+        : next
+    }, undefined)
+  )
+}
+
 export function formatLessonTime(iso: string, locale: string) {
   const date = new Date(iso)
   if (Number.isNaN(date.getTime())) return iso

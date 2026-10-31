@@ -10,6 +10,7 @@ import { useState } from 'react'
 import { apiFetch, loadDetail } from '../../../lib/api'
 import {
   formatLessonTime,
+  nextGroupLesson,
   tashkentInputToIso,
   type GroupRecord,
   type LessonRecord,
@@ -75,16 +76,7 @@ function GroupPage() {
   )
   const copy = messages(locale)
   const search = keepAppSearch(previewRole)
-  const nextLesson =
-    lessons.find((lesson) => lesson.status === 'live') ??
-    lessons.reduce<LessonRecord | undefined>(
-      (next, lesson) =>
-        lesson.status === 'scheduled' &&
-        (!next || Date.parse(lesson.scheduledAt) < Date.parse(next.scheduledAt))
-          ? lesson
-          : next,
-      undefined,
-    )
+  const nextLesson = nextGroupLesson(lessons, Date.now())
   const lessonCopy = {
     start: copy.startLesson,
     end: copy.endLesson,
@@ -143,50 +135,6 @@ function GroupPage() {
         </div>
         <aside className="group-lessons" aria-labelledby="group-lessons-title">
           <h3 id="group-lessons-title">{copy.groupLessons}</h3>
-          {lessons.length === 0 ? (
-            <p className="hint">{copy.noLessons}</p>
-          ) : (
-            <ul className="rows classroom-list">
-              {lessons.map((lesson, index) => {
-                const status =
-                  lesson.status === 'live'
-                    ? copy.lessonLive
-                    : lesson.status === 'ended'
-                      ? copy.lessonEnded
-                      : lesson.status === 'cancelled'
-                        ? copy.lessonCancelled
-                        : copy.lessonScheduled
-                return (
-                  <li key={lesson.id} className="row classroom-row lesson-row">
-                    <span className="group-lesson-index" aria-hidden="true">
-                      {index + 1}
-                    </span>
-                    <div className="group-lesson-meta">
-                      <time
-                        id={`lesson-time-${lesson.id}`}
-                        dateTime={lesson.scheduledAt}
-                      >
-                        <strong>
-                          {formatLessonTime(lesson.scheduledAt, locale)}
-                        </strong>
-                      </time>
-                      <span className={`tag status-${lesson.status}`}>
-                        {status}
-                      </span>
-                    </div>
-                    {lesson.id !== nextLesson?.id ? (
-                      <LessonButtons
-                        lesson={lesson}
-                        previewRole={previewRole}
-                        search={search}
-                        copy={lessonCopy}
-                      />
-                    ) : null}
-                  </li>
-                )
-              })}
-            </ul>
-          )}
           {nextLesson ? (
             <LessonButtons
               lesson={nextLesson}
@@ -196,6 +144,60 @@ function GroupPage() {
               primary
             />
           ) : null}
+          {lessons.length === 0 ? (
+            <p className="hint">{copy.noLessons}</p>
+          ) : (
+            <section
+              className="group-lessons-scroll"
+              aria-labelledby="group-lessons-title"
+              // biome-ignore lint/a11y/noNoninteractiveTabindex: Scroll region must support keyboard scrolling.
+              tabIndex={0}
+            >
+              <ul className="rows classroom-list">
+                {lessons.map((lesson, index) => {
+                  const status =
+                    lesson.status === 'live'
+                      ? copy.lessonLive
+                      : lesson.status === 'ended'
+                        ? copy.lessonEnded
+                        : lesson.status === 'cancelled'
+                          ? copy.lessonCancelled
+                          : copy.lessonScheduled
+                  return (
+                    <li
+                      key={lesson.id}
+                      className="row classroom-row lesson-row"
+                    >
+                      <span className="group-lesson-index" aria-hidden="true">
+                        {index + 1}
+                      </span>
+                      <div className="group-lesson-meta">
+                        <time
+                          id={`lesson-time-${lesson.id}`}
+                          dateTime={lesson.scheduledAt}
+                        >
+                          <strong>
+                            {formatLessonTime(lesson.scheduledAt, locale)}
+                          </strong>
+                        </time>
+                        <span className={`tag status-${lesson.status}`}>
+                          {status}
+                        </span>
+                      </div>
+                      {lesson.id !== nextLesson?.id ? (
+                        <LessonButtons
+                          lesson={lesson}
+                          previewRole={previewRole}
+                          search={search}
+                          copy={lessonCopy}
+                        />
+                      ) : null}
+                    </li>
+                  )
+                })}
+              </ul>
+            </section>
+          )}
         </aside>
       </div>
     </section>
