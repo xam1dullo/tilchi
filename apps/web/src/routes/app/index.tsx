@@ -42,7 +42,7 @@ export const Route = createFileRoute('/app/')({
 
 function GroupsPage() {
   const { locale, botUsername } = useRouteContext({ from: '__root__' })
-  const { previewRole } = useRouteContext({ from: '/app' })
+  const { previewRole, session } = useRouteContext({ from: '/app' })
   const { groups, can, teachers } = sessionData(Route.useLoaderData())
   const copy = messages(locale)
   const view = groupsView({ groups, can })
@@ -62,7 +62,9 @@ function GroupsPage() {
           />
         ) : null}
       </div>
-      <CabinetStats items={groupStats(groups, copy)} />
+      <CabinetStats
+        items={groupStats(groups, copy, session?.role ?? 'learner')}
+      />
       {view.empty ? (
         <EmptyGroups copy={copy} botUsername={botUsername} />
       ) : (

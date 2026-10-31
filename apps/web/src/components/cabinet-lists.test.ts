@@ -2,29 +2,45 @@ import { createElement, type ReactNode } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it, vi } from 'vitest'
 import type { MyAssignment } from '../lib/attempt'
+import type { AppRole } from '../lib/nav'
 import { messages } from '../lib/i18n'
 
-const state = vi.hoisted(() => ({ data: {} as Record<string, unknown> }))
+const state = vi.hoisted(() => ({
+  data: {} as Record<string, unknown>,
+  role: 'teacher' as AppRole,
+  previewRole: 'teacher' as AppRole | null,
+}))
 vi.mock('@tanstack/react-router', () => ({
   createFileRoute: () => (options: unknown) => ({
     options,
     useLoaderData: () => ({ kind: 'authenticated', ...state.data }),
   }),
-  useRouteContext: () => ({ locale: 'en', previewRole: null }),
+  useRouteContext: () => ({
+    locale: 'en',
+    session: { role: state.role },
+    previewRole: state.previewRole,
+  }),
   useRouter: () => ({}),
   Link: ({
     children,
     to,
     params,
+    search,
     ...props
   }: {
     children: ReactNode
     to: string
     params: Record<string, string>
+    search?: { preview?: AppRole }
   }) =>
     createElement(
       'a',
-      { ...props, href: to.replace(/\$\w+/, (key) => params[key.slice(1)]) },
+      {
+        ...props,
+        href:
+          to.replace(/\$\w+/, (key) => params[key.slice(1)]) +
+          (search?.preview ? `?preview=${search.preview}` : ''),
+      },
       children,
     ),
 }))
@@ -36,7 +52,7 @@ const render = (assignments: MyAssignment[]) =>
       assignments,
       copy,
       locale: 'en',
-      previewRole: null,
+      previewRole: 'learner',
     }),
   )
 const assignment = (
@@ -64,9 +80,16 @@ describe('assignment cabinet', () => {
     expect(html).toContain('<dt>Assigned</dt><dd>2</dd>')
     for (const label of ['Submitted', 'Graded', 'Missed'])
       expect(html).toContain(`<dt>${label}</dt><dd>1</dd>`)
-    expect(html).toContain('href="/app/attempts/a3"')
+    expect(html).toContain('href="/app/attempts/a3?preview=learner"')
     expect(html).toContain('<span class="tag">Graded</span>')
     expect(html).toContain('class="num">0</span>')
+    for (const hint of [
+      copy.cabinetAssignedHint,
+      copy.cabinetSubmittedHint,
+      copy.cabinetGradedHint,
+      copy.cabinetMissedHint,
+    ])
+      expect(html).toContain(hint)
     expect(html).toContain('Open')
   })
   it('keeps four zero counts and the empty message', () => {
@@ -102,7 +125,7 @@ describe('group and test cabinets', () => {
       ['Available places', 7],
     ])
       expect(html).toContain(`<dt>${label}</dt><dd>${number}</dd>`)
-    expect(html).toContain('href="/app/groups/g"')
+    expect(html).toContain('href="/app/groups/g?preview=teacher"')
     expect(html).toContain('3/8')
     expect(html).toContain('Open')
   })
@@ -118,12 +141,19 @@ describe('group and test cabinets', () => {
     for (const [label, number] of [
       ['Test library', 1],
       ['Question count', 2],
-      ['Published', 1],
-      ['Drafts', 1],
+      ['Published questions', 1],
+      ['Draft questions', 1],
     ])
       expect(html).toContain(`<dt>${label}</dt><dd>${number}</dd>`)
-    expect(html).toContain('href="/app/tests/t"')
+    expect(html).toContain('href="/app/tests/t?preview=teacher"')
     expect(html).toContain('Questions: 2')
+    for (const hint of [
+      'Tests available to assign',
+      'Across the question bank',
+      'Questions ready to use',
+      'Questions in progress',
+    ])
+      expect(html).toContain(hint)
     expect(html).toContain('Open')
   })
   it('renders zero statistics and existing empty messages for both pages', () => {
@@ -136,4 +166,27 @@ describe('group and test cabinets', () => {
     expect(tests.match(/<dd>0<\/dd>/g)).toHaveLength(4)
     expect(tests).toContain(copy.testEmpty)
   })
+})
+
+describe('role-specific group statistics', () => {
+  it.each(['learner', 'teacher', 'admin'] as const)(
+    'shows appropriate cards and hints for %s from the session',
+    (role) => {
+      state.role = role
+      state.previewRole = null
+      state.data = { groups: [], can: {}, teachers: [] }
+      const html = page(GroupsRoute)
+      expect(html.match(/<dt>/g)).toHaveLength(role === 'learner' ? 2 : 4)
+      expect(html.includes('<dt>Learner places</dt>')).toBe(role !== 'learner')
+      expect(html.includes('<dt>Available places</dt>')).toBe(
+        role !== 'learner',
+      )
+      expect(html).toContain(
+        role === 'admin' ? 'Across all groups' : 'Across your groups',
+      )
+      if (role === 'admin') expect(html).not.toContain('Across your groups')
+      state.role = 'teacher'
+      state.previewRole = 'teacher'
+    },
+  )
 })

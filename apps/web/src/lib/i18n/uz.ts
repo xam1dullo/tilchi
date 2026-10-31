@@ -282,6 +282,7 @@ export const uz = {
   cabinetGradedHint: 'Natijalar mavjud',
   cabinetMissedHint: "Muddat o'tgan",
   cabinetGroups: 'Guruhlar soni',
+  cabinetAllGroupsHint: "Barcha guruhlar bo'yicha",
   cabinetGroupsHint: "Guruhlaringiz bo'yicha",
   cabinetCapacity: "O'quvchi joylari",
   cabinetCapacityHint: "Umumiy sig'im",
@@ -291,6 +292,8 @@ export const uz = {
   cabinetTestsHint: "Tayinlash mumkin bo'lgan testlar",
   cabinetQuestions: 'Savollar soni',
   cabinetQuestionsHint: "Savollar banki bo'yicha",
-  cabinetPublishedHint: 'Foydalanishga tayyor',
-  cabinetDraftHint: 'Tayyorlanmoqda',
+  cabinetPublishedQuestions: 'Nashr qilingan savollar',
+  cabinetDraftQuestions: 'Qoralama savollar',
+  cabinetPublishedHint: 'Foydalanishga tayyor savollar',
+  cabinetDraftHint: 'Tayyorlanayotgan savollar',
 }

@@ -271,6 +271,7 @@ export const ru = {
   cabinetGradedHint: 'Результаты доступны',
   cabinetMissedHint: 'Срок истёк',
   cabinetGroups: 'Количество групп',
+  cabinetAllGroupsHint: 'Во всех группах',
   cabinetGroupsHint: 'Во всех ваших группах',
   cabinetCapacity: 'Места для учеников',
   cabinetCapacityHint: 'Общая вместимость',
@@ -280,6 +281,8 @@ export const ru = {
   cabinetTestsHint: 'Тесты для назначения',
   cabinetQuestions: 'Количество вопросов',
   cabinetQuestionsHint: 'Во всём банке вопросов',
-  cabinetPublishedHint: 'Готовы к использованию',
-  cabinetDraftHint: 'В работе',
+  cabinetPublishedQuestions: 'Опубликованные вопросы',
+  cabinetDraftQuestions: 'Черновики вопросов',
+  cabinetPublishedHint: 'Вопросы готовы к использованию',
+  cabinetDraftHint: 'Вопросы в подготовке',
 }

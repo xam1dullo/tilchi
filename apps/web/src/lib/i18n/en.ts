@@ -277,6 +277,7 @@ export const en = {
   cabinetGradedHint: 'Results available',
   cabinetMissedHint: 'Deadline passed',
   cabinetGroups: 'Group count',
+  cabinetAllGroupsHint: 'Across all groups',
   cabinetGroupsHint: 'Across your groups',
   cabinetCapacity: 'Learner places',
   cabinetCapacityHint: 'Total capacity',
@@ -286,6 +287,8 @@ export const en = {
   cabinetTestsHint: 'Tests available to assign',
   cabinetQuestions: 'Question count',
   cabinetQuestionsHint: 'Across the question bank',
-  cabinetPublishedHint: 'Ready to use',
-  cabinetDraftHint: 'Work in progress',
+  cabinetPublishedQuestions: 'Published questions',
+  cabinetDraftQuestions: 'Draft questions',
+  cabinetPublishedHint: 'Questions ready to use',
+  cabinetDraftHint: 'Questions in progress',
 }

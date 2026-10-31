@@ -1033,7 +1033,7 @@
 /* Cabinet list pages only. Shared classroom rows on detail pages are untouched. */
 :is(.assignments-page, .groups-page, .tests-page) .cabinet-stats {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 16px;
   margin: 24px 0 32px;
 }
@@ -1073,7 +1073,9 @@
   padding: 20px 8px;
   min-width: 0;
   overflow-wrap: anywhere;
-  transition: background var(--dur-fast) var(--ease);
+  transition:
+    background var(--dur-fast) var(--ease),
+    transform var(--dur-press) var(--ease);
 }
 
 .assignments-page .classroom-row a {
@@ -1137,7 +1139,17 @@
   container-type: inline-size;
 }
 
+@container (max-width: 720px) {
+  :is(.assignments-page, .groups-page, .tests-page) .cabinet-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 @container (max-width: 640px) {
+  .assignments-page .cabinet-score:has(> [aria-hidden="true"]) {
+    display: none;
+  }
+
   :is(.assignments-page, .groups-page, .tests-page) .classroom-row a {
     grid-template-columns: 44px minmax(0, 1fr);
     gap: 8px 12px;
