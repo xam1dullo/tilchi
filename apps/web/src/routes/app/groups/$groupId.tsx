@@ -29,6 +29,7 @@ import { loadAssessment } from '../../../lib/assignments'
 import { displayName, type Member } from '../../../lib/enrol'
 import { messages, type Copy } from '../../../lib/i18n'
 import { keepAppSearch } from '../../../lib/preview'
+import { createEndConfirm, lessonAction } from '../../../lib/lesson-actions'
 
 export const Route = createFileRoute('/app/groups/$groupId')({
   loader: ({ context, params }) =>
@@ -111,6 +112,7 @@ function GroupPage() {
     join: copy.joinMeet,
     confirmEnd: copy.confirmEndLesson,
     confirmEndHint: copy.confirmEndLessonHint,
+    failed: copy.lessonActionFailed,
   }
   return (
     <section className="classroom group-page">
@@ -138,8 +140,35 @@ function GroupPage() {
         ) : null}
       </div>
       <div className="group-layout">
+        <div className="group-main">
+          {group.can.assignTest ? (
+            <AssignForm
+              groupId={group.id}
+              previewRole={previewRole}
+              tests={tests}
+              copy={copy}
+            />
+          ) : null}
+          {group.can.viewAssignments ? (
+            <AssignmentsList
+              assignments={assignments}
+              copy={copy}
+              locale={locale}
+              canGrade={group.can.gradeAttempts}
+              previewRole={previewRole}
+            />
+          ) : null}
+          {group.can.seeMembers ? (
+            <MembersList members={members} copy={copy} />
+          ) : null}
+          {group.can.manageMembers ? (
+            <EnrolPanel group={group} previewRole={previewRole} copy={copy} />
+          ) : null}
+        </div>
         <aside className="group-lessons" aria-labelledby="group-lessons-title">
-          <h3 id="group-lessons-title">{copy.groupLessons}</h3>
+          <h3 id="group-lessons-title" tabIndex={-1}>
+            {copy.groupLessons}
+          </h3>
           {primaryLesson ? (
             <div className="group-lesson-primary">
               <LessonMeta
@@ -187,31 +216,6 @@ function GroupPage() {
             </ul>
           )}
         </aside>
-        <div className="group-main">
-          {group.can.assignTest ? (
-            <AssignForm
-              groupId={group.id}
-              previewRole={previewRole}
-              tests={tests}
-              copy={copy}
-            />
-          ) : null}
-          {group.can.viewAssignments ? (
-            <AssignmentsList
-              assignments={assignments}
-              copy={copy}
-              locale={locale}
-              canGrade={group.can.gradeAttempts}
-              previewRole={previewRole}
-            />
-          ) : null}
-          {group.can.seeMembers ? (
-            <MembersList members={members} copy={copy} />
-          ) : null}
-          {group.can.manageMembers ? (
-            <EnrolPanel group={group} previewRole={previewRole} copy={copy} />
-          ) : null}
-        </div>
       </div>
     </section>
   )
@@ -330,19 +334,27 @@ function LessonButtons({
 }) {
   const router = useRouter()
   const [busy, setBusy] = useState(false)
+  const [failed, setFailed] = useState(false)
   const [confirming, setConfirming] = useState(false)
-  useEffect(() => {
-    if (!confirming) return
-    const timer = window.setTimeout(() => setConfirming(false), 4000)
-    return () => window.clearTimeout(timer)
-  }, [confirming])
-  const post = (path: string) => {
-    setConfirming(false)
+  const run = (path: string) => {
     setBusy(true)
-    void apiFetch(path, { method: 'POST', previewRole })
-      .then(() => router.invalidate())
-      .finally(() => setBusy(false))
+    setFailed(false)
+    void lessonAction(
+      () => apiFetch(path, { method: 'POST', previewRole }),
+      () => router.invalidate(),
+    ).then((ok) => {
+      setBusy(false)
+      setFailed(!ok)
+      // The pressed button is gone after a refresh; keep focus in the rail.
+      if (ok) document.getElementById('group-lessons-title')?.focus()
+    })
   }
+  const endRef = useRef(() => {})
+  endRef.current = () => run(`/api/lessons/${lesson.id}/end`)
+  const [endConfirm] = useState(() =>
+    createEndConfirm(setConfirming, () => endRef.current()),
+  )
+  useEffect(() => () => endConfirm.cancel(), [endConfirm])
   if (!lesson.can.start && !lesson.can.end && !lesson.can.join) return null
   return (
     <LessonActions
@@ -350,12 +362,12 @@ function LessonButtons({
       primary={primary}
       busy={busy}
       confirming={confirming}
+      failed={failed}
       search={search}
       copy={copy}
-      onStart={() => post(`/api/lessons/${lesson.id}/start`)}
-      onArmEnd={() => setConfirming(true)}
-      onConfirmEnd={() => post(`/api/lessons/${lesson.id}/end`)}
-      onCancelEnd={() => setConfirming(false)}
+      onStart={() => run(`/api/lessons/${lesson.id}/start`)}
+      onEnd={endConfirm.press}
+      onCancelEnd={endConfirm.cancel}
     />
   )
 }

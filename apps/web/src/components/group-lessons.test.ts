@@ -90,7 +90,9 @@ describe('group lessons rail', () => {
         /<aside[^>]*aria-labelledby="group-lessons-title"[^>]*>([\s\S]*?)<\/aside>/,
       )?.[1]
       expect(rail).toBeDefined()
-      expect(rail).toContain('<h3 id="group-lessons-title">Lessons</h3>')
+      expect(rail).toContain(
+        '<h3 id="group-lessons-title" tabindex="-1">Lessons</h3>',
+      )
       expect(html.match(/<ul/g)).toHaveLength(1)
       expect(rail).toContain(copy.lessonEnded)
       expect(rail).toContain(copy.lessonScheduled)
@@ -139,7 +141,7 @@ describe('group lessons rail', () => {
     expect(html).not.toContain('<section class="group-lessons-scroll"')
     expect(html).not.toContain('tabindex="0"')
   })
-  it('places scheduling first, then the rail, then main content (tab order matches the phone layout)', () => {
+  it('places scheduling before main content and main content before the rail', () => {
     state.teacher = true
     state.lessons = []
     const html = render()
@@ -147,8 +149,7 @@ describe('group lessons rail', () => {
     expect(html.indexOf('group-schedule')).toBeLessThan(
       html.indexOf('group-layout'),
     )
-    expect(html.indexOf('<aside')).toBeGreaterThan(-1)
-    expect(html.indexOf('<aside')).toBeLessThan(html.indexOf('group-main'))
+    expect(html.indexOf('group-main')).toBeLessThan(html.indexOf('<aside'))
   })
   it('leads the live lesson with Join and keeps End as a secondary danger action', () => {
     state.teacher = true

@@ -68,6 +68,8 @@ const uiPairs = [
   ['accent-solid on bg', '--accent-solid', '--bg'],
   ['accent-solid on bg-elev', '--accent-solid', '--bg-elev'],
   ['focus on ink', '--focus', '--ink'],
+  // Outline-danger End ring (.lesson-end).
+  ['danger on bg-alt', '--danger', '--bg-alt'],
   // Rings on terracotta surfaces (.l-final band, active sidebar item).
   ['on-accent ring on accent-2', '--on-accent', '--accent-2'],
   ['on-accent ring on accent-solid', '--on-accent', '--accent-solid'],

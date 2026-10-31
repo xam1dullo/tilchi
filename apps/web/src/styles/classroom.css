@@ -779,9 +779,11 @@
   min-width: 0;
 }
 
-/* The rail precedes main in the DOM, so phone tab order matches the
-   visual order without CSS `order` (WCAG 2.4.3). */
+/* Phones show the rail first via `order` while the DOM keeps main first,
+   so desktop tab order (main, then right rail) stays correct. Trade-off:
+   on phones the rail is tabbed after main (see design.md). */
 .group-page .group-lessons {
+  order: -1;
   padding: 20px;
   border: 1px solid var(--line);
   border-radius: var(--r-lg);
@@ -857,6 +859,11 @@
   box-shadow: inset 0 0 0 1px var(--danger);
 }
 
+.group-page .group-lessons .lesson-end:hover {
+  background: var(--danger-soft);
+  box-shadow: inset 0 0 0 1px var(--danger);
+}
+
 .group-page .group-lessons .lesson-end[data-confirming] {
   background: var(--danger-soft);
   box-shadow: inset 0 0 0 2px var(--danger);
@@ -864,6 +871,18 @@
 
 .group-page .group-lessons .group-lesson-primary .lesson-end {
   margin-block-start: 12px;
+}
+
+@media (prefers-contrast: more) {
+  .group-page .group-lessons .lesson-end,
+  .group-page .group-lessons .lesson-end:hover {
+    box-shadow: inset 0 0 0 2px var(--danger);
+  }
+}
+
+.group-page .group-lessons .lesson-actions .notice {
+  flex-basis: 100%;
+  margin: 0;
 }
 
 .group-page :where(.group-lessons) .classroom-row a::after {
@@ -876,6 +895,7 @@
   }
 
   .group-page .group-lessons {
+    order: 0;
     grid-column: 2;
     grid-row: 1;
   }

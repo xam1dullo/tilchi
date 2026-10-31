@@ -1,9 +1,11 @@
 import {
+  createElement,
   Fragment,
   isValidElement,
   type ReactElement,
   type ReactNode,
 } from 'react'
+import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it, vi } from 'vitest'
 import type { LessonRecord } from '../lib/classroom'
 
@@ -40,18 +42,18 @@ const live: LessonRecord = {
   },
 }
 
-const view = (confirming: boolean) => {
+const view = (confirming: boolean, failed = false) => {
   const handlers = {
     onStart: vi.fn(),
-    onArmEnd: vi.fn(),
-    onConfirmEnd: vi.fn(),
+    onEnd: vi.fn(),
     onCancelEnd: vi.fn(),
   }
-  const tree = LessonActions({
+  const props = {
     lesson: live,
     primary: true,
     busy: false,
     confirming,
+    failed,
     search: { handoff: undefined, preview: undefined },
     copy: {
       start: 'Start',
@@ -59,27 +61,29 @@ const view = (confirming: boolean) => {
       join: 'Join',
       confirmEnd: 'Confirm end',
       confirmEndHint: 'Press again',
+      failed: 'Failed',
     },
     ...handlers,
-  }) as ReactElement
+  }
+  const tree = LessonActions(props) as ReactElement
   const end = buttons(tree).find((b) => b.className?.includes('lesson-end'))
-  return { tree, end, handlers }
+  const html = renderToStaticMarkup(createElement(LessonActions, props))
+  return { end, handlers, html }
 }
 
-describe('LessonActions end confirmation', () => {
-  it('only arms on the first press and never ends the lesson', () => {
-    const { end, handlers } = view(false)
-    expect(end?.children).toBe('End')
-    end?.onClick?.()
-    expect(handlers.onArmEnd).toHaveBeenCalledOnce()
-    expect(handlers.onConfirmEnd).not.toHaveBeenCalled()
+describe('LessonActions', () => {
+  it('routes every End press through the confirm controller, never straight to end', () => {
+    const idle = view(false)
+    expect(idle.end?.children).toBe('End')
+    idle.end?.onClick?.()
+    expect(idle.handlers.onEnd).toHaveBeenCalledOnce()
+    const armed = view(true)
+    expect(armed.end?.children).toBe('Confirm end')
+    expect(armed.html).toContain('aria-live="polite">Press again<')
   })
 
-  it('ends the lesson on the confirming press', () => {
-    const { end, handlers } = view(true)
-    expect(end?.children).toBe('Confirm end')
-    end?.onClick?.()
-    expect(handlers.onConfirmEnd).toHaveBeenCalledOnce()
-    expect(handlers.onArmEnd).not.toHaveBeenCalled()
+  it('shows an inline alert when the action failed', () => {
+    expect(view(false).html).not.toContain('role="alert"')
+    expect(view(false, true).html).toMatch(/role="alert"[^>]*>Failed</)
   })
 })
