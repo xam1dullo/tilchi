@@ -97,6 +97,9 @@ export const uz = {
   startLesson: 'Darsni boshlash',
   endLesson: 'Darsni yakunlash',
   joinMeet: 'Darsga kirish',
+  confirmEndLesson: 'Ha, darsni yakunlash',
+  confirmEndLessonHint:
+    'Dars hamma uchun tugaydi. Tasdiqlash uchun yana bosing.',
   lessonLive: 'Jonli',
   lessonScheduled: 'Rejalashtirilgan',
   lessonEnded: 'Tugagan',

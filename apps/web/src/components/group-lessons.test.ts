@@ -139,7 +139,7 @@ describe('group lessons rail', () => {
     expect(html).not.toContain('<section class="group-lessons-scroll"')
     expect(html).not.toContain('tabindex="0"')
   })
-  it('places scheduling before main content and main content before the rail', () => {
+  it('places scheduling first, then the rail, then main content (tab order matches the phone layout)', () => {
     state.teacher = true
     state.lessons = []
     const html = render()
@@ -147,7 +147,23 @@ describe('group lessons rail', () => {
     expect(html.indexOf('group-schedule')).toBeLessThan(
       html.indexOf('group-layout'),
     )
-    expect(html.indexOf('group-main')).toBeLessThan(html.indexOf('<aside'))
+    expect(html.indexOf('<aside')).toBeGreaterThan(-1)
+    expect(html.indexOf('<aside')).toBeLessThan(html.indexOf('group-main'))
+  })
+  it('leads the live lesson with Join and keeps End as a secondary danger action', () => {
+    state.teacher = true
+    state.lessons = [lesson('live', 'live', '2030-01-02T06:00:00Z')]
+    const html = render()
+    const primary = html.slice(html.indexOf('<aside'), html.indexOf('<ul'))
+    const join = primary.indexOf('/app/meet/live')
+    const end = primary.indexOf(copy.endLesson)
+    expect(join).toBeGreaterThan(-1)
+    expect(join).toBeLessThan(end)
+    expect(primary).toMatch(
+      /<a class="btn btn-primary"[^>]*href="\/app\/meet\/live"/,
+    )
+    expect(primary).toMatch(/<button class="btn btn-outline lesson-end"/)
+    expect(primary).not.toContain(copy.confirmEndLesson)
   })
   it('keeps the empty state inside the labelled rail', () => {
     state.lessons = []

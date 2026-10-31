@@ -17,6 +17,10 @@ import {
 } from '../../../lib/classroom'
 import { EnrolPanel } from '../../../components/enrol-panel'
 import {
+  LessonActions,
+  type LessonActionsCopy,
+} from '../../../components/lesson-actions'
+import {
   AssignForm,
   AssignmentsList,
 } from '../../../components/group-assignments'
@@ -105,6 +109,8 @@ function GroupPage() {
     start: copy.startLesson,
     end: copy.endLesson,
     join: copy.joinMeet,
+    confirmEnd: copy.confirmEndLesson,
+    confirmEndHint: copy.confirmEndLessonHint,
   }
   return (
     <section className="classroom group-page">
@@ -132,31 +138,6 @@ function GroupPage() {
         ) : null}
       </div>
       <div className="group-layout">
-        <div className="group-main">
-          {group.can.assignTest ? (
-            <AssignForm
-              groupId={group.id}
-              previewRole={previewRole}
-              tests={tests}
-              copy={copy}
-            />
-          ) : null}
-          {group.can.viewAssignments ? (
-            <AssignmentsList
-              assignments={assignments}
-              copy={copy}
-              locale={locale}
-              canGrade={group.can.gradeAttempts}
-              previewRole={previewRole}
-            />
-          ) : null}
-          {group.can.seeMembers ? (
-            <MembersList members={members} copy={copy} />
-          ) : null}
-          {group.can.manageMembers ? (
-            <EnrolPanel group={group} previewRole={previewRole} copy={copy} />
-          ) : null}
-        </div>
         <aside className="group-lessons" aria-labelledby="group-lessons-title">
           <h3 id="group-lessons-title">{copy.groupLessons}</h3>
           {primaryLesson ? (
@@ -206,6 +187,31 @@ function GroupPage() {
             </ul>
           )}
         </aside>
+        <div className="group-main">
+          {group.can.assignTest ? (
+            <AssignForm
+              groupId={group.id}
+              previewRole={previewRole}
+              tests={tests}
+              copy={copy}
+            />
+          ) : null}
+          {group.can.viewAssignments ? (
+            <AssignmentsList
+              assignments={assignments}
+              copy={copy}
+              locale={locale}
+              canGrade={group.can.gradeAttempts}
+              previewRole={previewRole}
+            />
+          ) : null}
+          {group.can.seeMembers ? (
+            <MembersList members={members} copy={copy} />
+          ) : null}
+          {group.can.manageMembers ? (
+            <EnrolPanel group={group} previewRole={previewRole} copy={copy} />
+          ) : null}
+        </div>
       </div>
     </section>
   )
@@ -320,53 +326,36 @@ function LessonButtons({
   lesson: LessonRecord
   previewRole: 'learner' | 'teacher' | 'admin' | null
   search: ReturnType<typeof keepAppSearch>
-  copy: { start: string; end: string; join: string }
+  copy: LessonActionsCopy
 }) {
   const router = useRouter()
   const [busy, setBusy] = useState(false)
+  const [confirming, setConfirming] = useState(false)
+  useEffect(() => {
+    if (!confirming) return
+    const timer = window.setTimeout(() => setConfirming(false), 4000)
+    return () => window.clearTimeout(timer)
+  }, [confirming])
   const post = (path: string) => {
+    setConfirming(false)
     setBusy(true)
     void apiFetch(path, { method: 'POST', previewRole })
       .then(() => router.invalidate())
       .finally(() => setBusy(false))
   }
   if (!lesson.can.start && !lesson.can.end && !lesson.can.join) return null
-  const describedBy = primary ? `primary-lesson-time-${lesson.id}` : undefined
   return (
-    <div className="lesson-actions">
-      {lesson.can.start ? (
-        <button
-          className={primary ? 'btn btn-primary' : 'btn btn-outline'}
-          type="button"
-          disabled={busy}
-          aria-describedby={describedBy}
-          onClick={() => post(`/api/lessons/${lesson.id}/start`)}
-        >
-          {copy.start}
-        </button>
-      ) : null}
-      {lesson.can.end ? (
-        <button
-          className={primary ? 'btn btn-primary' : 'btn btn-outline'}
-          type="button"
-          disabled={busy}
-          aria-describedby={describedBy}
-          onClick={() => post(`/api/lessons/${lesson.id}/end`)}
-        >
-          {copy.end}
-        </button>
-      ) : null}
-      {lesson.can.join ? (
-        <Link
-          className="btn btn-primary"
-          aria-describedby={describedBy}
-          to="/app/meet/$lessonId"
-          params={{ lessonId: lesson.id }}
-          search={search}
-        >
-          {copy.join}
-        </Link>
-      ) : null}
-    </div>
+    <LessonActions
+      lesson={lesson}
+      primary={primary}
+      busy={busy}
+      confirming={confirming}
+      search={search}
+      copy={copy}
+      onStart={() => post(`/api/lessons/${lesson.id}/start`)}
+      onArmEnd={() => setConfirming(true)}
+      onConfirmEnd={() => post(`/api/lessons/${lesson.id}/end`)}
+      onCancelEnd={() => setConfirming(false)}
+    />
   )
 }

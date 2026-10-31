@@ -77,6 +77,8 @@ export const en = {
   startLesson: 'Start lesson',
   endLesson: 'End lesson',
   joinMeet: 'Join the meeting',
+  confirmEndLesson: 'Yes, end the lesson',
+  confirmEndLessonHint: 'The lesson ends for everyone. Press again to confirm.',
   lessonLive: 'Live',
   lessonScheduled: 'Scheduled',
   lessonEnded: 'Ended',

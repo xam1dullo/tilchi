@@ -779,8 +779,9 @@
   min-width: 0;
 }
 
+/* The rail precedes main in the DOM, so phone tab order matches the
+   visual order without CSS `order` (WCAG 2.4.3). */
 .group-page .group-lessons {
-  order: -1;
   padding: 20px;
   border: 1px solid var(--line);
   border-radius: var(--r-lg);
@@ -849,6 +850,22 @@
   width: 100%;
 }
 
+/* End is destructive: outline danger, set apart from Join, confirmed by a
+   second press. Never filled (`.meet-leave` is the only filled danger). */
+.group-page .group-lessons .lesson-end {
+  color: var(--danger);
+  box-shadow: inset 0 0 0 1px var(--danger);
+}
+
+.group-page .group-lessons .lesson-end[data-confirming] {
+  background: var(--danger-soft);
+  box-shadow: inset 0 0 0 2px var(--danger);
+}
+
+.group-page .group-lessons .group-lesson-primary .lesson-end {
+  margin-block-start: 12px;
+}
+
 .group-page :where(.group-lessons) .classroom-row a::after {
   content: none;
 }
@@ -859,7 +876,6 @@
   }
 
   .group-page .group-lessons {
-    order: 0;
     grid-column: 2;
     grid-row: 1;
   }
