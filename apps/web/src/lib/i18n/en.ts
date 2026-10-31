@@ -115,6 +115,8 @@ export const en = {
   meetYou: 'you',
   meetMicOff: 'microphone off',
   meetSpeaking: 'speaking',
+  navLearning: 'Learning',
+  navUpdates: 'Updates',
   navMain: 'Main navigation',
   openApp: 'Sign in',
   addLearner: 'Add a learner',

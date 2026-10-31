@@ -114,6 +114,8 @@ export const ru = {
   meetYou: 'вы',
   meetMicOff: 'микрофон выключен',
   meetSpeaking: 'говорит',
+  navLearning: 'Обучение',
+  navUpdates: 'Обновления',
   navMain: 'Основная навигация',
   openApp: 'Войти',
   addLearner: 'Добавить ученика',
