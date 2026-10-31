@@ -37,6 +37,9 @@ const pairs = [
   ['accent on bg-alt', '--accent', '--bg-alt'],
   ['muted on bg', '--muted', '--bg'],
   ['muted on bg-alt', '--muted', '--bg-alt'],
+  ['muted on bg-elev', '--muted', '--bg-elev'],
+  ['ink-2 on bg-elev', '--ink-2', '--bg-elev'],
+  ['ink on bg-elev', '--ink', '--bg-elev'],
   ['on-accent on accent-2', '--on-accent', '--accent-2'],
   ['warn on warn-soft', '--warn', '--warn-soft'],
   ['warn on bg', '--warn', '--bg'],
@@ -62,3 +65,8 @@ for (const [label, fg, bg] of pairs) {
 }
 
 if (failed) process.exit(1)
+
+// Diagnostic only: this pair is prohibited for text. Hover counts use ink-2.
+console.log(
+  `PROHIBITED ${ratio(tokens['--muted'], tokens['--accent-soft']).toFixed(2)} muted on accent-soft (text requires >=4.5)`,
+)

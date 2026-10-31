@@ -2,7 +2,14 @@ import { isValidElement, type ReactNode } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import type { MyAssignment } from '../lib/attempt'
 import { copy } from '../lib/i18n'
-import { MyTestsView } from './my-tests'
+import { MyTestsList, MyTestsView } from './my-tests'
+
+const { setFilter } = vi.hoisted(() => ({ setFilter: vi.fn() }))
+
+vi.mock('react', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('react')>()),
+  useState: (initial: unknown) => [initial, setFilter],
+}))
 
 function elements(
   node: ReactNode,
@@ -36,6 +43,15 @@ const props = {
 }
 
 describe('assignment filter rendering', () => {
+  it('wires the stateful wrapper filter callback to its setter', () => {
+    setFilter.mockClear()
+    const view = MyTestsList(props)
+    expect(view.type).toBe(MyTestsView)
+    expect(view.props.filter).toBe('all')
+    view.props.onFilter('graded')
+    expect(setFilter).toHaveBeenCalledExactlyOnceWith('graded')
+  })
+
   it('renders only graded list items for the graded filter', () => {
     const rows = elements(MyTestsView({ ...props, filter: 'graded' }), 'li')
     expect(rows).toHaveLength(1)
