@@ -986,9 +986,6 @@
 }
 
 .attempt-page .attempt-submit {
-  position: sticky;
-  bottom: 0;
-  z-index: 2;
   border-top: 1px solid var(--line-strong);
 }
 
