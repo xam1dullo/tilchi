@@ -272,6 +272,10 @@
     outline-offset: -2px;
   }
 
+  .app-shell .app-nav a[aria-current="page"]:focus-visible {
+    outline-color: var(--on-accent);
+  }
+
   .app-shell .app-main {
     grid-column: 2;
     min-width: 0;

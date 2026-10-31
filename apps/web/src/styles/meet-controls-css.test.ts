@@ -40,4 +40,36 @@ describe('meeting control styles', () => {
     expect(values('.meet-tile', 'background')).toEqual(['var(--meet-bg)'])
     expect(values('.meet-controls', 'background')).toEqual(['var(--bg-elev)'])
   })
+
+  // Terracotta made outlined leave, pressed toggles and primary look alike.
+  it('fills leave with danger so it never reads as a pressed toggle', () => {
+    expect(values('.meet-leave', 'background')).toEqual(['var(--danger)'])
+    expect(values('.meet-leave', 'color')).toEqual(['#ffffff'])
+    expect(css).toMatch(
+      /\.meet-control\[aria-pressed="true"\]\s*\{[^}]*background:\s*var\(--accent-soft\)/,
+    )
+  })
+})
+
+describe('notice tones', () => {
+  const base = readFileSync(
+    fileURLToPath(new URL('./base.css', import.meta.url)),
+    'utf8',
+  )
+  const rule = (selector: string) =>
+    [...base.matchAll(new RegExp(`${selector}\\s*\\{([^}]*)\\}`, 'g'))]
+      .map(([, body]) => body)
+      .join('\n')
+
+  it('keeps done neutral and gives done and error a glyph, not colour alone', () => {
+    const done = rule('\\.notice\\[data-tone="done"\\]')
+    expect(done).toContain('var(--ink-2)')
+    expect(done).not.toMatch(/accent|success|danger/)
+    expect(rule('\\.notice\\[data-tone="done"\\]::before')).toMatch(
+      /content:\s*"\\2713"/,
+    )
+    expect(rule('\\.notice\\[data-tone="error"\\]::before')).toMatch(
+      /content:\s*"!"/,
+    )
+  })
 })

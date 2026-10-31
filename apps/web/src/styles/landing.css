@@ -354,6 +354,11 @@ html[lang="ru"] .l-hero h1 {
   background: var(--accent-soft);
 }
 
+/* The band is --accent-2, so the default --focus ring would vanish. */
+.l-final :focus-visible {
+  outline-color: var(--on-accent);
+}
+
 .site-foot > a {
   color: var(--ink);
   font-weight: 600;

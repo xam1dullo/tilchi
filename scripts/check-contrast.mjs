@@ -67,7 +67,16 @@ const uiPairs = [
   ['focus on accent-soft', '--focus', '--accent-soft'],
   ['accent-solid on bg', '--accent-solid', '--bg'],
   ['accent-solid on bg-elev', '--accent-solid', '--bg-elev'],
+  ['focus on ink', '--focus', '--ink'],
+  // Rings on terracotta surfaces (.l-final band, active sidebar item).
+  ['on-accent ring on accent-2', '--on-accent', '--accent-2'],
+  ['on-accent ring on accent-solid', '--on-accent', '--accent-solid'],
 ]
+
+// Not gated: --danger and --accent-2 are near-identical in luminance, so
+// they must differ by shape, not colour (filled .meet-leave vs outlined
+// controls, glyphs on notices). Printed so a token change stays visible.
+const distinct = [['danger vs accent-2', '--danger', '--accent-2']]
 
 // Prohibited for text. Each must stay below 4.5; if one passes, the rule is
 // stale: move it into `pairs` and drop it from design.md.
@@ -100,12 +109,32 @@ check(pairs, 4.5)
 check(uiPairs, 3)
 
 for (const [label, fg, bg] of prohibited) {
-  const score = ratio(hex(fg), hex(bg))
+  const fgHex = hex(fg)
+  const bgHex = hex(bg)
+  if (!fgHex || !bgHex) {
+    console.error(`FAIL ${label}: missing token`)
+    failed = true
+    continue
+  }
+  const score = ratio(fgHex, bgHex)
   const stale = score >= 4.5
   console.log(
     `${stale ? 'FAIL stale' : 'PROHIBITED'} ${score.toFixed(2)} ${label} (text never uses this pair)`,
   )
   if (stale) failed = true
+}
+
+for (const [label, a, b] of distinct) {
+  const aHex = hex(a)
+  const bHex = hex(b)
+  if (!aHex || !bHex) {
+    console.error(`FAIL ${label}: missing token`)
+    failed = true
+    continue
+  }
+  console.log(
+    `note ${ratio(aHex, bHex).toFixed(2)} ${label} (not a contrast pair; distinguish by shape)`,
+  )
 }
 
 if (failed) process.exit(1)
