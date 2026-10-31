@@ -118,6 +118,8 @@ export const uz = {
   meetYou: 'siz',
   meetMicOff: "mikrofon o'chiq",
   meetSpeaking: 'gapirmoqda',
+  navLearning: "O'quv jarayoni",
+  navUpdates: 'Yangiliklar',
   navMain: 'Asosiy navigatsiya',
   openApp: 'Kirish',
   addLearner: "O'quvchi qo'shish",

@@ -59,7 +59,7 @@ Single warm-neutral family tinted toward green; one accent (forest green, S≈59
 | `--tg` | `#2AABEE` | Telegram glyph only |
 | `--focus` | `#175A3B` | focus ring |
 
-Light theme only. No dark mode (parents on phones in daylight; one theme keeps the contrast gate meaningful). `::selection` = `--accent-soft`.
+Light content theme with no dark-mode toggle (parents on phones in daylight; one theme keeps the contrast gate meaningful). The `/app` desktop sidebar uses existing ink-dark tokens as a fixed shell surface. `::selection` = `--accent-soft`.
 
 Rules: never put `--accent` text smaller than 0.875rem on `--bg-alt`; never use pure `#000`; shadows carry ink tint `rgba(21,26,23,α)`.
 
@@ -256,6 +256,7 @@ Definition of ready: this file approved. Definition of done: checklist green, no
 | 2026-10-23 | Direction "Kunduzgi studiya" chosen over dark editorial / cream evolution | owner pick; parents + daylight phones |
 | 2026-10-23 | FAQ accordion → visible `dl` | skill audit: accordion = generic; SEO + a11y better |
 | 2026-10-23 | Telegram button = ink, not blue | single-accent rule; glyph keeps brand recognition |
+| 2026-10-31 | Ink-dark sidebar for the `/app` desktop shell using existing tokens | Owner-requested; vibecoding.uz cabinet reference. Content and phone layouts remain light; no dark-mode toggle. |
 | 2026-10-23 | No dark mode | one theme keeps contrast gate honest; v2 had none either |
 | 2026-10-23 | Portrait slot with monogram fallback | no photo asset in repo; never use stock faces |
 | open | Show certificate numbers on `/teacher`? | privacy vs proof — owner decides |

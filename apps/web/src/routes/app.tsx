@@ -60,18 +60,34 @@ function AppLayout() {
           </button>
         </div>
       </header>
-      <nav className="app-nav" aria-label={copy.navMain}>
-        {items.map((item) => (
-          <Link
-            key={item.id}
-            to={item.to}
-            search={search}
-            activeOptions={{ exact: true }}
-          >
-            {copy[item.id]}
-          </Link>
-        ))}
-      </nav>
+      <div className="app-sidebar">
+        <Link className="logo app-sidebar-brand" to="/">
+          tilchi
+        </Link>
+        <nav className="app-nav" aria-label={copy.navMain}>
+          {(['navLearning', 'navUpdates'] as const).map((group) => (
+            <div className="app-nav-group" key={group}>
+              <p className="app-nav-label">{copy[group]}</p>
+              {items
+                .filter((item) =>
+                  group === 'navUpdates'
+                    ? item.id === 'notifications'
+                    : item.id !== 'notifications',
+                )
+                .map((item) => (
+                  <Link
+                    key={item.id}
+                    to={item.to}
+                    search={search}
+                    activeOptions={{ exact: true }}
+                  >
+                    {copy[item.id]}
+                  </Link>
+                ))}
+            </div>
+          ))}
+        </nav>
+      </div>
       <div className="app-main">
         <Outlet />
       </div>

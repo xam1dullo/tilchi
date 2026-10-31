@@ -29,6 +29,7 @@ const ratio = (a, b) => {
 
 const pairs = [
   ['white on accent-solid', '#ffffff', '--accent-solid'],
+  ['bg on accent-solid', '--bg', '--accent-solid'],
   ['bg on ink', '--bg', '--ink'],
   ['accent-ink on accent-soft', '--accent-ink', '--accent-soft'],
   ['ink-2 on accent-soft', '--ink-2', '--accent-soft'],
