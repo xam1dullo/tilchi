@@ -1,6 +1,7 @@
 import { createElement, type ReactNode } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { assignmentView } from '../lib/cabinet'
 import type { MyAssignment } from '../lib/attempt'
 import type { AppRole } from '../lib/nav'
 import { messages } from '../lib/i18n'
@@ -76,6 +77,46 @@ const assignment = (
 })
 
 describe('assignment cabinet', () => {
+  it('counts loaded assignments and filters each status without changing the source', () => {
+    const rows = ['assigned', 'assigned', 'submitted', 'graded', 'missed'].map(
+      (status, i) => assignment(status as MyAssignment['status'], i),
+    )
+    const counts = { all: 5, assigned: 2, submitted: 1, graded: 1, missed: 1 }
+    for (const filter of [
+      'all',
+      'assigned',
+      'submitted',
+      'graded',
+      'missed',
+    ] as const) {
+      const view = assignmentView(rows, filter)
+      expect(view.counts).toEqual(counts)
+      expect(view.rows).toEqual(
+        filter === 'all' ? rows : rows.filter((row) => row.status === filter),
+      )
+    }
+    expect(rows).toHaveLength(5)
+    expect(assignmentView([], 'all')).toEqual({
+      counts: { all: 0, assigned: 0, submitted: 0, graded: 0, missed: 0 },
+      rows: [],
+    })
+    expect(assignmentView([assignment('assigned', 0)], 'graded').rows).toEqual(
+      [],
+    )
+  })
+  it('renders five counted filter buttons with All pressed by default', () => {
+    const html = render([assignment('assigned', 0), assignment('submitted', 1)])
+    expect(html).toContain(
+      '<fieldset class="assignment-filters" aria-label="Filter assignments"',
+    )
+    expect(html.match(/aria-pressed="true"/g)).toHaveLength(1)
+    expect(html.match(/aria-pressed="false"/g)).toHaveLength(4)
+    expect(html).toContain(
+      'aria-pressed="true">All <span class="assignment-filter-count">2</span>',
+    )
+    expect(html).toContain('Awaiting review')
+    expect(html.match(/<li /g)).toHaveLength(2)
+  })
   it('counts each status separately and retains status, zero grade and attempt link', () => {
     const html = render(
       ['assigned', 'assigned', 'submitted', 'graded', 'missed'].map((s, i) =>

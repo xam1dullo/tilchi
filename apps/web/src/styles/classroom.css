@@ -1051,7 +1051,7 @@
 }
 
 :is(.assignments-page, .groups-page, .tests-page) .cabinet-stats dt {
-  overflow-wrap: anywhere;
+  hyphens: auto;
   font-size: var(--fs-xs);
   color: var(--ink-2);
 }
@@ -1064,6 +1064,8 @@
 }
 
 :is(.assignments-page, .groups-page, .tests-page) dd.cabinet-stat-hint {
+  overflow-wrap: normal;
+  hyphens: auto;
   margin: 0;
   color: var(--muted);
   font: 400 var(--fs-xs) / 1.45 var(--font-sans);
@@ -1174,4 +1176,53 @@
   :is(.assignments-page, .groups-page, .tests-page) .classroom-row a {
     transition: none;
   }
+}
+
+/* Wrap within the available cabinet column, including the desktop sidebar. */
+.assignments-page .assignment-filters {
+  display: flex;
+  flex-wrap: wrap;
+  width: fit-content;
+  max-width: 100%;
+  gap: 4px;
+  padding: 6px;
+  margin: 0 0 24px;
+  min-inline-size: 0;
+  border: 0;
+  border-radius: var(--r-lg);
+  background: var(--bg-alt);
+}
+
+.assignments-page .assignment-filters button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  min-width: 44px;
+  max-width: 100%;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: var(--r-full);
+  background: transparent;
+  color: var(--ink-2);
+  font: 500 var(--fs-xs) / 1.45 var(--font-sans);
+  cursor: pointer;
+  hyphens: auto;
+}
+
+.assignments-page .assignment-filters button[aria-pressed="true"] {
+  background: var(--bg-elev);
+  color: var(--ink);
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--ink) 15%, transparent);
+}
+
+.assignments-page .assignment-filters button:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.assignments-page .assignment-filter-count {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
 }

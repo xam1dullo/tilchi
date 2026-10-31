@@ -1,6 +1,8 @@
+import { useState } from 'react'
+import { assignmentView, type AssignmentFilter } from '../lib/cabinet'
 import { Link } from '@tanstack/react-router'
 import { CabinetStats, CabinetIcon } from './cabinet-stats'
-import { ATTEMPT_STATUSES, statusCounts, statusKey } from '../lib/assignments'
+import { ATTEMPT_STATUSES, statusKey } from '../lib/assignments'
 import type { MyAssignment } from '../lib/attempt'
 import { formatLessonTime } from '../lib/classroom'
 import type { Copy } from '../lib/i18n'
@@ -18,7 +20,15 @@ export function MyTestsList({
   locale: string
   previewRole: AppRole | null
 }) {
-  const counts = statusCounts(assignments)
+  const [filter, setFilter] = useState<AssignmentFilter>('all')
+  const { counts, rows } = assignmentView(assignments, filter)
+  const filters = ['all', ...ATTEMPT_STATUSES] as const
+  const filterLabel = (value: AssignmentFilter) =>
+    value === 'all'
+      ? copy.assignmentFilterAll
+      : value === 'submitted'
+        ? copy.assignmentFilterSubmitted
+        : copy[statusKey[value]]
   const hints = {
     assigned: copy.cabinetAssignedHint,
     submitted: copy.cabinetSubmittedHint,
@@ -34,11 +44,31 @@ export function MyTestsList({
           hint: hints[status],
         }))}
       />
-      {assignments.length === 0 ? (
-        <p className="hint">{copy.myTestsEmpty}</p>
+      <fieldset
+        className="assignment-filters"
+        aria-label={copy.assignmentFilters}
+      >
+        {filters.map((value) => (
+          <button
+            key={value}
+            type="button"
+            aria-pressed={filter === value}
+            onClick={() => setFilter(value)}
+          >
+            {filterLabel(value)}{' '}
+            <span className="assignment-filter-count">{counts[value]}</span>
+          </button>
+        ))}
+      </fieldset>
+      {rows.length === 0 ? (
+        <p className="hint">
+          {assignments.length === 0
+            ? copy.myTestsEmpty
+            : copy.assignmentFilterEmpty}
+        </p>
       ) : (
         <ul className="rows classroom-list">
-          {assignments.map((a) => (
+          {rows.map((a) => (
             <li key={a.attemptId} className="row classroom-row">
               <Link
                 to="/app/attempts/$attemptId"

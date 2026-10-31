@@ -1,3 +1,5 @@
+import { statusCounts, type AttemptStatus } from './assignments'
+import type { MyAssignment } from './attempt'
 import type { GroupRecord } from './classroom'
 import type { Copy } from './i18n'
 import type { AppRole } from './nav'
@@ -63,4 +65,20 @@ export function testStats(
       hint: copy.cabinetDraftHint,
     },
   ]
+}
+
+export type AssignmentFilter = 'all' | AttemptStatus
+
+/** Counts always describe the full loaded list, independent of the filter. */
+export function assignmentView(
+  assignments: MyAssignment[],
+  filter: AssignmentFilter,
+) {
+  return {
+    counts: { all: assignments.length, ...statusCounts(assignments) },
+    rows:
+      filter === 'all'
+        ? assignments
+        : assignments.filter((row) => row.status === filter),
+  }
 }

@@ -60,23 +60,36 @@ describe('notifications', () => {
   })
 
   it('shows the server unread total and offers an accessible mark-read action', () => {
-    const html = renderToStaticMarkup(
-      createElement(NotificationList, {
-        inbox,
-        copy: copy.uz,
-        locale: 'uz',
-        previewRole: 'teacher',
-        busyId: null,
-        error: false,
-        onRead: () => {},
-      }),
-    )
-    expect(html).toContain('52')
-    expect(html).toContain('Yangi dars')
-    expect(html).toContain('29-okt, 2026, 15:00')
-    expect(html).toContain(`/app/groups/${id}?preview=teacher`)
-    expect(html).toContain('/app/notifications?preview=teacher')
-    expect(html).toContain('aria-label="O‘qilgan deb belgilash: Yangi dars"')
+    const DateTimeFormat = Intl.DateTimeFormat
+    const formatter = vi
+      .spyOn(Intl, 'DateTimeFormat')
+      .mockImplementation(function fallbackDateTimeFormat(locale, options) {
+        return new DateTimeFormat(
+          locale === 'uz' || locale === 'uz-UZ' ? 'en' : locale,
+          options,
+        )
+      })
+    try {
+      const html = renderToStaticMarkup(
+        createElement(NotificationList, {
+          inbox,
+          copy: copy.uz,
+          locale: 'uz',
+          previewRole: 'teacher',
+          busyId: null,
+          error: false,
+          onRead: () => {},
+        }),
+      )
+      expect(html).toContain('52')
+      expect(html).toContain('Yangi dars')
+      expect(html).toContain('29-okt, 2026, 15:00')
+      expect(html).toContain(`/app/groups/${id}?preview=teacher`)
+      expect(html).toContain('/app/notifications?preview=teacher')
+      expect(html).toContain('aria-label="O‘qilgan deb belgilash: Yangi dars"')
+    } finally {
+      formatter.mockRestore()
+    }
   })
 
   it('keeps invalid notification timestamps empty', () => {
