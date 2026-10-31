@@ -13,8 +13,7 @@
   gap: 16px;
   min-height: var(--topbar-h);
   flex-wrap: wrap;
-  padding-block: 6px;
-  padding: 0 var(--sec-pad-app);
+  padding: 6px var(--sec-pad-app);
   border-bottom: 1px solid var(--line);
   background: color-mix(in srgb, var(--bg) 86%, transparent);
   position: sticky;
