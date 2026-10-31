@@ -42,13 +42,14 @@ export class OutboxWorker
     await this.running
   }
 
-  /** Starts a drain now unless one is running; never throws. */
+  /** Starts or joins a drain; resolves when it finishes and never rejects. */
   kick() {
     this.running ??= this.drainOnce()
       .catch((error: Error) => this.log.error(`drain: ${error.message}`))
       .finally(() => {
         this.running = null
       })
+    return this.running
   }
 
   /**

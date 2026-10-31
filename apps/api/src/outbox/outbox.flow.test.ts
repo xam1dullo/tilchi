@@ -646,12 +646,11 @@ describeWithDatabase('outbox', (current) => {
       const ended = await controller.end(other.id, admin)
       expect(ended.status).toBe('ended')
       // the failed close queued a retry and kicked the drain
-      await vi.waitFor(async () => {
-        const row = (await rows()).find(
-          (r) => r.idempotencyKey === `meeting.close:${other.id}`,
-        )
-        expect(row?.sentAt).not.toBeNull()
-      })
+      await worker.kick()
+      const row = (await rows()).find(
+        (r) => r.idempotencyKey === `meeting.close:${other.id}`,
+      )
+      expect(row?.sentAt).toBeInstanceOf(Date)
       expect(rooms.close).toHaveBeenCalledTimes(3)
       expect(rooms.close).toHaveBeenLastCalledWith(`lesson-${other.id}`)
     })
