@@ -138,7 +138,7 @@ a {
 
 .btn-primary {
   background: var(--accent-solid);
-  color: #fff;
+  color: var(--on-accent);
 }
 
 .btn-primary:hover {

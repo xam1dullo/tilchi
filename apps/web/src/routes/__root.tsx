@@ -6,7 +6,8 @@ import {
 } from '@tanstack/react-router'
 import { createIsomorphicFn } from '@tanstack/react-start'
 import frauncesUrl from '@fontsource-variable/fraunces/files/fraunces-latin-soft-normal.woff2?url'
-import geistUrl from '@fontsource-variable/geist/files/geist-latin-wght-normal.woff2?url'
+import onestCyrillicUrl from '@fontsource-variable/onest/files/onest-cyrillic-wght-normal.woff2?url'
+import onestUrl from '@fontsource-variable/onest/files/onest-latin-wght-normal.woff2?url'
 import appCss from '../styles/app.css?url'
 import { apiFetch } from '../lib/api'
 import { messages } from '../lib/i18n'
@@ -47,11 +48,11 @@ export const Route = createRootRoute({
           : null,
     }
   },
-  head: () => ({
+  head: ({ match }) => ({
     meta: [
       { charSet: 'utf-8' },
       { name: 'viewport', content: 'width=device-width, initial-scale=1' },
-      { name: 'theme-color', content: '#FCFCFA' },
+      { name: 'theme-color', content: '#F7F4EE' },
       { title: 'Tilchi' },
     ],
     links: [
@@ -62,13 +63,16 @@ export const Route = createRootRoute({
         type: 'font/woff2',
         crossOrigin: 'anonymous',
       },
-      {
+      ...[
+        onestUrl,
+        ...(match.context.locale === 'ru' ? [onestCyrillicUrl] : []),
+      ].map((href) => ({
         rel: 'preload',
-        href: geistUrl,
+        href,
         as: 'font',
         type: 'font/woff2',
-        crossOrigin: 'anonymous',
-      },
+        crossOrigin: 'anonymous' as const,
+      })),
       { rel: 'stylesheet', href: appCss },
     ],
   }),

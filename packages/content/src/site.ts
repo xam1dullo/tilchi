@@ -9,7 +9,7 @@ export const site = {
   description:
     "Mukhtasar Karimjonova — IELTS 7.0, C1 daraja, ilmiy tadqiqot muallifi. Bolalar, IELTS va kattalar uchun online ingliz tili darslari. Birinchi demo dars bepul, karta so'ralmaydi.",
   locale: 'uz_UZ',
-  themeColor: '#FCFCFA',
+  themeColor: '#F7F4EE',
   telegramBot: 'tilchiuz_bot',
   botUrl: 'https://t.me/tilchiuz_bot',
   appUrl: 'https://app.tilchi.uz',

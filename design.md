@@ -2,7 +2,7 @@
 
 # tilchi.uz — design specification
 
-Version 3.0 · 2026-10-23 · direction **"Kunduzgi studiya"** (daylight studio)
+Version 3.2 · 2026-10-31 · direction **"Kunduzgi studiya"** (daylight studio), brand palette after vibecoding.uz (§01, §14)
 
 Scope: the marketing site in this repo (`tilchi/`, Next 16 static export). `app.tilchi.uz` (classroom app, separate repo) is out of scope. This file is the single source for the redesign; section files reference it.
 
@@ -21,7 +21,7 @@ Contents: 00 Overview · 01 Color · 02 Type · 03 Foundations · 04 Components 
 **Why redesign.** v2 (cream + terracotta editorial) is competent but reads as the common "warm AI editorial" template: centred hero + shadowed card, three stacked icon cards, accordion FAQ, pill buttons, pill badges, bordered cards everywhere. v3 replaces the *structure*, not just the palette: typographic hero, index-style lists with hairlines, no shadowed cards, one accent.
 
 **Principles.**
-1. Paper, ink, one green. Nothing else gets colour.
+1. Cream paper, ink, one terracotta. Nothing else gets colour.
 2. Hairlines over boxes. Hierarchy from type size and space, not borders + shadows.
 3. Asymmetry on purpose. Section headers sit left; content grids are 7/5 or 5/7, never 3 equal cards.
 4. Numbers are tabular, large, serif. They are the proof.
@@ -35,33 +35,38 @@ Contents: 00 Overview · 01 Color · 02 Type · 03 Foundations · 04 Components 
 
 ## 01 Color
 
-Single warm-neutral family tinted toward green; one accent (forest green, S≈59%). No second accent. Telegram blue appears only as the icon glyph, never as a surface.
+Brand (owner decision 2026-10-31, after vibecoding.uz): warm cream paper, near-black ink, one terracotta accent derived from `#D93A1C`. No second accent. Telegram blue appears only as the icon glyph, never as a surface. Ratios below are measured by `pnpm contrast`.
 
-### Semantic tokens (`:root` in `src/app/globals.css` — `scripts/check-contrast.mjs` reads this block, keep it flat)
+### Semantic tokens (`:root` in `apps/web/src/styles/tokens.css` — `scripts/check-contrast.mjs` reads this block, keep it flat)
 
-| Token | Hex | Role |
-|---|---|---|
-| `--bg` | `#FCFCFA` | canvas (paper) |
-| `--bg-elev` | `#FFFFFF` | raised surface (rare) |
-| `--bg-alt` | `#F1F3EE` | alternate band / hover row |
-| `--surface` | `#FFFFFF` | inputs, choice chips |
-| `--ink` | `#151A17` | primary text, ink buttons |
-| `--ink-2` | `#3B423E` | body text |
-| `--muted` | `#666E68` | secondary text (≥4.6:1 on all bgs) |
-| `--line` | `#E1E5E0` | hairline |
-| `--line-strong` | `#C4CBC5` | hairline on hover / dividers in dense lists |
-| `--accent` | `#1E6B47` | underlines, markers, icons (6.3:1 on bg) |
-| `--accent-solid` | `#175A3B` | primary button bg (8.2:1 with white text) |
-| `--accent-2` | `#0F4A2F` | primary button hover |
-| `--accent-soft` | `#E1EEE4` | tinted panels (booking panel, portrait fallback) |
-| `--accent-ink` | `#0C3F27` | text on `--accent-soft` (9.9:1) |
-| `--success` | `#1E6B47` | check icons (= accent) |
-| `--tg` | `#2AABEE` | Telegram glyph only |
-| `--focus` | `#175A3B` | focus ring |
+| Token | Hex | Role | Measured |
+|---|---|---|---|
+| `--bg` | `#F7F4EE` | canvas (cream paper, cabinet content) | ink 16.79:1 |
+| `--bg-elev` | `#FFFFFF` | cards, top bar, raised surfaces | ink 18.43:1 |
+| `--bg-alt` | `#EFEBE3` | alternate band / hover row | ink-2 9.52:1 |
+| `--surface` | `#FFFFFF` | inputs, choice chips | |
+| `--ink` | `#141413` | primary text, ink buttons, `/app` sidebar, meeting tiles | bg on ink 16.79:1 |
+| `--ink-2` | `#3D3A35` | body text | 11.32:1 on bg-elev |
+| `--muted` | `#6B6760` | secondary text | 5.12 bg · 4.73 bg-alt · 5.62 bg-elev · 4.72 accent-soft |
+| `--line` | `#E6E1D7` | hairline | decorative |
+| `--line-strong` | `#CCC5B8` | hairline on hover / dense-list dividers | decorative |
+| `--accent-solid` | `#D93A1C` | brand: primary button, active sidebar item; white text only | white 4.59:1 |
+| `--accent-2` | `#A12B13` | primary hover, deep accent band, link text | white 7.32:1 · 7.32 on bg-elev |
+| `--accent` | `#B8301A` | accent text, markers, active bars, `h1 em` | 5.50 bg · 5.08 bg-alt · 6.04 bg-elev |
+| `--accent-soft` | `#FBE7E0` | tags, notices, selection, tinted panels | |
+| `--accent-ink` | `#7A2412` | text on `--accent-soft` | 8.43:1 |
+| `--on-accent` | `#FFFFFF` | text on `--accent-solid` / `--accent-2` | 4.59 / 7.32 |
+| `--on-accent-muted` | `#F6D5CB` | secondary text on `--accent-2` | 5.33:1 |
+| `--success` | `#B8301A` | done notice border (= accent) | |
+| `--focus` | `#B8301A` | focus ring | 5.50 bg · 5.08 bg-alt · 6.04 bg-elev · 5.07 accent-soft (≥3 needed) |
+| `--tg` | `#2AABEE` | Telegram glyph only | |
 
-Light content theme with no dark-mode toggle (parents on phones in daylight; one theme keeps the contrast gate meaningful). The `/app` desktop sidebar uses existing ink-dark tokens as a fixed shell surface. `::selection` = `--accent-soft`.
+Light content theme with no dark-mode toggle (parents on phones in daylight; one theme keeps the contrast gate meaningful). The `/app` desktop sidebar is `--ink` with `--bg` text; its active item is `--accent-solid` with `--on-accent` text. `::selection` = `--accent-soft`.
 
-Rules: never put `--accent` text smaller than 0.875rem on `--bg-alt`; never use pure `#000`; shadows carry ink tint `rgba(21,26,23,α)`.
+Rules:
+- `#D93A1C` is a surface colour. Text on it is white (`--on-accent`), never cream `--bg` (4.18:1). It is never a text colour on light surfaces (4.18 on bg, 3.86 on bg-alt); use `--accent` or `--accent-2` for terracotta text. `pnpm contrast` lists these as PROHIBITED and fails if one of them ever passes (the rule would be stale).
+- Never use pure `#000`; shadows carry ink tint `rgba(20,20,19,α)`.
+- Error (`--danger #A3261F`) sits close to the accent hue; error states always carry text, never colour alone.
 
 ---
 
@@ -72,14 +77,14 @@ Rules: never put `--accent` text smaller than 0.875rem on `--bg-alt`; never use 
 | Display (hero h1) | Fraunces (opsz, SOFT axes) | `--fs-display` = clamp(3rem, 7.4vw + 0.6rem, 6.8rem) | 400 | 0.98 | −0.035em |
 | H2 | Fraunces | `--fs-h2` = clamp(2rem, 3.4vw + 0.6rem, 3.5rem) | 400 | 1.02 | −0.028em |
 | H3 | Fraunces | `--fs-h3` = clamp(1.35rem, 1.4vw + 0.8rem, 1.75rem) | 450 | 1.15 | −0.015em |
-| Lead | Geist | `--fs-lead` = clamp(1.125rem, 0.5vw + 0.95rem, 1.3125rem) | 400 | 1.5 | 0 |
-| Body | Geist | `--fs-body` = 1.0625rem | 400 | 1.6 | 0 |
-| Small | Geist | `--fs-sm` = 0.9375rem | 400/500 | 1.5 | 0 |
-| Caption | Geist | `--fs-xs` = 0.8125rem | 500 | 1.45 | 0 |
-| Label (`.eyebrow`) | Geist | `--fs-label` = 0.75rem | 600 | 1 | +0.12em, uppercase |
+| Lead | Onest | `--fs-lead` = clamp(1.125rem, 0.5vw + 0.95rem, 1.3125rem) | 400 | 1.5 | 0 |
+| Body | Onest | `--fs-body` = 1.0625rem | 400 | 1.6 | 0 |
+| Small | Onest | `--fs-sm` = 0.9375rem | 400/500 | 1.5 | 0 |
+| Caption | Onest | `--fs-xs` = 0.8125rem | 500 | 1.45 | 0 |
+| Label (`.eyebrow`) | Onest | `--fs-label` = 0.75rem | 600 | 1 | +0.12em, uppercase |
 | Big number (`.stat`) | Fraunces | clamp(2.25rem, 3vw, 3rem) | 400 | 1 | −0.03em, tabular |
 
-Fonts load via `next/font/google` (`Fraunces` with `axes: ['opsz','SOFT']`, `Geist`). Italic Fraunces is the only emphasis inside headings (`em` = italic, colour `--accent`). Body `p` max-width 64ch, `text-wrap: pretty`; headings `text-wrap: balance`. `.num` → `font-variant-numeric: tabular-nums`. Uzbek apostrophe is `'` (U+0027) in copy; do not convert.
+Fonts are self-hosted from fontsource packages (`@fontsource-variable/fraunces` SOFT axes, `@fontsource-variable/onest` wght; both OFL), imported in `apps/web/src/styles/app.css`; `__root.tsx` preloads the Fraunces and Onest latin files (plus Onest cyrillic for `ru`). Onest covers Latin, Cyrillic and the Uzbek apostrophes (U+2018/2019, U+02BB/02BC), so ru uses Onest too; Fraunces has no Cyrillic, so ru headings fall back to Onest. The vibecoding.uz heading face (Tiempos Headline) is paid and not used; headings stay Fraunces. Italic Fraunces is the only emphasis inside headings (`em` = italic, colour `--accent`). Body `p` max-width 64ch, `text-wrap: pretty`; headings `text-wrap: balance`. `.num` → `font-variant-numeric: tabular-nums`. Uzbek apostrophe is `'` (U+0027) in copy; do not convert.
 
 ---
 
@@ -90,7 +95,7 @@ Fonts load via `next/font/google` (`Fraunces` with `axes: ['opsz','SOFT']`, `Gei
 - **Grid**: 12 columns, gap 24px (`.grid-12`). Common splits: 7/5, 5/7, 4/8.
 - **Radius**: `--r-sm` 6px (tags), `--r-md` 12px (buttons, inputs, chips), `--r-lg` 20px (panels), `--r-xl` 28px (portrait), `--r-full` 999px (only the progress dot).
 - **Borders**: 1px `--line`. Hairline rows: `border-top: 1px solid var(--line)`; last row also gets `border-bottom`.
-- **Elevation**: `--sh-panel: 0 24px 48px -28px rgba(21,26,23,0.25)` — used only on the portrait and the booking panel. `--sh-focus: 0 0 0 3px rgba(23,90,59,0.35)`.
+- **Elevation**: `--sh-panel: 0 24px 48px -28px rgba(20,20,19,0.25)` — used only on the portrait and the booking panel. `--sh-focus: 0 0 0 3px rgba(217,58,28,0.35)`.
 - **Z-index**: grain 1 · sticky CTA 90 · nav 100 · progress 101 · skip 200.
 - **Breakpoints**: ≤520 phone-small · ≤780 phone/menu · ≤920 tablet (grids collapse) · ≥921 desktop.
 - **Icons**: inline SVG, 1.75 stroke, 16/20/24px, `currentColor`. No icon library.
@@ -107,7 +112,7 @@ Fonts load via `next/font/google` (`Fraunces` with `axes: ['opsz','SOFT']`, `Gei
 | Class | Anatomy / states |
 |---|---|
 | `.btn` | inline-flex, min-height 50px, padding 0 22px, radius `--r-md`, 600/`--fs-sm`, transition transform+bg. Hover `translateY(-1px)`; active `scale(0.98)`; focus ring. Optional trailing arrow svg. |
-| `.btn-primary` | bg `--accent-solid`, white; hover `--accent-2`. The only green button. |
+| `.btn-primary` | bg `--accent-solid`, `--on-accent` text; hover `--accent-2`. The only terracotta button. |
 | `.btn-ink` | bg `--ink`, text `--bg`; hover `--ink-2`. Used for the Telegram CTA. |
 | `.btn-outline` | transparent, 1px `--line-strong` inset ring, text `--ink`; hover bg `--bg-alt`, ring `--ink`. |
 | `.btn-text` | underlined link, 600/`--fs-sm`, underline `--line-strong` → hover `--accent`. |
@@ -119,7 +124,7 @@ Fonts load via `next/font/google` (`Fraunces` with `axes: ['opsz','SOFT']`, `Gei
 | `.rows` / `.row` | hairline list: `.row` has `border-top`, last also `border-bottom`; hover bg `--bg-alt` (only when `.row` is a link). |
 | `.check` svg | 16px, `--success`. |
 | `.choice` (TgCard) | radio chip: white, hairline, radius `--r-md`, min-height 46px; checked = bg `--ink` white text; focus ring via `input:focus-visible + span`. |
-| Nav | sticky, bg `color-mix(--bg 86%, transparent)` + blur; links `--ink-2`, current = `--ink` + 2px green underline; CTA `.btn-primary`; mobile sheet unchanged. |
+| Nav | sticky, bg `color-mix(--bg 86%, transparent)` + blur; links `--ink-2`, current = `--ink` + 2px `--accent` underline; CTA `.btn-primary`; mobile sheet unchanged. |
 | Sticky CTA (mobile) | unchanged behaviour, `.btn-ink` full width. |
 | Footer | hairline top, wordmark large serif, links row, Telegram link, © with tabular year. |
 
@@ -151,7 +156,7 @@ Nav order (unchanged): Dastur · O'qituvchi · Narx · Savollar · Blog · Sinfx
 - Layout ≥921px: `.hero-grid` 12-col. Row 1: `.hero-title` spans cols 1–12 (3 lines: "Ingliz tilini / [rotator] o'qituvchi bilan, / to'g'ri o'rganing."). Row 2: `.hero-lead` cols 1–7 (sub-copy, CTAs, `.hero-facts` hairline rows: IELTS 7.0 · CEFR C1 · Magistr · 6+ yil), `.hero-portrait` cols 8–12, aspect 4/5, radius `--r-xl`, shadow `--sh-panel`, `margin-top: -12%` so it rises into the title's right whitespace (title line 2 is shorter; keep `padding-right` on title ≥ 0, no text overlap — verify at 1024/1280/1440).
 - Portrait: `teacher.photo` (new optional field in `site.ts`, `undefined` now) → `<img>`; fallback `.portrait-fallback` = `--accent-soft` bg, giant italic serif "MK" at 10rem in `--accent`, bottom caption (name + "IELTS 7.0 · C1"). A `.tag` "Sizning o'qituvchingiz" sits top-left inside.
 - Eyebrow above title: `site.cohort.label`. Below facts: `.teacher-preview-link` to `/teacher`.
-- Keep: SplitText word reveal, WordRotator, scramble on "to'g'ri", scroll velocity skew, pin-scrub (reduce to `+=15%`), Magnetic CTA, burst (colours → `['#175A3B','#1E6B47','#E1EEE4','#FCFCFA','#151A17']`).
+- Keep: SplitText word reveal, WordRotator, scramble on "to'g'ri", scroll velocity skew, pin-scrub (reduce to `+=15%`), Magnetic CTA, burst (colours → `['#D93A1C','#B8301A','#FBE7E0','#F7F4EE','#141413']`).
 - ≤920: single column; portrait after copy, max-width 420px, no negative margin.
 
 **Trust** (`TrustBand.tsx`, `trust.css`): `.trust-row` — 4 items in one hairline band (top+bottom lines), each `dt` as `.stat`, `dd` `--fs-sm` muted. Separators: 1px `--line` between items (via `border-left` on items 2–4). ≤860: 2×2, ≤520: 1 col with row hairlines. NumCounter stays.
@@ -233,7 +238,7 @@ WCAG 2.2 AA targets. Skip link; `main[tabindex=-1]`; nav `aria-current`; radio g
 - Components keep data from `src/lib/domain/*` and `src/lib/site.ts`; no copy in JSX except labels listed in §08.
 - Class naming: section prefix (`hero-`, `prog-`, `plan-`, `faq-`, `tg-`, `research-`, `teacher-`), shared primitives unprefixed (`.btn`, `.eyebrow`, `.tag`, `.rows`, `.stat`).
 - New optional field `teacher.photo?: string` (path under `public/`). Hero renders `<img>` when set.
-- Assets to regenerate: `public/icon.svg`, `src/app/icon.svg`, `scripts/gen-og.mjs`, `scripts/gen-post-og.mjs` → new palette (`#175A3B` mark, `#FCFCFA` bg, `#151A17` ink). `site.themeColor` → `#FCFCFA`.
+- Assets to regenerate: `public/icon.svg`, `src/app/icon.svg`, `scripts/gen-og.mjs`, `scripts/gen-post-og.mjs` → new palette (`#D93A1C` mark, `#F7F4EE` bg, `#141413` ink). `site.themeColor` → `#F7F4EE`.
 - Gates: update `scripts/check-contrast.mjs` pairs to new tokens (`--accent-ink`/`--accent-soft`, `--muted`/`--bg`, `--muted`/`--bg-alt`, white/`--accent-solid`, `--bg`/`--ink`).
 - Remove dead CSS: shadcn/tw-animate imports, oklch token blob, `.dark`, `@layer base` apply block (no utilities used anywhere).
 
@@ -257,6 +262,7 @@ Definition of ready: this file approved. Definition of done: checklist green, no
 | 2026-10-23 | FAQ accordion → visible `dl` | skill audit: accordion = generic; SEO + a11y better |
 | 2026-10-23 | Telegram button = ink, not blue | single-accent rule; glyph keeps brand recognition |
 | 2026-10-31 | Ink-dark sidebar for the `/app` desktop shell using existing tokens | Owner-requested; vibecoding.uz cabinet reference. Content and phone layouts remain light; no dark-mode toggle. |
+| 2026-10-31 | **Brand: terracotta `#D93A1C` + Onest, whole site and `/app`** ("Butun sayt va /app"). Forest green retired; neutrals warmed to cream `#F7F4EE` / ink `#141413` (vibecoding.uz theme colour); text-safe `--accent #B8301A`; white on `#D93A1C` only. Body/UI font Geist → Onest (OFL, self-hosted); headings stay Fraunces (Tiempos Headline is paid). Radii and layout unchanged in this step. | owner decision; brand alignment with vibecoding.uz; every pair measured by `pnpm contrast` |
 | 2026-10-23 | No dark mode | one theme keeps contrast gate honest; v2 had none either |
 | 2026-10-23 | Portrait slot with monogram fallback | no photo asset in repo; never use stock faces |
 | open | Show certificate numbers on `/teacher`? | privacy vs proof — owner decides |

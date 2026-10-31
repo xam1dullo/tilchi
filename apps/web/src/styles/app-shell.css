@@ -262,7 +262,7 @@
   }
 
   .app-shell .app-nav a[aria-current="page"] {
-    color: var(--bg);
+    color: var(--on-accent);
     background: var(--accent-solid);
     box-shadow: none;
   }

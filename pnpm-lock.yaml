@@ -75,9 +75,9 @@ importers:
       '@fontsource-variable/fraunces':
         specifier: 5.3.0
         version: 5.3.0
-      '@fontsource-variable/geist':
-        specifier: 5.3.0
-        version: 5.3.0
+      '@fontsource-variable/onest':
+        specifier: 5.3.1
+        version: 5.3.1
       '@tanstack/react-router':
         specifier: 1.170.46
         version: 1.170.46(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
@@ -746,8 +746,8 @@ packages:
   '@fontsource-variable/fraunces@5.3.0':
     resolution: {integrity: sha512-9BYGySn4AHEJdgp9Z28tQ3X+laJMEOITXkQarZXeloWQZDq5oOvXJ3kDA8c7MGIfpogIaZfjrQBqmda8POOCKA==}
 
-  '@fontsource-variable/geist@5.3.0':
-    resolution: {integrity: sha512-j0m+vLQuG5XAYoHtGCVu0spvlGreR3EzpECUVzkFmI1mTVnAO38l/NEPDCFgZ177JxzYJCLSmTQibIiYPilGrA==}
+  '@fontsource-variable/onest@5.3.1':
+    resolution: {integrity: sha512-xaaw6G4HDB2/RczsWLD/2bnib4ykmQlTlBUN3GOEOiyErilZukQWVJG95h9zwAy0i8KY+QzDa+COPfqhI72Acw==}
 
   '@ioredis/commands@1.4.0':
     resolution: {integrity: sha512-aFT2yemJJo+TZCmieA7qnYGQooOS7QfNmYrzGtsYd3g9j5iDP8AimYYAesf79ohjbLG12XxC4nG5DyEnC88AsQ==}
@@ -2733,7 +2733,7 @@ snapshots:
 
   '@fontsource-variable/fraunces@5.3.0': {}
 
-  '@fontsource-variable/geist@5.3.0': {}
+  '@fontsource-variable/onest@5.3.1': {}
 
   '@ioredis/commands@1.4.0': {}
 
