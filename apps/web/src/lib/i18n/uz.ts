@@ -154,6 +154,8 @@ export const uz = {
   questionEmpty: 'Hozircha savollar yo‘q.',
   questionFilter: 'Holati',
   questionFilterAll: 'Hammasi',
+  questionFilterDraft: 'Qoralamalar',
+  questionFilterPublished: 'Nashr qilinganlar',
   questionPromptInvalid: 'Savol matnini yozing (2000 belgigacha).',
   questionOptionsInvalid:
     '2 tadan 8 tagacha variant yozing, har biri 300 belgigacha.',

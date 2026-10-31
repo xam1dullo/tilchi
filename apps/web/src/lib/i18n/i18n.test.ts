@@ -15,11 +15,15 @@ describe('empty state copy', () => {
   })
 
   it('translates every ru and en string instead of reusing the Uzbek one', () => {
-    const sameInEveryLanguage = new Set(['IELTS', 'Admin', 'Test'])
+    const sameInEveryLanguage = new Set([
+      'segmentIelts',
+      'roleAdmin',
+      'assignTest',
+    ])
     for (const locale of [copy.ru, copy.en]) {
       const untranslated = Object.entries(copy.uz)
         .filter(([key, value]) => locale[key as keyof typeof locale] === value)
-        .filter(([, value]) => !sameInEveryLanguage.has(value))
+        .filter(([key]) => !sameInEveryLanguage.has(key))
         .map(([key]) => key)
       expect(untranslated).toEqual([])
     }
