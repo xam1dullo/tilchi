@@ -1,3 +1,4 @@
+import { loadForSession } from '../../../lib/session'
 import { RetryButton } from '../../../components/retry-button'
 import {
   Link,
@@ -38,16 +39,17 @@ import {
 } from '../../../lib/question-form'
 
 export const Route = createFileRoute('/app/tests/')({
-  loader: async ({ context: { previewRole } }) => {
-    await requireManageTests(previewRole)
-    const [bank, list] = await Promise.all([
-      apiFetch<{ questions: QuestionRecord[] }>('/api/questions', {
-        previewRole,
-      }),
-      apiFetch<{ tests: TestSummary[] }>('/api/tests', { previewRole }),
-    ])
-    return { questions: bank.questions, tests: list.tests }
-  },
+  loader: ({ context: { previewRole, session } }) =>
+    loadForSession(session, async () => {
+      await requireManageTests(previewRole)
+      const [bank, list] = await Promise.all([
+        apiFetch<{ questions: QuestionRecord[] }>('/api/questions', {
+          previewRole,
+        }),
+        apiFetch<{ tests: TestSummary[] }>('/api/tests', { previewRole }),
+      ])
+      return { questions: bank.questions, tests: list.tests }
+    }),
   component: TestsPage,
   errorComponent: BankError,
 })
@@ -71,7 +73,8 @@ function BankError() {
 function TestsPage() {
   const { locale } = useRouteContext({ from: '__root__' })
   const { previewRole } = useRouteContext({ from: '/app' })
-  const { questions, tests } = Route.useLoaderData()
+  // biome-ignore lint/style/noNonNullAssertion: AppLayout only renders children with a session.
+  const { questions, tests } = Route.useLoaderData()!
   const copy = messages(locale)
   const router = useRouter()
   const search = keepAppSearch(previewRole)

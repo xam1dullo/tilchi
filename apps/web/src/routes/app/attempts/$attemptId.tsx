@@ -1,3 +1,4 @@
+import { loadForSession } from '../../../lib/session'
 import {
   Link,
   createFileRoute,
@@ -36,8 +37,10 @@ const SpeakingRecorder = lazy(
 )
 
 export const Route = createFileRoute('/app/attempts/$attemptId')({
-  loader: ({ context: { previewRole }, params }) =>
-    apiFetch<AttemptRecord>(attemptPath(params.attemptId), { previewRole }),
+  loader: ({ context: { previewRole, session }, params }) =>
+    loadForSession(session, () =>
+      apiFetch<AttemptRecord>(attemptPath(params.attemptId), { previewRole }),
+    ),
   component: AttemptPage,
   errorComponent: AttemptError,
 })
@@ -69,7 +72,8 @@ function AttemptError({ error }: { error: unknown }) {
 }
 
 function AttemptPage() {
-  const attempt = Route.useLoaderData()
+  // biome-ignore lint/style/noNonNullAssertion: AppLayout only renders children with a session.
+  const attempt = Route.useLoaderData()!
   return isManagerView(attempt) ? <ManagerAttempt /> : <LearnerAttempt />
 }
 
@@ -97,7 +101,8 @@ function AttemptHead({
 function ManagerAttempt() {
   const { locale } = useRouteContext({ from: '__root__' })
   const { previewRole } = useRouteContext({ from: '/app' })
-  const attempt = Route.useLoaderData()
+  // biome-ignore lint/style/noNonNullAssertion: AppLayout only renders children with a session.
+  const attempt = Route.useLoaderData()!
   const copy = messages(locale)
   return (
     <section className="classroom grade-page" aria-labelledby="attempt-heading">
@@ -119,7 +124,8 @@ function ManagerAttempt() {
 function LearnerAttempt() {
   const { locale } = useRouteContext({ from: '__root__' })
   const { previewRole } = useRouteContext({ from: '/app' })
-  const attempt = Route.useLoaderData()
+  // biome-ignore lint/style/noNonNullAssertion: AppLayout only renders children with a session.
+  const attempt = Route.useLoaderData()!
   const copy = messages(locale)
   const router = useRouter()
   const open = attempt.status === 'assigned'

@@ -1,3 +1,4 @@
+import { loadForSession } from '../../lib/session'
 import { createFileRoute, useRouteContext } from '@tanstack/react-router'
 import { MyTestsList } from '../../components/my-tests'
 import { RetryButton } from '../../components/retry-button'
@@ -6,10 +7,12 @@ import type { MyAssignment } from '../../lib/attempt'
 import { messages } from '../../lib/i18n'
 
 export const Route = createFileRoute('/app/assignments')({
-  loader: ({ context: { previewRole } }) =>
-    apiFetch<{ assignments: MyAssignment[] }>('/api/me/assignments', {
-      previewRole,
-    }),
+  loader: ({ context: { previewRole, session } }) =>
+    loadForSession(session, () =>
+      apiFetch<{ assignments: MyAssignment[] }>('/api/me/assignments', {
+        previewRole,
+      }),
+    ),
   component: MyTestsPage,
   errorComponent: MyTestsError,
 })
@@ -28,7 +31,8 @@ function MyTestsError() {
 function MyTestsPage() {
   const { locale } = useRouteContext({ from: '__root__' })
   const { previewRole } = useRouteContext({ from: '/app' })
-  const { assignments } = Route.useLoaderData()
+  // biome-ignore lint/style/noNonNullAssertion: AppLayout only renders children with a session.
+  const { assignments } = Route.useLoaderData()!
   const copy = messages(locale)
   return (
     <section className="classroom" aria-labelledby="my-tests-heading">

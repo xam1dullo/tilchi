@@ -1,3 +1,4 @@
+import { loadForSession } from '../../lib/session'
 import { RetryButton } from '../../components/retry-button'
 import {
   createFileRoute,
@@ -37,13 +38,14 @@ export function courseFormData(form: FormData) {
 }
 
 export const Route = createFileRoute('/app/courses')({
-  loader: async ({ context }) => {
-    if (context.session?.role !== 'admin')
-      return { courses: [] as CourseRecord[] }
-    return apiFetch<{ courses: CourseRecord[] }>('/api/courses/manage', {
-      previewRole: context.previewRole,
-    })
-  },
+  loader: ({ context }) =>
+    loadForSession(context.session, async () => {
+      if (context.session?.role !== 'admin')
+        return { courses: [] as CourseRecord[] }
+      return apiFetch<{ courses: CourseRecord[] }>('/api/courses/manage', {
+        previewRole: context.previewRole,
+      })
+    }),
   component: CoursesPage,
   errorComponent: CourseError,
 })
@@ -62,7 +64,8 @@ function CourseError() {
 function CoursesPage() {
   const { locale } = useRouteContext({ from: '__root__' })
   const { session, previewRole } = useRouteContext({ from: '/app' })
-  const { courses } = Route.useLoaderData()
+  // biome-ignore lint/style/noNonNullAssertion: AppLayout only renders children with a session.
+  const { courses } = Route.useLoaderData()!
   const copy = messages(locale)
   const router = useRouter()
   const [editing, setEditing] = useState<CourseRecord | null>(null)

@@ -1,3 +1,4 @@
+import { loadForSession } from '../../lib/session'
 import {
   createFileRoute,
   useRouteContext,
@@ -10,7 +11,11 @@ import { messages } from '../../lib/i18n'
 
 export const Route = createFileRoute('/app/notifications')({
   loader: ({ context }) =>
-    apiFetch<Inbox>('/api/notifications', { previewRole: context.previewRole }),
+    loadForSession(context.session, () =>
+      apiFetch<Inbox>('/api/notifications', {
+        previewRole: context.previewRole,
+      }),
+    ),
   component: NotificationsPage,
   errorComponent: NotificationsError,
 })
@@ -29,7 +34,8 @@ function NotificationsError({ reset }: { reset: () => void }) {
 }
 
 function NotificationsPage() {
-  const inbox = Route.useLoaderData()
+  // biome-ignore lint/style/noNonNullAssertion: AppLayout only renders children with a session.
+  const inbox = Route.useLoaderData()!
   const { locale } = useRouteContext({ from: '__root__' })
   const { previewRole } = useRouteContext({ from: '/app' })
   const router = useRouter()
