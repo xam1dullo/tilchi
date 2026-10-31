@@ -824,10 +824,6 @@
   content: none;
 }
 
-.group-page .group-schedule {
-  margin-bottom: 24px;
-}
-
 @container group (min-width: 880px) {
   .group-page .group-layout {
     grid-template-columns: minmax(0, 1fr) minmax(280px, 320px);
@@ -845,6 +841,7 @@
 }
 
 .group-page .group-schedule {
+  margin-bottom: 24px;
   align-items: end;
 }
 

@@ -15,7 +15,13 @@ vi.mock('@tanstack/react-router', () => ({
   createFileRoute: () => (options: unknown) => ({
     options,
     useLoaderData: () => ({
-      group: { id: 'g', name: 'Group', learnerCount: 1, capacity: 12, can: {} },
+      group: {
+        id: 'g',
+        name: 'Group',
+        learnerCount: 1,
+        capacity: 12,
+        can: { createLesson: state.teacher },
+      },
       lessons: state.lessons,
       members: [],
       tests: [],
@@ -59,12 +65,13 @@ const lesson = (
   scheduledAt,
   status,
   meetingId: null,
+  // Mirrors lessonView for an enrolled learner or the enrolled group teacher.
   can: {
     start: state.teacher && status === 'scheduled',
-    end: false,
-    cancel: false,
-    reschedule: false,
-    join: !state.teacher && status === 'scheduled',
+    end: state.teacher && status === 'live',
+    cancel: state.teacher && status === 'scheduled',
+    reschedule: state.teacher && status === 'scheduled',
+    join: status === 'live',
   },
 })
 
@@ -93,15 +100,43 @@ describe('group lessons rail', () => {
       expect(rail?.indexOf(times[0])).toBeLessThan(rail?.indexOf(times[1]) ?? 0)
       expect(rail?.indexOf(times[1])).toBeLessThan(rail?.indexOf(times[2]) ?? 0)
       const footer = rail?.slice(rail.indexOf('</ul>'))
-      expect(footer).toContain('class="btn btn-primary"')
-      expect(footer).toContain(teacher ? copy.startLesson : copy.joinMeet)
-      expect(footer).not.toContain(teacher ? copy.joinMeet : copy.startLesson)
       if (!teacher) {
-        expect(footer).toContain('/app/meet/next')
-        expect(html.match(/href="\/app\/meet\/next"/g)).toHaveLength(1)
+        expect(footer).not.toContain('lesson-actions')
+        return
       }
+      expect(footer).toContain('class="btn btn-primary"')
+      expect(footer).toContain(copy.startLesson)
+      expect(footer).not.toContain(copy.joinMeet)
+      expect(footer).toContain('aria-describedby="lesson-time-next"')
     },
   )
+  it.each([false, true])(
+    'prioritizes the live lesson in the footer (teacher=%s)',
+    (teacher) => {
+      state.teacher = teacher
+      state.lessons = [
+        lesson('future', 'scheduled', '2030-01-03T06:00:00Z'),
+        lesson('live', 'live', '2030-01-02T06:00:00Z'),
+      ]
+      const html = render()
+      const footer = html.slice(html.indexOf('</ul>'), html.indexOf('</aside>'))
+      expect(footer).toContain('/app/meet/live')
+      expect(footer).not.toContain(copy.startLesson)
+      if (teacher) expect(footer).toContain(copy.endLesson)
+      expect(footer).toContain('aria-describedby="lesson-time-live"')
+      expect(html).toContain('<time id="lesson-time-live"')
+    },
+  )
+  it('places scheduling before main content and main content before the rail', () => {
+    state.teacher = true
+    state.lessons = []
+    const html = render()
+    expect(html.indexOf('group-schedule')).toBeGreaterThan(-1)
+    expect(html.indexOf('group-schedule')).toBeLessThan(
+      html.indexOf('group-layout'),
+    )
+    expect(html.indexOf('group-main')).toBeLessThan(html.indexOf('<aside'))
+  })
   it('keeps the empty state inside the labelled rail', () => {
     state.lessons = []
     const html = render()

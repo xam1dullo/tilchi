@@ -75,14 +75,16 @@ function GroupPage() {
   )
   const copy = messages(locale)
   const search = keepAppSearch(previewRole)
-  const nextLesson = lessons.reduce<LessonRecord | undefined>(
-    (next, lesson) =>
-      lesson.status === 'scheduled' &&
-      (!next || Date.parse(lesson.scheduledAt) < Date.parse(next.scheduledAt))
-        ? lesson
-        : next,
-    undefined,
-  )
+  const nextLesson =
+    lessons.find((lesson) => lesson.status === 'live') ??
+    lessons.reduce<LessonRecord | undefined>(
+      (next, lesson) =>
+        lesson.status === 'scheduled' &&
+        (!next || Date.parse(lesson.scheduledAt) < Date.parse(next.scheduledAt))
+          ? lesson
+          : next,
+      undefined,
+    )
   const lessonCopy = {
     start: copy.startLesson,
     end: copy.endLesson,
@@ -102,8 +104,43 @@ function GroupPage() {
             {copy.members} {group.learnerCount}/{group.capacity}
           </p>
         </div>
+        {group.can.createLesson ? (
+          <ScheduleForm
+            groupId={group.id}
+            previewRole={previewRole}
+            copy={{
+              schedule: copy.scheduleLesson,
+              time: copy.lessonDateTime,
+            }}
+          />
+        ) : null}
       </div>
       <div className="group-layout">
+        <div className="group-main">
+          {group.can.assignTest ? (
+            <AssignForm
+              groupId={group.id}
+              previewRole={previewRole}
+              tests={tests}
+              copy={copy}
+            />
+          ) : null}
+          {group.can.viewAssignments ? (
+            <AssignmentsList
+              assignments={assignments}
+              copy={copy}
+              locale={locale}
+              canGrade={group.can.gradeAttempts}
+              previewRole={previewRole}
+            />
+          ) : null}
+          {group.can.seeMembers ? (
+            <MembersList members={members} copy={copy} />
+          ) : null}
+          {group.can.manageMembers ? (
+            <EnrolPanel group={group} previewRole={previewRole} copy={copy} />
+          ) : null}
+        </div>
         <aside className="group-lessons" aria-labelledby="group-lessons-title">
           <h3 id="group-lessons-title">{copy.groupLessons}</h3>
           {lessons.length === 0 ? (
@@ -125,9 +162,14 @@ function GroupPage() {
                       {index + 1}
                     </span>
                     <div className="group-lesson-meta">
-                      <strong>
-                        {formatLessonTime(lesson.scheduledAt, locale)}
-                      </strong>
+                      <time
+                        id={`lesson-time-${lesson.id}`}
+                        dateTime={lesson.scheduledAt}
+                      >
+                        <strong>
+                          {formatLessonTime(lesson.scheduledAt, locale)}
+                        </strong>
+                      </time>
                       <span className={`tag status-${lesson.status}`}>
                         {status}
                       </span>
@@ -155,41 +197,6 @@ function GroupPage() {
             />
           ) : null}
         </aside>
-        <div className="group-main">
-          {group.can.createLesson ? (
-            <ScheduleForm
-              groupId={group.id}
-              previewRole={previewRole}
-              copy={{
-                schedule: copy.scheduleLesson,
-                time: copy.lessonDateTime,
-              }}
-            />
-          ) : null}
-          {group.can.assignTest ? (
-            <AssignForm
-              groupId={group.id}
-              previewRole={previewRole}
-              tests={tests}
-              copy={copy}
-            />
-          ) : null}
-          {group.can.viewAssignments ? (
-            <AssignmentsList
-              assignments={assignments}
-              copy={copy}
-              locale={locale}
-              canGrade={group.can.gradeAttempts}
-              previewRole={previewRole}
-            />
-          ) : null}
-          {group.can.seeMembers ? (
-            <MembersList members={members} copy={copy} />
-          ) : null}
-          {group.can.manageMembers ? (
-            <EnrolPanel group={group} previewRole={previewRole} copy={copy} />
-          ) : null}
-        </div>
       </div>
     </section>
   )
@@ -282,6 +289,8 @@ function LessonButtons({
       .then(() => router.invalidate())
       .finally(() => setBusy(false))
   }
+  if (!lesson.can.start && !lesson.can.end && !lesson.can.join) return null
+  const describedBy = primary ? `lesson-time-${lesson.id}` : undefined
   return (
     <div className="lesson-actions">
       {lesson.can.start ? (
@@ -289,6 +298,7 @@ function LessonButtons({
           className={primary ? 'btn btn-primary' : 'btn btn-outline'}
           type="button"
           disabled={busy}
+          aria-describedby={describedBy}
           onClick={() => post(`/api/lessons/${lesson.id}/start`)}
         >
           {copy.start}
@@ -296,9 +306,10 @@ function LessonButtons({
       ) : null}
       {lesson.can.end ? (
         <button
-          className="btn btn-outline"
+          className={primary ? 'btn btn-primary' : 'btn btn-outline'}
           type="button"
           disabled={busy}
+          aria-describedby={describedBy}
           onClick={() => post(`/api/lessons/${lesson.id}/end`)}
         >
           {copy.end}
@@ -307,6 +318,7 @@ function LessonButtons({
       {lesson.can.join ? (
         <Link
           className="btn btn-primary"
+          aria-describedby={describedBy}
           to="/app/meet/$lessonId"
           params={{ lessonId: lesson.id }}
           search={search}
