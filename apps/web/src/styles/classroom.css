@@ -786,6 +786,14 @@
   padding: 16px 0;
 }
 
+.group-page .group-lessons .tag {
+  color: var(--accent-ink);
+}
+
+.group-page .group-lessons .status-live {
+  color: var(--danger);
+}
+
 .group-page .group-lesson-index {
   font-variant-numeric: tabular-nums;
 }
