@@ -764,6 +764,7 @@
 }
 
 .group-page .group-lessons {
+  order: -1;
   padding: 20px;
   border: 1px solid var(--line);
   border-radius: var(--r-lg);
@@ -780,11 +781,14 @@
 }
 
 .group-page .group-lessons-scroll {
+  display: block;
   max-block-size: 28rem;
   overflow-y: auto;
 }
 
-.group-page .group-lessons > .lesson-actions {
+.group-page .group-lesson-primary {
+  display: grid;
+  gap: 12px;
   margin-bottom: 16px;
 }
 
@@ -825,7 +829,7 @@
   text-align: center;
 }
 
-.group-page .group-lessons > .lesson-actions .btn {
+.group-page .group-lessons .group-lesson-primary .btn {
   width: 100%;
 }
 
@@ -839,6 +843,7 @@
   }
 
   .group-page .group-lessons {
+    order: 0;
     grid-column: 2;
     grid-row: 1;
   }

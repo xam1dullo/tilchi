@@ -154,6 +154,23 @@ describe('nextGroupLesson', () => {
   ) => ({ id, status, scheduledAt })
   const overdue = item('overdue', 'scheduled', '2030-01-01T00:00:00Z')
   const upcoming = item('upcoming', 'scheduled', '2030-01-04T00:00:00Z')
+  it('keeps a lesson primary one minute after its start, then expires after the grace window', () => {
+    const today = item('today', 'scheduled', '2030-01-03T10:00:00Z')
+    const nextWeek = item('next-week', 'scheduled', '2030-01-10T10:00:00Z')
+    const start = Date.parse(today.scheduledAt)
+    expect(nextGroupLesson([nextWeek, today], start + 60_000)).toBe(today)
+    expect(nextGroupLesson([today, nextWeek], start + 3 * 60 * 60_000)).toBe(
+      today,
+    )
+    expect(
+      nextGroupLesson([today, nextWeek], start + 3 * 60 * 60_000 + 60_000),
+    ).toBe(nextWeek)
+  })
+  it('renders no scheduled primary before the client clock is known, but always keeps live', () => {
+    expect(nextGroupLesson([overdue, upcoming], null)).toBeUndefined()
+    const live = item('live', 'live', '2030-01-02T00:00:00Z')
+    expect(nextGroupLesson([upcoming, live], null)).toBe(live)
+  })
   it('promotes the earliest upcoming lesson instead of an overdue one', () => {
     expect(nextGroupLesson([overdue, upcoming], now)).toBe(upcoming)
   })

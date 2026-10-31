@@ -49,15 +49,18 @@ export function groupsView(input: {
   }
 }
 
+export const LESSON_START_GRACE_MS = 3 * 60 * 60 * 1000
+
 export function nextGroupLesson<
   T extends Pick<LessonRecord, 'status' | 'scheduledAt'>,
->(lessons: readonly T[], now: number): T | undefined {
+>(lessons: readonly T[], now: number | null): T | undefined {
   return (
     lessons.find((lesson) => lesson.status === 'live') ??
     lessons.reduce<T | undefined>((next, lesson) => {
       const time = Date.parse(lesson.scheduledAt)
-      return lesson.status === 'scheduled' &&
-        time >= now &&
+      return now !== null &&
+        lesson.status === 'scheduled' &&
+        time >= now - LESSON_START_GRACE_MS &&
         (!next || time < Date.parse(next.scheduledAt))
         ? lesson
         : next

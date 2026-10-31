@@ -6,7 +6,7 @@ import {
   useRouteContext,
   useRouter,
 } from '@tanstack/react-router'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { apiFetch, loadDetail } from '../../../lib/api'
 import {
   formatLessonTime,
@@ -76,7 +76,31 @@ function GroupPage() {
   )
   const copy = messages(locale)
   const search = keepAppSearch(previewRole)
-  const nextLesson = nextGroupLesson(lessons, Date.now())
+  const [now, setNow] = useState<number | null>(null)
+  const listRef = useRef<HTMLUListElement>(null)
+  const [listOverflows, setListOverflows] = useState(false)
+  useEffect(() => {
+    setNow(Date.now())
+  }, [])
+  useEffect(() => {
+    const list = listRef.current
+    if (!list || lessons.length === 0) {
+      setListOverflows(false)
+      return
+    }
+    const measure = () =>
+      setListOverflows(list.scrollHeight > list.clientHeight + 1)
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(list)
+    return () => observer.disconnect()
+  }, [lessons])
+  const nextLesson = nextGroupLesson(lessons, now)
+  const primaryLesson =
+    nextLesson &&
+    (nextLesson.can.start || nextLesson.can.end || nextLesson.can.join)
+      ? nextLesson
+      : undefined
   const lessonCopy = {
     start: copy.startLesson,
     end: copy.endLesson,
@@ -135,72 +159,87 @@ function GroupPage() {
         </div>
         <aside className="group-lessons" aria-labelledby="group-lessons-title">
           <h3 id="group-lessons-title">{copy.groupLessons}</h3>
-          {nextLesson ? (
-            <LessonButtons
-              lesson={nextLesson}
-              previewRole={previewRole}
-              search={search}
-              copy={lessonCopy}
-              primary
-            />
+          {primaryLesson ? (
+            <div className="group-lesson-primary">
+              <LessonMeta
+                lesson={primaryLesson}
+                locale={locale}
+                copy={copy}
+                primary
+              />
+              <LessonButtons
+                lesson={primaryLesson}
+                previewRole={previewRole}
+                search={search}
+                copy={lessonCopy}
+                primary
+              />
+            </div>
           ) : null}
           {lessons.length === 0 ? (
             <p className="hint">{copy.noLessons}</p>
           ) : (
-            <section
-              className="group-lessons-scroll"
+            <ul
+              ref={listRef}
+              className="rows classroom-list group-lessons-scroll"
               aria-labelledby="group-lessons-title"
-              // biome-ignore lint/a11y/noNoninteractiveTabindex: Scroll region must support keyboard scrolling.
-              tabIndex={0}
+              tabIndex={listOverflows ? 0 : undefined}
             >
-              <ul className="rows classroom-list">
-                {lessons.map((lesson, index) => {
-                  const status =
-                    lesson.status === 'live'
-                      ? copy.lessonLive
-                      : lesson.status === 'ended'
-                        ? copy.lessonEnded
-                        : lesson.status === 'cancelled'
-                          ? copy.lessonCancelled
-                          : copy.lessonScheduled
-                  return (
-                    <li
-                      key={lesson.id}
-                      className="row classroom-row lesson-row"
-                    >
-                      <span className="group-lesson-index" aria-hidden="true">
-                        {index + 1}
-                      </span>
-                      <div className="group-lesson-meta">
-                        <time
-                          id={`lesson-time-${lesson.id}`}
-                          dateTime={lesson.scheduledAt}
-                        >
-                          <strong>
-                            {formatLessonTime(lesson.scheduledAt, locale)}
-                          </strong>
-                        </time>
-                        <span className={`tag status-${lesson.status}`}>
-                          {status}
-                        </span>
-                      </div>
-                      {lesson.id !== nextLesson?.id ? (
-                        <LessonButtons
-                          lesson={lesson}
-                          previewRole={previewRole}
-                          search={search}
-                          copy={lessonCopy}
-                        />
-                      ) : null}
-                    </li>
-                  )
-                })}
-              </ul>
-            </section>
+              {lessons.map((lesson, index) => {
+                return (
+                  <li key={lesson.id} className="row classroom-row lesson-row">
+                    <span className="group-lesson-index" aria-hidden="true">
+                      {index + 1}
+                    </span>
+                    <LessonMeta lesson={lesson} locale={locale} copy={copy} />
+                    {lesson.id !== primaryLesson?.id ? (
+                      <LessonButtons
+                        lesson={lesson}
+                        previewRole={previewRole}
+                        search={search}
+                        copy={lessonCopy}
+                      />
+                    ) : null}
+                  </li>
+                )
+              })}
+            </ul>
           )}
         </aside>
       </div>
     </section>
+  )
+}
+
+function LessonMeta({
+  lesson,
+  locale,
+  copy,
+  primary = false,
+}: {
+  lesson: LessonRecord
+  locale: string
+  copy: Copy
+  primary?: boolean
+}) {
+  const status =
+    lesson.status === 'live'
+      ? copy.lessonLive
+      : lesson.status === 'ended'
+        ? copy.lessonEnded
+        : lesson.status === 'cancelled'
+          ? copy.lessonCancelled
+          : copy.lessonScheduled
+  return (
+    <div className="group-lesson-meta">
+      <time
+        id={`${primary ? 'primary-' : ''}lesson-time-${lesson.id}`}
+        dateTime={lesson.scheduledAt}
+      >
+        <strong>{formatLessonTime(lesson.scheduledAt, locale)}</strong>
+      </time>
+      <span className={`tag status-${lesson.status}`}>{status}</span>
+    </div>
   )
 }
 
@@ -292,7 +331,7 @@ function LessonButtons({
       .finally(() => setBusy(false))
   }
   if (!lesson.can.start && !lesson.can.end && !lesson.can.join) return null
-  const describedBy = primary ? `lesson-time-${lesson.id}` : undefined
+  const describedBy = primary ? `primary-lesson-time-${lesson.id}` : undefined
   return (
     <div className="lesson-actions">
       {lesson.can.start ? (

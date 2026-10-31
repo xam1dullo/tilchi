@@ -100,14 +100,8 @@ describe('group lessons rail', () => {
       expect(rail?.indexOf(times[0])).toBeLessThan(rail?.indexOf(times[1]) ?? 0)
       expect(rail?.indexOf(times[1])).toBeLessThan(rail?.indexOf(times[2]) ?? 0)
       const footer = rail?.slice(0, rail.indexOf('<ul'))
-      if (!teacher) {
-        expect(footer).not.toContain('lesson-actions')
-        return
-      }
-      expect(footer).toContain('class="btn btn-primary"')
-      expect(footer).toContain(copy.startLesson)
-      expect(footer).not.toContain(copy.joinMeet)
-      expect(footer).toContain('aria-describedby="lesson-time-next"')
+      expect(footer).not.toContain('lesson-actions')
+      expect(footer).not.toContain('group-lesson-primary')
     },
   )
   it.each([false, true])(
@@ -123,11 +117,15 @@ describe('group lessons rail', () => {
       expect(footer).toContain('/app/meet/live')
       expect(footer).not.toContain(copy.startLesson)
       if (teacher) expect(footer).toContain(copy.endLesson)
-      expect(footer).toContain('aria-describedby="lesson-time-live"')
-      expect(html).toContain('<time id="lesson-time-live"')
+      expect(footer).toContain('aria-describedby="primary-lesson-time-live"')
+      expect(footer).toContain('<time id="primary-lesson-time-live"')
+      expect(footer).toContain(
+        formatLessonTime(state.lessons[1].scheduledAt, 'en'),
+      )
+      expect(footer).toContain(copy.lessonLive)
     },
   )
-  it('keeps overdue row actions while promoting the upcoming lesson', () => {
+  it('keeps scheduled row actions and no primary until the client clock is known', () => {
     state.teacher = true
     state.lessons = [
       lesson('overdue', 'scheduled', '2020-01-01T06:00:00Z'),
@@ -135,13 +133,11 @@ describe('group lessons rail', () => {
     ]
     const html = render()
     const primary = html.slice(html.indexOf('<aside'), html.indexOf('<ul'))
-    expect(primary).toContain('aria-describedby="lesson-time-upcoming"')
+    expect(primary).not.toContain('lesson-actions')
     const rows = html.slice(html.indexOf('<ul'), html.indexOf('</ul>'))
     expect(rows).toContain(copy.startLesson)
-    expect(html).toContain(
-      '<section class="group-lessons-scroll" aria-labelledby="group-lessons-title"',
-    )
-    expect(html).toContain('tabindex="0"')
+    expect(html).not.toContain('<section class="group-lessons-scroll"')
+    expect(html).not.toContain('tabindex="0"')
   })
   it('places scheduling before main content and main content before the rail', () => {
     state.teacher = true
