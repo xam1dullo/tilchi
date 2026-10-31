@@ -262,7 +262,7 @@
   }
 
   .app-shell .app-nav a[aria-current="page"] {
-    color: var(--bg);
+    color: var(--on-accent);
     background: var(--accent-solid);
     box-shadow: none;
   }
@@ -270,6 +270,10 @@
   .app-shell .app-sidebar a:focus-visible {
     outline: 2px solid var(--bg);
     outline-offset: -2px;
+  }
+
+  .app-shell .app-nav a[aria-current="page"]:focus-visible {
+    outline-color: var(--on-accent);
   }
 
   .app-shell .app-main {

@@ -134,9 +134,22 @@
   gap: 8px;
 }
 
-.status-live {
-  background: var(--danger-soft);
+/* Live is not a tag: no ground, a filled danger dot before the word. */
+.tag.status-live {
+  padding-inline: 0;
+  background: transparent;
   color: var(--live);
+}
+
+.tag.status-live::before {
+  content: "";
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-inline-end: 6px;
+  border-radius: var(--r-full);
+  background: var(--danger);
+  vertical-align: 0.05em;
 }
 
 .preview-switch {
@@ -296,7 +309,7 @@
   max-width: calc(100% - 16px);
   padding: 4px 8px;
   border-radius: var(--r-sm);
-  background: rgba(21, 26, 23, 0.78);
+  background: rgba(20, 20, 19, 0.78);
   color: var(--on-accent);
   font: 600 var(--fs-xs) / 1.3 var(--font-sans);
 }
@@ -379,14 +392,17 @@
   cursor: not-allowed;
 }
 
+/* Leave is the only filled-danger control, so it never reads as a
+   pressed toggle (accent-soft). White on danger is a gated pair. */
 .meet-leave {
-  color: var(--danger);
-  box-shadow: inset 0 0 0 1px var(--danger);
+  background: var(--danger);
+  color: #ffffff;
+  box-shadow: none;
 }
 
 @media (hover: hover) {
   .meet-leave:hover:not(:disabled) {
-    background: var(--danger-soft);
+    background: var(--ink);
   }
 }
 
@@ -679,7 +695,7 @@
   overflow-wrap: anywhere;
 }
 
-/* Status is said in words; draft is a hairline, published the green tag. */
+/* Status is said in words; draft is a hairline, published the accent tag. */
 .tests-section .question-type {
   padding-inline: 0;
   background: transparent;

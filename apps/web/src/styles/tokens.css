@@ -1,24 +1,24 @@
 /* Flat :root. scripts/check-contrast.mjs parses this block. */
 :root {
-  --bg: #fcfcfa;
+  --bg: #f7f4ee;
   --bg-elev: #ffffff;
-  --bg-alt: #f1f3ee;
+  --bg-alt: #efebe3;
   --surface: #ffffff;
-  --ink: #151a17;
-  --ink-2: #3b423e;
-  --muted: #666e68;
-  --line: #e1e5e0;
-  --line-strong: #c4cbc5;
-  --accent: #1e6b47;
-  --accent-solid: #175a3b;
-  --accent-2: #0f4a2f;
-  --accent-soft: #e1eee4;
-  --accent-ink: #0c3f27;
-  --success: #1e6b47;
+  --ink: #141413;
+  --ink-2: #3d3a35;
+  --muted: #6b6760;
+  --line: #e6e1d7;
+  --line-strong: #ccc5b8;
+  --accent: #b8301a;
+  --accent-solid: #d93a1c;
+  --accent-2: #a12b13;
+  --accent-soft: #fbe7e0;
+  --accent-ink: #7a2412;
+  --success: #b8301a;
   --tg: #2aabee;
-  --focus: #175a3b;
-  --on-accent: #f3f8f4;
-  --on-accent-muted: #c9dccf;
+  --focus: #b8301a;
+  --on-accent: #ffffff;
+  --on-accent-muted: #f6d5cb;
 
   --fs-display: clamp(3rem, 7.4vw + 0.6rem, 6.8rem);
   --fs-h2: clamp(2rem, 3.4vw + 0.6rem, 3.5rem);
@@ -37,8 +37,8 @@
   --r-xl: 28px;
   --r-full: 999px;
 
-  --sh-panel: 0 24px 48px -28px rgba(21, 26, 23, 0.25);
-  --sh-focus: 0 0 0 3px rgba(23, 90, 59, 0.35);
+  --sh-panel: 0 24px 48px -28px rgba(20, 20, 19, 0.25);
+  --sh-focus: 0 0 0 3px rgba(217, 58, 28, 0.35);
   --ease: cubic-bezier(0.16, 1, 0.3, 1);
   --dur-press: 100ms;
   --dur-fast: 160ms;
@@ -57,7 +57,7 @@
   --danger: #a3261f;
   --danger-soft: #f8e3e1;
   --live: #a3261f;
-  --meet-bg: #151a17;
+  --meet-bg: #141413;
 
   --z-grain: 1;
   --z-sticky: 90;
@@ -66,6 +66,6 @@
   --z-toast: 150;
   --z-skip: 200;
 
-  --font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Fraunces Variable", "Geist Variable", Georgia, serif;
+  --font-sans: "Onest Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Fraunces Variable", "Onest Variable", Georgia, serif;
 }

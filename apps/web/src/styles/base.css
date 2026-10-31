@@ -138,7 +138,7 @@ a {
 
 .btn-primary {
   background: var(--accent-solid);
-  color: #fff;
+  color: var(--on-accent);
 }
 
 .btn-primary:hover {
@@ -254,7 +254,8 @@ a {
 }
 
 /* Feedback kinds share one shape: tinted ground, a 3px edge, ink text.
-   Status is neutral, done is green, warn is amber, error is red. */
+   Status and done are neutral (done adds a check glyph), warn is amber,
+   error is danger red with an alert glyph. Never colour alone. */
 .notice {
   margin: 16px 0 0;
   padding: 12px 16px;
@@ -266,9 +267,9 @@ a {
 }
 
 .notice[data-tone="done"] {
-  border-color: var(--success);
-  background: var(--accent-soft);
-  color: var(--accent-ink);
+  border-color: var(--ink-2);
+  background: var(--bg-alt);
+  color: var(--ink);
 }
 
 .notice[data-tone="warn"] {
@@ -281,6 +282,22 @@ a {
   border-color: var(--danger);
   background: var(--danger-soft);
   color: var(--danger);
+}
+
+/* Shape, not just colour: a check for done, a bang for error. */
+.notice[data-tone="done"]::before,
+.notice[data-tone="error"]::before {
+  display: inline-block;
+  width: 1.25em;
+  font-weight: 700;
+}
+
+.notice[data-tone="done"]::before {
+  content: "\2713" / "";
+}
+
+.notice[data-tone="error"]::before {
+  content: "!" / "";
 }
 
 /* A waiting dot: opacity only. */
