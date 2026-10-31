@@ -1,4 +1,4 @@
-import { loadForSession } from '../../lib/session'
+import { loadForSession, sessionData } from '../../lib/session'
 import { botLink, tgLinkProps } from '@tilchi/content'
 import {
   Link,
@@ -41,7 +41,7 @@ export const Route = createFileRoute('/app/')({
 function GroupsPage() {
   const { locale, botUsername } = useRouteContext({ from: '__root__' })
   const { previewRole } = useRouteContext({ from: '/app' })
-  const { groups, can, teachers } = Route.useLoaderData()
+  const { groups, can, teachers } = sessionData(Route.useLoaderData())
   const copy = messages(locale)
   const view = groupsView({ groups, can })
   const search = keepAppSearch(previewRole)

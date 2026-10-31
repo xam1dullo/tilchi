@@ -1,4 +1,4 @@
-import { loadForSession } from '../../lib/session'
+import { loadForSession, sessionData } from '../../lib/session'
 import {
   createFileRoute,
   useRouteContext,
@@ -34,7 +34,7 @@ function NotificationsError({ reset }: { reset: () => void }) {
 }
 
 function NotificationsPage() {
-  const inbox = Route.useLoaderData()
+  const inbox = sessionData(Route.useLoaderData())
   const { locale } = useRouteContext({ from: '__root__' })
   const { previewRole } = useRouteContext({ from: '/app' })
   const router = useRouter()

@@ -1,4 +1,5 @@
-import { loadForSession } from '../../../lib/session'
+import { AppNotFound } from '../../app'
+import { loadForSession, sessionData } from '../../../lib/session'
 import {
   Link,
   createFileRoute,
@@ -43,6 +44,7 @@ export const Route = createFileRoute('/app/attempts/$attemptId')({
         apiFetch<AttemptRecord>(attemptPath(params.attemptId), { previewRole }),
       ),
     ),
+  notFoundComponent: AppNotFound,
   component: AttemptPage,
   errorComponent: AttemptError,
 })
@@ -54,7 +56,7 @@ function AttemptError({ error }: { error: unknown }) {
   const { previewRole, session } = useRouteContext({ from: '/app' })
   const fallback = attemptFallback(session?.role)
   const copy = messages(locale)
-  const gone = error instanceof ApiError && [403, 404].includes(error.status)
+  const gone = error instanceof ApiError && error.status === 403
   return (
     <div role="alert" className="error-row">
       <p>{copy[gone ? attemptError(error) : 'error']}</p>
@@ -74,7 +76,7 @@ function AttemptError({ error }: { error: unknown }) {
 }
 
 function AttemptPage() {
-  const attempt = Route.useLoaderData()
+  const attempt = sessionData(Route.useLoaderData())
   return isManagerView(attempt) ? <ManagerAttempt /> : <LearnerAttempt />
 }
 
@@ -102,7 +104,7 @@ function AttemptHead({
 function ManagerAttempt() {
   const { locale } = useRouteContext({ from: '__root__' })
   const { previewRole } = useRouteContext({ from: '/app' })
-  const attempt = Route.useLoaderData()
+  const attempt = sessionData(Route.useLoaderData())
   const copy = messages(locale)
   return (
     <section className="classroom grade-page" aria-labelledby="attempt-heading">
@@ -124,7 +126,7 @@ function ManagerAttempt() {
 function LearnerAttempt() {
   const { locale } = useRouteContext({ from: '__root__' })
   const { previewRole } = useRouteContext({ from: '/app' })
-  const attempt = Route.useLoaderData()
+  const attempt = sessionData(Route.useLoaderData())
   const copy = messages(locale)
   const router = useRouter()
   const open = attempt.status === 'assigned'

@@ -1,4 +1,5 @@
-import { loadForSession } from '../../../lib/session'
+import { AppNotFound } from '../../app'
+import { loadForSession, sessionData } from '../../../lib/session'
 import { Suspense, lazy } from 'react'
 import {
   Link,
@@ -30,13 +31,14 @@ export const Route = createFileRoute('/app/meet/$lessonId')({
         })
       }),
     ),
+  notFoundComponent: AppNotFound,
   component: MeetPage,
 })
 
 function MeetPage() {
   const { locale } = useRouteContext({ from: '__root__' })
   const { previewRole } = useRouteContext({ from: '/app' })
-  const { lesson, group } = Route.useLoaderData()
+  const { lesson, group } = sessionData(Route.useLoaderData())
   const { lessonId } = Route.useParams()
   const navigate = useNavigate()
   const copy = messages(locale)

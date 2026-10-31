@@ -1,4 +1,4 @@
-import { loadForSession } from '../../lib/session'
+import { loadForSession, sessionData } from '../../lib/session'
 import { RetryButton } from '../../components/retry-button'
 import {
   createFileRoute,
@@ -64,7 +64,7 @@ function CourseError() {
 function CoursesPage() {
   const { locale } = useRouteContext({ from: '__root__' })
   const { session, previewRole } = useRouteContext({ from: '/app' })
-  const { courses } = Route.useLoaderData()
+  const { courses } = sessionData(Route.useLoaderData())
   const copy = messages(locale)
   const router = useRouter()
   const [editing, setEditing] = useState<CourseRecord | null>(null)

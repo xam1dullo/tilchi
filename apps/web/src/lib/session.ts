@@ -1,4 +1,3 @@
-import { notFound } from '@tanstack/react-router'
 import { createIsomorphicFn } from '@tanstack/react-start'
 import type { AppRole } from './nav'
 import {
@@ -18,9 +17,15 @@ export type SessionUser = {
 export async function loadForSession<T>(
   session: SessionUser | null,
   load: () => Promise<T>,
-): Promise<T> {
-  if (!session) throw notFound({ routeId: '/app' })
+): Promise<T | null> {
+  if (!session) return null
   return load()
+}
+
+/** AppLayout renders the outlet only after the session gate succeeds. */
+export function sessionData<T>(data: T): NonNullable<T> {
+  if (data == null) throw new Error('Session data rendered outside AppLayout')
+  return data
 }
 
 export const loadSession = createIsomorphicFn()

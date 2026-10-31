@@ -105,7 +105,7 @@ export async function loadDetail<T>(load: () => Promise<T>): Promise<T> {
     return await load()
   } catch (error) {
     if (error instanceof ApiError && [400, 404].includes(error.status)) {
-      throw notFound({ routeId: '/app' })
+      throw notFound()
     }
     throw error
   }

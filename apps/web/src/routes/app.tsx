@@ -118,12 +118,13 @@ export type { SessionUser }
 export function AppNotFound() {
   const { locale } = useRouteContext({ from: '__root__' })
   const { session, previewRole } = useRouteContext({ from: '/app' })
-  if (!session) return <LoginScreen locale={locale} />
   const copy = messages(locale)
-  const fallback = attemptFallback(session.role)
+  const fallback = attemptFallback(session?.role)
   return (
     <div role="alert" className="error-row">
-      <p>{copy.pageNotFound}</p>
+      <h1 ref={(heading) => heading?.focus()} tabIndex={-1}>
+        {copy.pageNotFound}
+      </h1>
       <Link
         className="btn btn-outline"
         to={fallback.to}
