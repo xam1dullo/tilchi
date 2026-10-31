@@ -1,3 +1,4 @@
+import { notFound } from '@tanstack/react-router'
 import { createIsomorphicFn } from '@tanstack/react-start'
 import type { AppRole } from './nav'
 import {
@@ -17,8 +18,9 @@ export type SessionUser = {
 export async function loadForSession<T>(
   session: SessionUser | null,
   load: () => Promise<T>,
-): Promise<T | null> {
-  return session ? load() : null
+): Promise<T> {
+  if (!session) throw notFound({ routeId: '/app' })
+  return load()
 }
 
 export const loadSession = createIsomorphicFn()

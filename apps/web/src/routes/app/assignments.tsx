@@ -31,8 +31,7 @@ function MyTestsError() {
 function MyTestsPage() {
   const { locale } = useRouteContext({ from: '__root__' })
   const { previewRole } = useRouteContext({ from: '/app' })
-  // biome-ignore lint/style/noNonNullAssertion: AppLayout only renders children with a session.
-  const { assignments } = Route.useLoaderData()!
+  const { assignments } = Route.useLoaderData()
   const copy = messages(locale)
   return (
     <section className="classroom" aria-labelledby="my-tests-heading">

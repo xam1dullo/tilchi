@@ -73,8 +73,7 @@ function BankError() {
 function TestsPage() {
   const { locale } = useRouteContext({ from: '__root__' })
   const { previewRole } = useRouteContext({ from: '/app' })
-  // biome-ignore lint/style/noNonNullAssertion: AppLayout only renders children with a session.
-  const { questions, tests } = Route.useLoaderData()!
+  const { questions, tests } = Route.useLoaderData()
   const copy = messages(locale)
   const router = useRouter()
   const search = keepAppSearch(previewRole)

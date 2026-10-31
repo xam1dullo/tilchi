@@ -64,8 +64,7 @@ function CourseError() {
 function CoursesPage() {
   const { locale } = useRouteContext({ from: '__root__' })
   const { session, previewRole } = useRouteContext({ from: '/app' })
-  // biome-ignore lint/style/noNonNullAssertion: AppLayout only renders children with a session.
-  const { courses } = Route.useLoaderData()!
+  const { courses } = Route.useLoaderData()
   const copy = messages(locale)
   const router = useRouter()
   const [editing, setEditing] = useState<CourseRecord | null>(null)

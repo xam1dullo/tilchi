@@ -1,3 +1,4 @@
+import { attemptFallback } from '../lib/attempt'
 import { RetryButton } from '../components/retry-button'
 import { Link, createFileRoute, useRouteContext } from '@tanstack/react-router'
 import { Outlet } from '@tanstack/react-router'
@@ -20,6 +21,7 @@ export const Route = createFileRoute('/app')({
     return { session, previewRole: previewRole ?? null }
   },
   pendingComponent: SkeletonRows,
+  notFoundComponent: AppNotFound,
   errorComponent: LoadError,
   component: AppLayout,
 })
@@ -112,3 +114,23 @@ function LoadError() {
 }
 
 export type { SessionUser }
+
+export function AppNotFound() {
+  const { locale } = useRouteContext({ from: '__root__' })
+  const { session, previewRole } = useRouteContext({ from: '/app' })
+  if (!session) return <LoginScreen locale={locale} />
+  const copy = messages(locale)
+  const fallback = attemptFallback(session.role)
+  return (
+    <div role="alert" className="error-row">
+      <p>{copy.pageNotFound}</p>
+      <Link
+        className="btn btn-outline"
+        to={fallback.to}
+        search={keepAppSearch(previewRole)}
+      >
+        {copy[fallback.label]}
+      </Link>
+    </div>
+  )
+}

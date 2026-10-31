@@ -1,3 +1,4 @@
+import { notFound } from '@tanstack/react-router'
 import { createIsomorphicFn } from '@tanstack/react-start'
 import type { AppRole } from './nav'
 
@@ -97,3 +98,15 @@ export const confirmLogin = (handoffId: string, signal: AbortSignal) =>
 
 export const miniAppLogin = (initData: string) =>
   authPost('/auth/miniapp', { initData })
+
+/** Detail GETs use router 404s; all other failures retain their error boundary. */
+export async function loadDetail<T>(load: () => Promise<T>): Promise<T> {
+  try {
+    return await load()
+  } catch (error) {
+    if (error instanceof ApiError && [400, 404].includes(error.status)) {
+      throw notFound({ routeId: '/app' })
+    }
+    throw error
+  }
+}

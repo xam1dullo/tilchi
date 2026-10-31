@@ -41,8 +41,7 @@ export const Route = createFileRoute('/app/')({
 function GroupsPage() {
   const { locale, botUsername } = useRouteContext({ from: '__root__' })
   const { previewRole } = useRouteContext({ from: '/app' })
-  // biome-ignore lint/style/noNonNullAssertion: AppLayout only renders children with a session.
-  const { groups, can, teachers } = Route.useLoaderData()!
+  const { groups, can, teachers } = Route.useLoaderData()
   const copy = messages(locale)
   const view = groupsView({ groups, can })
   const search = keepAppSearch(previewRole)

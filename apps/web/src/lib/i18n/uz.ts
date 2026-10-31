@@ -182,6 +182,7 @@ export const uz = {
   questionStatusInvalid: 'Savol holatini o‘zgartirib bo‘lmadi.',
   testInvalid:
     'Test ma’lumotlari noto‘g‘ri. Sahifani yangilab, qayta urinib ko‘ring.',
+  pageNotFound: 'Sahifa topilmadi.',
   testNotFound: 'Test topilmadi.',
   questionPublishPrompt:
     'Nashr qilingan savolni o‘zgartirib bo‘lmaydi. Nashr qilasizmi?',

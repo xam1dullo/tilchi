@@ -177,6 +177,7 @@ export const en = {
   questionTypeInvalid: 'Choose a question type.',
   questionStatusInvalid: 'Could not change the question status.',
   testInvalid: 'The test data is not valid. Reload the page and try again.',
+  pageNotFound: 'Page not found.',
   testNotFound: 'Test not found.',
   questionPublishPrompt: 'A published question cannot be edited. Publish it?',
   questionPublishConfirm: 'Yes, publish',
