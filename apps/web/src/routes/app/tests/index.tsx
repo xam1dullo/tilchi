@@ -7,6 +7,7 @@ import {
 } from '@tanstack/react-router'
 import { useEffect, useRef, useState } from 'react'
 import {
+  Collapsible,
   QuestionForm,
   QuestionView,
   requireManageTests,
@@ -72,10 +73,13 @@ function TestsPage() {
   const router = useRouter()
   const search = keepAppSearch(previewRole)
   const promptRef = useRef<HTMLTextAreaElement>(null)
+  const titleRef = useRef<HTMLInputElement>(null)
 
   const [filter, setFilter] = useState<Filter>('all')
   const [draft, setDraft] = useState(emptyDraft())
   const [editing, setEditing] = useState<QuestionRecord | null>(null)
+  const [adding, setAdding] = useState(false)
+  const [testOpen, setTestOpen] = useState(false)
   const [formErrors, setFormErrors] = useState<ErrorKey[]>([])
   const [listError, setListError] = useState<ErrorKey | null>(null)
   const [confirm, setConfirm] = useState<RowConfirm>(null)
@@ -85,12 +89,18 @@ function TestsPage() {
   const [picked, setPicked] = useState<string[]>([])
   const [testErrs, setTestErrs] = useState<ErrorKey[]>([])
   const busy = pending !== null
+  const questionOpen = adding || editing !== null
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: editing another row while open moves focus to it too
   useEffect(() => {
-    if (!editing) return
+    if (!questionOpen) return
     promptRef.current?.focus({ preventScroll: true })
     promptRef.current?.scrollIntoView({ block: 'center' })
-  }, [editing])
+  }, [questionOpen, editing])
+
+  useEffect(() => {
+    if (testOpen) titleRef.current?.focus()
+  }, [testOpen])
 
   /** Null on success, else the copy key of the failure. */
   async function send(
@@ -118,6 +128,7 @@ function TestsPage() {
   }
 
   function resetForm() {
+    setAdding(false)
     setEditing(null)
     setDraft(emptyDraft())
     setFormErrors([])
@@ -179,235 +190,276 @@ function TestsPage() {
       toTestBody(title, picked),
     )
     if (failed) return setTestErrs([failed])
+    closeTest()
+  }
+
+  function closeTest() {
+    setTestOpen(false)
     setTitle('')
     setPicked([])
+    setTestErrs([])
   }
 
   const published = questions.filter((q) => q.status === 'published')
   const shown = filterQuestions(questions, filter)
 
   return (
-    <section className="classroom" aria-labelledby="tests-heading">
-      <h2 id="tests-heading">{copy.tests}</h2>
-
-      <section aria-labelledby="bank-heading">
-        <div className="classroom-head">
+    <section className="classroom tests-page" aria-labelledby="tests-heading">
+      <h2 id="tests-heading" className="tests-title">
+        {copy.tests}
+      </h2>
+      <div className="tests-grid">
+        <section className="tests-section" aria-labelledby="bank-heading">
           <h3 id="bank-heading">{copy.questionBank}</h3>
-          <label className="classroom-form question-filter">
-            {copy.questionFilter}
-            <select
-              value={filter}
-              onChange={(event) => setFilter(event.target.value as Filter)}
-            >
-              <option value="all">{copy.questionFilterAll}</option>
-              <option value="draft">{copy.questionFilterDraft}</option>
-              <option value="published">{copy.questionFilterPublished}</option>
-            </select>
-          </label>
-        </div>
-        <QuestionForm
-          copy={copy}
-          draft={draft}
-          editing={editing !== null}
-          locked={busy}
-          saving={pending === 'question'}
-          errors={formErrors}
-          attempt={attempt}
-          promptRef={promptRef}
-          onChange={setDraft}
-          onSubmit={() => void saveQuestion()}
-          onCancel={resetForm}
-        />
-        {listError ? (
-          <p key={attempt} role="alert" className="notice" data-tone="error">
-            {copy[listError]}
-          </p>
-        ) : null}
-        {shown.length === 0 ? (
-          <p className="hint">{copy.questionEmpty}</p>
-        ) : (
-          <ul className="rows question-list">
-            {shown.map((q) => {
-              const row = questionRowView(q, editing?.id ?? null, confirm)
-              const hintId = `publish-hint-${q.id}`
-              return (
-                <li className="row question-row" key={q.id}>
-                  <QuestionView copy={copy} question={q} />
-                  <div className="lesson-actions">
-                    {row.confirming ? (
-                      <>
-                        <span>
-                          {row.confirming === 'publish'
-                            ? copy.questionPublishPrompt
-                            : copy.questionDeletePrompt}
-                        </span>
-                        <button
-                          type="button"
-                          className="btn btn-outline"
-                          disabled={busy}
-                          onClick={() =>
-                            void act(q, row.confirming ?? 'delete')
-                          }
-                        >
-                          {pending === 'row'
-                            ? copy.courseSaving
-                            : row.confirming === 'publish'
-                              ? copy.questionPublishConfirm
-                              : copy.courseDeleteConfirm}
-                        </button>
-                        <button
-                          type="button"
-                          className="btn btn-outline"
-                          disabled={busy}
-                          onClick={() => setConfirm(null)}
-                        >
-                          {copy.courseCancel}
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        {row.edit ? (
+          <Collapsible
+            open={questionOpen}
+            label={copy.questionNew}
+            primary
+            onOpen={() => {
+              setConfirm(null)
+              setListError(null)
+              setAdding(true)
+            }}
+          >
+            <QuestionForm
+              copy={copy}
+              draft={draft}
+              editing={editing !== null}
+              locked={busy}
+              saving={pending === 'question'}
+              errors={formErrors}
+              attempt={attempt}
+              promptRef={promptRef}
+              onChange={setDraft}
+              onSubmit={() => void saveQuestion()}
+              onCancel={resetForm}
+            />
+          </Collapsible>
+          <div className="tests-toolbar">
+            <label className="classroom-form question-filter">
+              {copy.questionFilter}
+              <select
+                value={filter}
+                onChange={(event) => setFilter(event.target.value as Filter)}
+              >
+                <option value="all">{copy.questionFilterAll}</option>
+                <option value="draft">{copy.questionFilterDraft}</option>
+                <option value="published">
+                  {copy.questionFilterPublished}
+                </option>
+              </select>
+            </label>
+          </div>
+          {listError ? (
+            <p key={attempt} role="alert" className="notice" data-tone="error">
+              {copy[listError]}
+            </p>
+          ) : null}
+          {shown.length === 0 ? (
+            <p className="hint">{copy.questionEmpty}</p>
+          ) : (
+            <ul className="rows question-list">
+              {shown.map((q, index) => {
+                const row = questionRowView(q, editing?.id ?? null, confirm)
+                const hintId = `publish-hint-${q.id}`
+                return (
+                  <li className="row question-row" key={q.id}>
+                    <span className="question-index num" aria-hidden="true">
+                      {String(index + 1).padStart(2, '0')}
+                    </span>
+                    <QuestionView copy={copy} question={q} />
+                    <div className="lesson-actions">
+                      {row.confirming ? (
+                        <>
+                          <span>
+                            {row.confirming === 'publish'
+                              ? copy.questionPublishPrompt
+                              : copy.questionDeletePrompt}
+                          </span>
+                          <button
+                            type="button"
+                            className="btn btn-outline"
+                            disabled={busy}
+                            onClick={() =>
+                              void act(q, row.confirming ?? 'delete')
+                            }
+                          >
+                            {pending === 'row'
+                              ? copy.courseSaving
+                              : row.confirming === 'publish'
+                                ? copy.questionPublishConfirm
+                                : copy.courseDeleteConfirm}
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-outline"
+                            disabled={busy}
+                            onClick={() => setConfirm(null)}
+                          >
+                            {copy.courseCancel}
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          {row.edit ? (
+                            <button
+                              type="button"
+                              className="btn btn-outline"
+                              disabled={busy}
+                              onClick={() => {
+                                setEditing(q)
+                                setDraft(draftFromQuestion(q))
+                                setFormErrors([])
+                                setListError(null)
+                                setConfirm(null)
+                              }}
+                            >
+                              {copy.courseEdit}
+                            </button>
+                          ) : null}
+                          {row.publish ? (
+                            <button
+                              type="button"
+                              className="btn btn-outline"
+                              disabled={busy || row.publishBlocked}
+                              aria-describedby={
+                                row.publishBlocked ? hintId : undefined
+                              }
+                              onClick={() => {
+                                setListError(null)
+                                setConfirm({ id: q.id, action: 'publish' })
+                              }}
+                            >
+                              {copy.questionPublish}
+                            </button>
+                          ) : null}
                           <button
                             type="button"
                             className="btn btn-outline"
                             disabled={busy}
                             onClick={() => {
-                              setEditing(q)
-                              setDraft(draftFromQuestion(q))
-                              setFormErrors([])
                               setListError(null)
-                              setConfirm(null)
+                              setConfirm({ id: q.id, action: 'delete' })
                             }}
                           >
-                            {copy.courseEdit}
+                            {copy.courseDelete}
                           </button>
-                        ) : null}
-                        {row.publish ? (
-                          <button
-                            type="button"
-                            className="btn btn-outline"
-                            disabled={busy || row.publishBlocked}
-                            aria-describedby={
-                              row.publishBlocked ? hintId : undefined
-                            }
-                            onClick={() => {
-                              setListError(null)
-                              setConfirm({ id: q.id, action: 'publish' })
-                            }}
-                          >
-                            {copy.questionPublish}
-                          </button>
-                        ) : null}
-                        <button
-                          type="button"
-                          className="btn btn-outline"
-                          disabled={busy}
-                          onClick={() => {
-                            setListError(null)
-                            setConfirm({ id: q.id, action: 'delete' })
-                          }}
-                        >
-                          {copy.courseDelete}
-                        </button>
-                        {row.publishBlocked ? (
-                          <span id={hintId} className="hint">
-                            {copy.questionPublishEditing}
-                          </span>
-                        ) : null}
-                      </>
-                    )}
-                  </div>
-                </li>
-              )
-            })}
-          </ul>
-        )}
-      </section>
+                          {row.publishBlocked ? (
+                            <span id={hintId} className="hint">
+                              {copy.questionPublishEditing}
+                            </span>
+                          ) : null}
+                        </>
+                      )}
+                    </div>
+                  </li>
+                )
+              })}
+            </ul>
+          )}
+        </section>
 
-      <section aria-labelledby="tests-list-heading">
-        <h3 id="tests-list-heading">{copy.tests}</h3>
-        <form
-          className="classroom-form catalog-form question-form"
-          aria-label={copy.testNew}
-          onSubmit={(event) => {
-            event.preventDefault()
-            void createTest()
-          }}
-        >
-          <fieldset className="question-lock" disabled={busy}>
-            <label>
-              {copy.testTitle}
-              <input
-                value={title}
-                maxLength={MAX_TITLE}
-                required
-                onChange={(event) => setTitle(event.target.value)}
-              />
-            </label>
-            <fieldset className="question-wide question-options">
-              <legend>{copy.testPick}</legend>
-              {published.length === 0 ? (
-                <p className="hint">{copy.testNoPublished}</p>
-              ) : (
-                <>
-                  <p className="hint">{copy.testPickHint}</p>
-                  {published.map((q) => {
-                    const position = picked.indexOf(q.id)
-                    return (
-                      <label className="catalog-publish" key={q.id}>
-                        <input
-                          type="checkbox"
-                          checked={position >= 0}
-                          onChange={() => setPicked(togglePick(picked, q.id))}
-                        />{' '}
-                        {position >= 0 ? (
-                          <span className="num">{position + 1}.</span>
-                        ) : null}{' '}
-                        {q.prompt}
-                      </label>
-                    )
-                  })}
-                </>
-              )}
-            </fieldset>
-            <div className="lesson-actions question-wide">
-              <button className="btn btn-primary" type="submit">
-                {pending === 'test' ? copy.courseSaving : copy.testCreate}
-              </button>
-            </div>
-          </fieldset>
-          {testErrs.map((key) => (
-            <p
-              key={`${attempt}-${key}`}
-              className="notice question-wide"
-              data-tone="error"
-              role="alert"
+        <section className="tests-section" aria-labelledby="tests-list-heading">
+          <h3 id="tests-list-heading">{copy.tests}</h3>
+          <Collapsible
+            open={testOpen}
+            label={copy.testNew}
+            onOpen={() => setTestOpen(true)}
+          >
+            <form
+              className="classroom-form catalog-form question-form"
+              aria-label={copy.testNew}
+              onSubmit={(event) => {
+                event.preventDefault()
+                void createTest()
+              }}
             >
-              {copy[key]}
-            </p>
-          ))}
-        </form>
-        {tests.length === 0 ? (
-          <p className="hint">{copy.testEmpty}</p>
-        ) : (
-          <ul className="rows classroom-list">
-            {tests.map((test) => (
-              <li key={test.id} className="row classroom-row">
-                <Link
-                  to="/app/tests/$testId"
-                  params={{ testId: test.id }}
-                  search={search}
+              <fieldset className="question-lock" disabled={busy}>
+                <label>
+                  {copy.testTitle}
+                  <input
+                    ref={titleRef}
+                    value={title}
+                    maxLength={MAX_TITLE}
+                    required
+                    onChange={(event) => setTitle(event.target.value)}
+                  />
+                </label>
+                <fieldset className="question-wide question-options">
+                  <legend>{copy.testPick}</legend>
+                  {published.length === 0 ? (
+                    <p className="hint">{copy.testNoPublished}</p>
+                  ) : (
+                    <>
+                      <p className="hint">{copy.testPickHint}</p>
+                      {published.map((q) => {
+                        const position = picked.indexOf(q.id)
+                        return (
+                          <label className="catalog-publish" key={q.id}>
+                            <input
+                              type="checkbox"
+                              checked={position >= 0}
+                              onChange={() =>
+                                setPicked(togglePick(picked, q.id))
+                              }
+                            />{' '}
+                            {position >= 0 ? (
+                              <span className="num">{position + 1}.</span>
+                            ) : null}{' '}
+                            {q.prompt}
+                          </label>
+                        )
+                      })}
+                    </>
+                  )}
+                </fieldset>
+                <div className="lesson-actions question-wide">
+                  <button className="btn btn-primary" type="submit">
+                    {pending === 'test' ? copy.courseSaving : copy.testCreate}
+                  </button>
+                  <button
+                    className="btn btn-outline"
+                    type="button"
+                    onClick={closeTest}
+                  >
+                    {copy.courseCancel}
+                  </button>
+                </div>
+              </fieldset>
+              {testErrs.map((key) => (
+                <p
+                  key={`${attempt}-${key}`}
+                  className="notice question-wide"
+                  data-tone="error"
+                  role="alert"
                 >
-                  <strong>{test.title}</strong>
-                  <span>
-                    {copy.testQuestionCount} {test.questionCount}
-                  </span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+                  {copy[key]}
+                </p>
+              ))}
+            </form>
+          </Collapsible>
+          {tests.length === 0 ? (
+            <p className="hint">{copy.testEmpty}</p>
+          ) : (
+            <ul className="rows classroom-list">
+              {tests.map((test) => (
+                <li key={test.id} className="row classroom-row">
+                  <Link
+                    to="/app/tests/$testId"
+                    params={{ testId: test.id }}
+                    search={search}
+                  >
+                    <strong>{test.title}</strong>
+                    <span className="num">
+                      {copy.testQuestionCount} {test.questionCount}
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      </div>
     </section>
   )
 }

@@ -1,5 +1,5 @@
 import { redirect } from '@tanstack/react-router'
-import type { Ref } from 'react'
+import { type ReactNode, type Ref, useEffect, useRef } from 'react'
 import { apiFetch } from '../lib/api'
 import type { Copy } from '../lib/i18n'
 import type { AppRole } from '../lib/nav'
@@ -155,15 +155,9 @@ export function QuestionForm({
                 ? copy.courseSave
                 : copy.questionCreate}
           </button>
-          {editing ? (
-            <button
-              className="btn btn-outline"
-              type="button"
-              onClick={onCancel}
-            >
-              {copy.courseCancel}
-            </button>
-          ) : null}
+          <button className="btn btn-outline" type="button" onClick={onCancel}>
+            {copy.courseCancel}
+          </button>
         </div>
       </fieldset>
       {errors.map((key) => (
@@ -177,6 +171,42 @@ export function QuestionForm({
         </p>
       ))}
     </form>
+  )
+}
+
+/**
+ * A form kept behind one button. Closed, only the button shows; open, the
+ * form takes its place. Closing hands focus back to the button.
+ */
+export function Collapsible({
+  open,
+  label,
+  primary = false,
+  onOpen,
+  children,
+}: {
+  open: boolean
+  label: string
+  primary?: boolean
+  onOpen: () => void
+  children?: ReactNode
+}) {
+  const button = useRef<HTMLButtonElement>(null)
+  const wasOpen = useRef(open)
+  useEffect(() => {
+    if (wasOpen.current && !open) button.current?.focus()
+    wasOpen.current = open
+  }, [open])
+  if (open) return children
+  return (
+    <button
+      ref={button}
+      type="button"
+      className={`btn ${primary ? 'btn-primary' : 'btn-outline'} collapsible-open`}
+      onClick={onOpen}
+    >
+      {label}
+    </button>
   )
 }
 
@@ -208,8 +238,10 @@ export function QuestionView({
   return (
     <div className="question-view">
       <p className="question-tags">
-        <span className="tag">{copy[typeKey[question.type]]}</span>{' '}
-        <span className="tag">
+        <span className="tag question-type">
+          {copy[typeKey[question.type]]}
+        </span>{' '}
+        <span className="tag" data-status={question.status}>
           {question.status === 'published'
             ? copy.coursePublished
             : copy.courseDraft}

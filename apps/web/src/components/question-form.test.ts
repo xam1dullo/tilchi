@@ -7,7 +7,7 @@ import {
   type QuestionDraft,
   type QuestionRecord,
 } from '../lib/question-form'
-import { QuestionForm, QuestionView } from './question-form'
+import { Collapsible, QuestionForm, QuestionView } from './question-form'
 
 const copy = messages('en')
 
@@ -43,10 +43,43 @@ describe('QuestionForm', () => {
     expect(form(emptyDraft())).not.toContain('question-lock" disabled')
   })
 
+  it('offers Cancel for a new question too, so the open form can collapse', () => {
+    expect(form(emptyDraft())).toContain(`>${copy.courseCancel}</button>`)
+  })
+
   it('names each correct-answer control by its option number', () => {
     expect(form(emptyDraft('single'))).toContain(
       `aria-label="${copy.questionCorrect}: ${copy.questionOption} 2"`,
     )
+  })
+})
+
+describe('Collapsible', () => {
+  const render = (open: boolean) =>
+    renderToStaticMarkup(
+      createElement(
+        Collapsible,
+        {
+          open,
+          label: copy.questionNew,
+          primary: true,
+          onOpen: () => {},
+        },
+        createElement('form', { 'aria-label': 'inner' }),
+      ),
+    )
+
+  it('shows only its button while closed', () => {
+    const html = render(false)
+    expect(html).toContain(`>${copy.questionNew}</button>`)
+    expect(html).toContain('btn-primary')
+    expect(html).not.toContain('<form')
+  })
+
+  it('swaps the button for the form when open', () => {
+    const html = render(true)
+    expect(html).toContain('<form aria-label="inner">')
+    expect(html).not.toContain(copy.questionNew)
   })
 })
 
@@ -71,5 +104,6 @@ describe('QuestionView', () => {
       `No<span class="question-correct"> (${copy.questionCorrect})`,
     )
     expect(html).toContain(copy.coursePublished)
+    expect(html).toContain('data-status="published"')
   })
 })
