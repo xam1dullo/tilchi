@@ -1033,9 +1033,14 @@
 /* Cabinet list pages only. Shared classroom rows on detail pages are untouched. */
 :is(.assignments-page, .groups-page, .tests-page) .cabinet-stats {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr));
   gap: 16px;
   margin: 24px 0 32px;
+}
+
+/* Keep the learner's two cards together at a readable desktop size. */
+.groups-page .cabinet-stats:has(> div:last-child:nth-child(2)) {
+  max-width: calc(40rem + 16px);
 }
 
 :is(.assignments-page, .groups-page, .tests-page) .cabinet-stats > div {
@@ -1046,11 +1051,13 @@
 }
 
 :is(.assignments-page, .groups-page, .tests-page) .cabinet-stats dt {
+  overflow-wrap: anywhere;
   font-size: var(--fs-xs);
   color: var(--ink-2);
 }
 
 :is(.assignments-page, .groups-page, .tests-page) .cabinet-stats dd {
+  overflow-wrap: anywhere;
   margin: 12px 0;
   font: 400 var(--fs-stat) / 1 var(--font-display);
   font-variant-numeric: tabular-nums;
