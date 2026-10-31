@@ -1,5 +1,10 @@
 import { describe, expect, it, vi } from 'vitest'
-import { formatLessonTime, groupsView, tashkentInputToIso } from './classroom'
+import {
+  nextGroupLesson,
+  formatLessonTime,
+  groupsView,
+  tashkentInputToIso,
+} from './classroom'
 
 describe('formatLessonTime', () => {
   it('uses Uzbek short months even when Intl lacks Uzbek locale data', () => {
@@ -137,5 +142,47 @@ describe('tashkentInputToIso', () => {
     for (const value of ['', '2026-11-01', '2026-13-01T09:00', 'x']) {
       expect(tashkentInputToIso(value)).toBeNull()
     }
+  })
+})
+
+describe('nextGroupLesson', () => {
+  const now = Date.parse('2030-01-03T00:00:00Z')
+  const item = (
+    id: string,
+    status: 'scheduled' | 'live',
+    scheduledAt: string,
+  ) => ({ id, status, scheduledAt })
+  const overdue = item('overdue', 'scheduled', '2030-01-01T00:00:00Z')
+  const upcoming = item('upcoming', 'scheduled', '2030-01-04T00:00:00Z')
+  it('keeps a lesson primary one minute after its start, then expires after the grace window', () => {
+    const today = item('today', 'scheduled', '2030-01-03T10:00:00Z')
+    const nextWeek = item('next-week', 'scheduled', '2030-01-10T10:00:00Z')
+    const start = Date.parse(today.scheduledAt)
+    expect(nextGroupLesson([nextWeek, today], start + 60_000)).toBe(today)
+    expect(nextGroupLesson([today, nextWeek], start + 3 * 60 * 60_000)).toBe(
+      today,
+    )
+    expect(
+      nextGroupLesson([today, nextWeek], start + 3 * 60 * 60_000 + 60_000),
+    ).toBe(nextWeek)
+  })
+  it('renders no scheduled primary before the client clock is known, but always keeps live', () => {
+    expect(nextGroupLesson([overdue, upcoming], null)).toBeUndefined()
+    const live = item('live', 'live', '2030-01-02T00:00:00Z')
+    expect(nextGroupLesson([upcoming, live], null)).toBe(live)
+  })
+  it('promotes the earliest upcoming lesson instead of an overdue one', () => {
+    expect(nextGroupLesson([overdue, upcoming], now)).toBe(upcoming)
+  })
+  it('prefers live over both overdue and upcoming lessons in any order', () => {
+    const live = item('live', 'live', '2030-01-02T00:00:00Z')
+    expect(nextGroupLesson([overdue, upcoming, live], now)).toBe(live)
+    expect(nextGroupLesson([live, upcoming, overdue], now)).toBe(live)
+  })
+  it('includes a lesson starting now and excludes overdue-only and empty lists', () => {
+    const current = item('now', 'scheduled', '2030-01-03T00:00:00Z')
+    expect(nextGroupLesson([upcoming, current], now)).toBe(current)
+    expect(nextGroupLesson([overdue], now)).toBeUndefined()
+    expect(nextGroupLesson([], now)).toBeUndefined()
   })
 })

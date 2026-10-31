@@ -90,6 +90,7 @@ export const en = {
   meetUnavailable: 'The meeting token is not available yet.',
   backToGroup: 'Back to the group',
   members: 'Members',
+  groupLessons: 'Lessons',
   noLessons: 'No lessons yet.',
   leaveMeet: 'Leave',
   meetConnecting: 'Connecting to the meeting…',

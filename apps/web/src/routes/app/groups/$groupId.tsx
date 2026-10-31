@@ -6,10 +6,11 @@ import {
   useRouteContext,
   useRouter,
 } from '@tanstack/react-router'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { apiFetch, loadDetail } from '../../../lib/api'
 import {
   formatLessonTime,
+  nextGroupLesson,
   tashkentInputToIso,
   type GroupRecord,
   type LessonRecord,
@@ -75,6 +76,36 @@ function GroupPage() {
   )
   const copy = messages(locale)
   const search = keepAppSearch(previewRole)
+  const [now, setNow] = useState<number | null>(null)
+  const listRef = useRef<HTMLUListElement>(null)
+  const [listOverflows, setListOverflows] = useState(false)
+  useEffect(() => {
+    setNow(Date.now())
+  }, [])
+  useEffect(() => {
+    const list = listRef.current
+    if (!list || lessons.length === 0) {
+      setListOverflows(false)
+      return
+    }
+    const measure = () =>
+      setListOverflows(list.scrollHeight > list.clientHeight + 1)
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(list)
+    return () => observer.disconnect()
+  }, [lessons])
+  const nextLesson = nextGroupLesson(lessons, now)
+  const primaryLesson =
+    nextLesson &&
+    (nextLesson.can.start || nextLesson.can.end || nextLesson.can.join)
+      ? nextLesson
+      : undefined
+  const lessonCopy = {
+    start: copy.startLesson,
+    end: copy.endLesson,
+    join: copy.joinMeet,
+  }
   return (
     <section className="classroom group-page">
       <p className="eyebrow">
@@ -100,68 +131,115 @@ function GroupPage() {
           />
         ) : null}
       </div>
-      {lessons.length === 0 ? (
-        <p className="hint">{copy.noLessons}</p>
-      ) : (
-        <ul className="rows classroom-list">
-          {lessons.map((lesson) => {
-            const status =
-              lesson.status === 'live'
-                ? copy.lessonLive
-                : lesson.status === 'ended'
-                  ? copy.lessonEnded
-                  : lesson.status === 'cancelled'
-                    ? copy.lessonCancelled
-                    : copy.lessonScheduled
-            return (
-              <li key={lesson.id} className="row classroom-row lesson-row">
-                <div className="group-lesson-meta">
-                  <strong>
-                    {formatLessonTime(lesson.scheduledAt, locale)}
-                  </strong>
-                  <span className={`tag status-${lesson.status}`}>
-                    {status}
-                  </span>
-                </div>
-                <LessonButtons
-                  lesson={lesson}
-                  previewRole={previewRole}
-                  search={search}
-                  copy={{
-                    start: copy.startLesson,
-                    end: copy.endLesson,
-                    join: copy.joinMeet,
-                  }}
-                />
-              </li>
-            )
-          })}
-        </ul>
-      )}
-      {group.can.assignTest ? (
-        <AssignForm
-          groupId={group.id}
-          previewRole={previewRole}
-          tests={tests}
-          copy={copy}
-        />
-      ) : null}
-      {group.can.viewAssignments ? (
-        <AssignmentsList
-          assignments={assignments}
-          copy={copy}
-          locale={locale}
-          canGrade={group.can.gradeAttempts}
-          previewRole={previewRole}
-        />
-      ) : null}
-      {group.can.seeMembers ? (
-        <MembersList members={members} copy={copy} />
-      ) : null}
-      {group.can.manageMembers ? (
-        <EnrolPanel group={group} previewRole={previewRole} copy={copy} />
-      ) : null}
+      <div className="group-layout">
+        <div className="group-main">
+          {group.can.assignTest ? (
+            <AssignForm
+              groupId={group.id}
+              previewRole={previewRole}
+              tests={tests}
+              copy={copy}
+            />
+          ) : null}
+          {group.can.viewAssignments ? (
+            <AssignmentsList
+              assignments={assignments}
+              copy={copy}
+              locale={locale}
+              canGrade={group.can.gradeAttempts}
+              previewRole={previewRole}
+            />
+          ) : null}
+          {group.can.seeMembers ? (
+            <MembersList members={members} copy={copy} />
+          ) : null}
+          {group.can.manageMembers ? (
+            <EnrolPanel group={group} previewRole={previewRole} copy={copy} />
+          ) : null}
+        </div>
+        <aside className="group-lessons" aria-labelledby="group-lessons-title">
+          <h3 id="group-lessons-title">{copy.groupLessons}</h3>
+          {primaryLesson ? (
+            <div className="group-lesson-primary">
+              <LessonMeta
+                lesson={primaryLesson}
+                locale={locale}
+                copy={copy}
+                primary
+              />
+              <LessonButtons
+                lesson={primaryLesson}
+                previewRole={previewRole}
+                search={search}
+                copy={lessonCopy}
+                primary
+              />
+            </div>
+          ) : null}
+          {lessons.length === 0 ? (
+            <p className="hint">{copy.noLessons}</p>
+          ) : (
+            <ul
+              ref={listRef}
+              className="rows classroom-list group-lessons-scroll"
+              aria-labelledby="group-lessons-title"
+              tabIndex={listOverflows ? 0 : undefined}
+            >
+              {lessons.map((lesson, index) => {
+                return (
+                  <li key={lesson.id} className="row classroom-row lesson-row">
+                    <span className="group-lesson-index" aria-hidden="true">
+                      {index + 1}
+                    </span>
+                    <LessonMeta lesson={lesson} locale={locale} copy={copy} />
+                    {lesson.id !== primaryLesson?.id ? (
+                      <LessonButtons
+                        lesson={lesson}
+                        previewRole={previewRole}
+                        search={search}
+                        copy={lessonCopy}
+                      />
+                    ) : null}
+                  </li>
+                )
+              })}
+            </ul>
+          )}
+        </aside>
+      </div>
     </section>
+  )
+}
+
+function LessonMeta({
+  lesson,
+  locale,
+  copy,
+  primary = false,
+}: {
+  lesson: LessonRecord
+  locale: string
+  copy: Copy
+  primary?: boolean
+}) {
+  const status =
+    lesson.status === 'live'
+      ? copy.lessonLive
+      : lesson.status === 'ended'
+        ? copy.lessonEnded
+        : lesson.status === 'cancelled'
+          ? copy.lessonCancelled
+          : copy.lessonScheduled
+  return (
+    <div className="group-lesson-meta">
+      <time
+        id={`${primary ? 'primary-' : ''}lesson-time-${lesson.id}`}
+        dateTime={lesson.scheduledAt}
+      >
+        <strong>{formatLessonTime(lesson.scheduledAt, locale)}</strong>
+      </time>
+      <span className={`tag status-${lesson.status}`}>{status}</span>
+    </div>
   )
 }
 
@@ -232,11 +310,13 @@ function ScheduleForm({
 }
 
 function LessonButtons({
+  primary = false,
   lesson,
   previewRole,
   search,
   copy,
 }: {
+  primary?: boolean
   lesson: LessonRecord
   previewRole: 'learner' | 'teacher' | 'admin' | null
   search: ReturnType<typeof keepAppSearch>
@@ -250,13 +330,16 @@ function LessonButtons({
       .then(() => router.invalidate())
       .finally(() => setBusy(false))
   }
+  if (!lesson.can.start && !lesson.can.end && !lesson.can.join) return null
+  const describedBy = primary ? `primary-lesson-time-${lesson.id}` : undefined
   return (
     <div className="lesson-actions">
       {lesson.can.start ? (
         <button
-          className="btn btn-outline"
+          className={primary ? 'btn btn-primary' : 'btn btn-outline'}
           type="button"
           disabled={busy}
+          aria-describedby={describedBy}
           onClick={() => post(`/api/lessons/${lesson.id}/start`)}
         >
           {copy.start}
@@ -264,9 +347,10 @@ function LessonButtons({
       ) : null}
       {lesson.can.end ? (
         <button
-          className="btn btn-outline"
+          className={primary ? 'btn btn-primary' : 'btn btn-outline'}
           type="button"
           disabled={busy}
+          aria-describedby={describedBy}
           onClick={() => post(`/api/lessons/${lesson.id}/end`)}
         >
           {copy.end}
@@ -275,6 +359,7 @@ function LessonButtons({
       {lesson.can.join ? (
         <Link
           className="btn btn-primary"
+          aria-describedby={describedBy}
           to="/app/meet/$lessonId"
           params={{ lessonId: lesson.id }}
           search={search}
