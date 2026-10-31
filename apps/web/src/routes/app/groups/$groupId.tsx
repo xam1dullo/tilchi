@@ -1,3 +1,4 @@
+import { loadForSession } from '../../../lib/session'
 import {
   Link,
   createFileRoute,
@@ -24,28 +25,29 @@ import { messages, type Copy } from '../../../lib/i18n'
 import { keepAppSearch } from '../../../lib/preview'
 
 export const Route = createFileRoute('/app/groups/$groupId')({
-  loader: async ({ context, params }) => {
-    const [group, lessons] = await Promise.all([
-      apiFetch<GroupRecord>(`/api/groups/${params.groupId}`, {
-        previewRole: context.previewRole,
-      }),
-      apiFetch<{ lessons: LessonRecord[] }>(
-        `/api/groups/${params.groupId}/lessons`,
-        { previewRole: context.previewRole },
-      ),
-    ])
-    const { previewRole } = context
-    const path = `/api/groups/${params.groupId}`
-    const [{ members }, { tests, assignments }] = await Promise.all([
-      group.can.seeMembers
-        ? apiFetch<{ members: Member[] }>(`${path}/members`, { previewRole })
-        : { members: [] },
-      loadAssessment(group.can, group.id, (url) =>
-        apiFetch(url, { previewRole }),
-      ),
-    ])
-    return { group, lessons: lessons.lessons, members, tests, assignments }
-  },
+  loader: ({ context, params }) =>
+    loadForSession(context.session, async () => {
+      const [group, lessons] = await Promise.all([
+        apiFetch<GroupRecord>(`/api/groups/${params.groupId}`, {
+          previewRole: context.previewRole,
+        }),
+        apiFetch<{ lessons: LessonRecord[] }>(
+          `/api/groups/${params.groupId}/lessons`,
+          { previewRole: context.previewRole },
+        ),
+      ])
+      const { previewRole } = context
+      const path = `/api/groups/${params.groupId}`
+      const [{ members }, { tests, assignments }] = await Promise.all([
+        group.can.seeMembers
+          ? apiFetch<{ members: Member[] }>(`${path}/members`, { previewRole })
+          : { members: [] },
+        loadAssessment(group.can, group.id, (url) =>
+          apiFetch(url, { previewRole }),
+        ),
+      ])
+      return { group, lessons: lessons.lessons, members, tests, assignments }
+    }),
   component: GroupPage,
   errorComponent: GroupError,
 })
@@ -64,7 +66,8 @@ function GroupError() {
 function GroupPage() {
   const { locale } = useRouteContext({ from: '__root__' })
   const { previewRole } = useRouteContext({ from: '/app' })
-  const { group, lessons, members, tests, assignments } = Route.useLoaderData()
+  // biome-ignore lint/style/noNonNullAssertion: AppLayout only renders children with a session.
+  const { group, lessons, members, tests, assignments } = Route.useLoaderData()!
   const copy = messages(locale)
   const search = keepAppSearch(previewRole)
   return (

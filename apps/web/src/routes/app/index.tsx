@@ -1,3 +1,4 @@
+import { loadForSession } from '../../lib/session'
 import { botLink, tgLinkProps } from '@tilchi/content'
 import {
   Link,
@@ -20,26 +21,28 @@ import { messages, type Copy } from '../../lib/i18n'
 import { keepAppSearch } from '../../lib/preview'
 
 export const Route = createFileRoute('/app/')({
-  loader: async ({ context }) => {
-    const { previewRole } = context
-    const list = await apiFetch<{
-      groups: GroupRecord[]
-      can: { createGroup: boolean; assignTeacher: boolean }
-    }>('/api/groups', { previewRole })
-    const { teachers } = list.can.assignTeacher
-      ? await apiFetch<{ teachers: Teacher[] }>('/api/teachers', {
-          previewRole,
-        })
-      : { teachers: [] }
-    return { ...list, teachers }
-  },
+  loader: ({ context }) =>
+    loadForSession(context.session, async () => {
+      const { previewRole } = context
+      const list = await apiFetch<{
+        groups: GroupRecord[]
+        can: { createGroup: boolean; assignTeacher: boolean }
+      }>('/api/groups', { previewRole })
+      const { teachers } = list.can.assignTeacher
+        ? await apiFetch<{ teachers: Teacher[] }>('/api/teachers', {
+            previewRole,
+          })
+        : { teachers: [] }
+      return { ...list, teachers }
+    }),
   component: GroupsPage,
 })
 
 function GroupsPage() {
   const { locale, botUsername } = useRouteContext({ from: '__root__' })
   const { previewRole } = useRouteContext({ from: '/app' })
-  const { groups, can, teachers } = Route.useLoaderData()
+  // biome-ignore lint/style/noNonNullAssertion: AppLayout only renders children with a session.
+  const { groups, can, teachers } = Route.useLoaderData()!
   const copy = messages(locale)
   const view = groupsView({ groups, can })
   const search = keepAppSearch(previewRole)

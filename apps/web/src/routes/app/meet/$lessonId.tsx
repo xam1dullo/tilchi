@@ -1,3 +1,4 @@
+import { loadForSession } from '../../../lib/session'
 import { Suspense, lazy } from 'react'
 import {
   Link,
@@ -21,18 +22,20 @@ type LessonBody = {
 const AiHelper = lazy(() => import('../../../components/ai/ai-helper'))
 
 export const Route = createFileRoute('/app/meet/$lessonId')({
-  loader: async ({ context, params }) => {
-    return apiFetch<LessonBody>(`/api/lessons/${params.lessonId}`, {
-      previewRole: context.previewRole,
-    })
-  },
+  loader: ({ context, params }) =>
+    loadForSession(context.session, async () => {
+      return apiFetch<LessonBody>(`/api/lessons/${params.lessonId}`, {
+        previewRole: context.previewRole,
+      })
+    }),
   component: MeetPage,
 })
 
 function MeetPage() {
   const { locale } = useRouteContext({ from: '__root__' })
   const { previewRole } = useRouteContext({ from: '/app' })
-  const { lesson, group } = Route.useLoaderData()
+  // biome-ignore lint/style/noNonNullAssertion: AppLayout only renders children with a session.
+  const { lesson, group } = Route.useLoaderData()!
   const { lessonId } = Route.useParams()
   const navigate = useNavigate()
   const copy = messages(locale)

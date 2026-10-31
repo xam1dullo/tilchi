@@ -1,3 +1,4 @@
+import { loadForSession } from '../../../lib/session'
 import { RetryButton } from '../../../components/retry-button'
 import { Link, createFileRoute, useRouteContext } from '@tanstack/react-router'
 import { apiFetch } from '../../../lib/api'
@@ -10,13 +11,14 @@ import {
 } from '../../../components/question-form'
 
 export const Route = createFileRoute('/app/tests/$testId')({
-  loader: async ({ context: { previewRole }, params }) => {
-    await requireManageTests(previewRole)
-    return apiFetch<TestRecord>(
-      `/api/tests/${encodeURIComponent(params.testId)}`,
-      { previewRole },
-    )
-  },
+  loader: ({ context: { previewRole, session }, params }) =>
+    loadForSession(session, async () => {
+      await requireManageTests(previewRole)
+      return apiFetch<TestRecord>(
+        `/api/tests/${encodeURIComponent(params.testId)}`,
+        { previewRole },
+      )
+    }),
   component: TestPage,
   errorComponent: TestError,
 })
@@ -47,7 +49,8 @@ function TestError({ error }: { error: unknown }) {
 function TestPage() {
   const { locale } = useRouteContext({ from: '__root__' })
   const { previewRole } = useRouteContext({ from: '/app' })
-  const test = Route.useLoaderData()
+  // biome-ignore lint/style/noNonNullAssertion: AppLayout only renders children with a session.
+  const test = Route.useLoaderData()!
   const copy = messages(locale)
   return (
     <section className="classroom" aria-labelledby="test-heading">

@@ -13,6 +13,14 @@ export type SessionUser = {
   name?: string | null
 }
 
+/** Child loaders run even when AppLayout renders LoginScreen instead of Outlet. */
+export async function loadForSession<T>(
+  session: SessionUser | null,
+  load: () => Promise<T>,
+): Promise<T | null> {
+  return session ? load() : null
+}
+
 export const loadSession = createIsomorphicFn()
   .server(async (): Promise<SessionUser | null> => {
     const base = runtimeEnv('API_INTERNAL_URL') ?? 'http://127.0.0.1:3001'
