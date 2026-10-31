@@ -41,6 +41,17 @@ describe('createEndConfirm', () => {
     expect(armed).toHaveBeenLastCalledWith(true)
   })
 
+  it('ignores keyboard auto-repeat from a held key', () => {
+    const { armed, end, confirm } = setup()
+    confirm.press(true)
+    expect(armed).not.toHaveBeenCalled()
+    confirm.press()
+    vi.advanceTimersByTime(END_GUARD_MS * 2)
+    confirm.press(true)
+    expect(end).not.toHaveBeenCalled()
+    expect(armed).toHaveBeenLastCalledWith(true)
+  })
+
   it('cancel (Escape, blur) disarms without ending', () => {
     const { armed, end, confirm } = setup()
     confirm.press()
@@ -65,6 +76,12 @@ describe('lessonAction', () => {
 
   it('refreshes after a successful request', async () => {
     const refresh = vi.fn(async () => {})
+    await expect(lessonAction(async () => ({}), refresh)).resolves.toBe(true)
+    expect(refresh).toHaveBeenCalledOnce()
+  })
+
+  it('still reports success when the refresh fails', async () => {
+    const refresh = vi.fn(() => Promise.reject(new Error('offline')))
     await expect(lessonAction(async () => ({}), refresh)).resolves.toBe(true)
     expect(refresh).toHaveBeenCalledOnce()
   })
