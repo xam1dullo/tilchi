@@ -1,3 +1,19 @@
+/** Stable date labels for runtimes without Uzbek ICU month data. */
+export const uzShortMonths = [
+  'yan',
+  'fev',
+  'mar',
+  'apr',
+  'may',
+  'iyn',
+  'iyl',
+  'avg',
+  'sen',
+  'okt',
+  'noy',
+  'dek',
+] as const
+
 export const uz = {
   catalogTitle: 'Kurslar',
   catalogEmpty: 'Hozircha kurslar mavjud emas.',

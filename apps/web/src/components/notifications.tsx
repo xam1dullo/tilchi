@@ -1,3 +1,4 @@
+import { formatLessonTime } from '../lib/classroom'
 import type { Copy } from '../lib/i18n'
 import type { Locale } from '../lib/locale'
 import type { AppRole } from '../lib/nav'
@@ -34,11 +35,7 @@ export function notificationLink(
 function notificationTime(value: string, locale: Locale) {
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return ''
-  return new Intl.DateTimeFormat(locale === 'uz' ? 'uz-UZ' : locale, {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-    timeZone: 'Asia/Tashkent',
-  }).format(date)
+  return formatLessonTime(value, locale)
 }
 
 export function NotificationList({
