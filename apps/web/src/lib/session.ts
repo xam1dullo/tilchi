@@ -18,7 +18,14 @@ export async function loadForSession<T>(
   session: SessionUser | null,
   load: () => Promise<T>,
 ): Promise<T | null> {
-  return session ? load() : null
+  if (!session) return null
+  return load()
+}
+
+/** AppLayout renders the outlet only after the session gate succeeds. */
+export function sessionData<T>(data: T): NonNullable<T> {
+  if (data == null) throw new Error('Session data rendered outside AppLayout')
+  return data
 }
 
 export const loadSession = createIsomorphicFn()

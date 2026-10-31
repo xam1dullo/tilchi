@@ -178,7 +178,7 @@ export const ru = {
   questionTypeInvalid: 'Выберите тип вопроса.',
   questionStatusInvalid: 'Не удалось изменить статус вопроса.',
   testInvalid: 'Неверные данные теста. Обновите страницу и попробуйте снова.',
-  testNotFound: 'Тест не найден.',
+  pageNotFound: 'Страница не найдена.',
   questionPublishPrompt: 'Опубликованный вопрос нельзя изменить. Опубликовать?',
   questionPublishConfirm: 'Да, опубликовать',
   questionPublishEditing: 'Сначала сохраните или отмените правку.',

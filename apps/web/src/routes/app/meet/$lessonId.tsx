@@ -1,4 +1,5 @@
-import { loadForSession } from '../../../lib/session'
+import { AppNotFound } from '../../app'
+import { loadForSession, sessionData } from '../../../lib/session'
 import { Suspense, lazy } from 'react'
 import {
   Link,
@@ -7,7 +8,7 @@ import {
   useRouteContext,
 } from '@tanstack/react-router'
 import { MeetEntry } from '../../../components/meet/meet-room'
-import { apiFetch } from '../../../lib/api'
+import { apiFetch, loadDetail } from '../../../lib/api'
 import type { GroupRecord, LessonRecord } from '../../../lib/classroom'
 import { messages } from '../../../lib/i18n'
 import { keepAppSearch } from '../../../lib/preview'
@@ -23,19 +24,21 @@ const AiHelper = lazy(() => import('../../../components/ai/ai-helper'))
 
 export const Route = createFileRoute('/app/meet/$lessonId')({
   loader: ({ context, params }) =>
-    loadForSession(context.session, async () => {
-      return apiFetch<LessonBody>(`/api/lessons/${params.lessonId}`, {
-        previewRole: context.previewRole,
-      })
-    }),
+    loadForSession(context.session, () =>
+      loadDetail(async () => {
+        return apiFetch<LessonBody>(`/api/lessons/${params.lessonId}`, {
+          previewRole: context.previewRole,
+        })
+      }),
+    ),
+  notFoundComponent: AppNotFound,
   component: MeetPage,
 })
 
 function MeetPage() {
   const { locale } = useRouteContext({ from: '__root__' })
   const { previewRole } = useRouteContext({ from: '/app' })
-  // biome-ignore lint/style/noNonNullAssertion: AppLayout only renders children with a session.
-  const { lesson, group } = Route.useLoaderData()!
+  const { lesson, group } = sessionData(Route.useLoaderData())
   const { lessonId } = Route.useParams()
   const navigate = useNavigate()
   const copy = messages(locale)

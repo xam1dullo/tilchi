@@ -15,7 +15,6 @@ import {
   removeOption,
   setOption,
   testErrors,
-  testLoadError,
   toQuestionBody,
   toQuestionPatch,
   toTestBody,
@@ -236,16 +235,6 @@ describe('questionRowView', () => {
     expect(
       questionRowView({ ...record, id: 'q2' }, null, confirm).confirming,
     ).toBeNull()
-  })
-})
-
-describe('testLoadError', () => {
-  it('says not found only for a 404', () => {
-    expect(testLoadError(new ApiError(404, { error: 'not_found' }))).toBe(
-      'testNotFound',
-    )
-    expect(testLoadError(new ApiError(500, null))).toBe('error')
-    expect(testLoadError(new TypeError('network'))).toBe('error')
   })
 })
 

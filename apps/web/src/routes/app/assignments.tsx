@@ -1,4 +1,4 @@
-import { loadForSession } from '../../lib/session'
+import { loadForSession, sessionData } from '../../lib/session'
 import { createFileRoute, useRouteContext } from '@tanstack/react-router'
 import { MyTestsList } from '../../components/my-tests'
 import { RetryButton } from '../../components/retry-button'
@@ -31,8 +31,7 @@ function MyTestsError() {
 function MyTestsPage() {
   const { locale } = useRouteContext({ from: '__root__' })
   const { previewRole } = useRouteContext({ from: '/app' })
-  // biome-ignore lint/style/noNonNullAssertion: AppLayout only renders children with a session.
-  const { assignments } = Route.useLoaderData()!
+  const { assignments } = sessionData(Route.useLoaderData())
   const copy = messages(locale)
   return (
     <section className="classroom" aria-labelledby="my-tests-heading">

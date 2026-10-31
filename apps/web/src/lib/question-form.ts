@@ -1,4 +1,3 @@
-import { ApiError } from './api'
 import type { Copy } from './i18n'
 
 export type QuestionType = 'single' | 'multi' | 'speaking'
@@ -231,13 +230,6 @@ export function questionRowView(
     publishBlocked: draft && editingId === q.id,
     confirming: confirm?.id === q.id ? confirm.action : null,
   }
-}
-
-/** Copy key for a failed test page load: 404 is "not found", the rest generic. */
-export function testLoadError(error: unknown): ErrorKey {
-  return error instanceof ApiError && error.status === 404
-    ? 'testNotFound'
-    : 'error'
 }
 
 /** What the form was a render ago: open or not, and which question it edited. */

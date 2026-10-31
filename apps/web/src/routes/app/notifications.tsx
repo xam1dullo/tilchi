@@ -1,4 +1,4 @@
-import { loadForSession } from '../../lib/session'
+import { loadForSession, sessionData } from '../../lib/session'
 import {
   createFileRoute,
   useRouteContext,
@@ -34,8 +34,7 @@ function NotificationsError({ reset }: { reset: () => void }) {
 }
 
 function NotificationsPage() {
-  // biome-ignore lint/style/noNonNullAssertion: AppLayout only renders children with a session.
-  const inbox = Route.useLoaderData()!
+  const inbox = sessionData(Route.useLoaderData())
   const { locale } = useRouteContext({ from: '__root__' })
   const { previewRole } = useRouteContext({ from: '/app' })
   const router = useRouter()

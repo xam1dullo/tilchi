@@ -1,4 +1,5 @@
-import { loadForSession } from '../../../lib/session'
+import { AppNotFound } from '../../app'
+import { loadForSession, sessionData } from '../../../lib/session'
 import {
   Link,
   createFileRoute,
@@ -8,7 +9,7 @@ import {
 import { Suspense, lazy, useState } from 'react'
 import { GradeAttempt } from '../../../components/grade-attempt'
 import { RetryButton } from '../../../components/retry-button'
-import { ApiError, apiFetch } from '../../../lib/api'
+import { ApiError, apiFetch, loadDetail } from '../../../lib/api'
 import { statusKey } from '../../../lib/assignments'
 import {
   type AttemptRecord,
@@ -39,8 +40,11 @@ const SpeakingRecorder = lazy(
 export const Route = createFileRoute('/app/attempts/$attemptId')({
   loader: ({ context: { previewRole, session }, params }) =>
     loadForSession(session, () =>
-      apiFetch<AttemptRecord>(attemptPath(params.attemptId), { previewRole }),
+      loadDetail(() =>
+        apiFetch<AttemptRecord>(attemptPath(params.attemptId), { previewRole }),
+      ),
     ),
+  notFoundComponent: AppNotFound,
   component: AttemptPage,
   errorComponent: AttemptError,
 })
@@ -52,7 +56,7 @@ function AttemptError({ error }: { error: unknown }) {
   const { previewRole, session } = useRouteContext({ from: '/app' })
   const fallback = attemptFallback(session?.role)
   const copy = messages(locale)
-  const gone = error instanceof ApiError && [403, 404].includes(error.status)
+  const gone = error instanceof ApiError && error.status === 403
   return (
     <div role="alert" className="error-row">
       <p>{copy[gone ? attemptError(error) : 'error']}</p>
@@ -72,8 +76,7 @@ function AttemptError({ error }: { error: unknown }) {
 }
 
 function AttemptPage() {
-  // biome-ignore lint/style/noNonNullAssertion: AppLayout only renders children with a session.
-  const attempt = Route.useLoaderData()!
+  const attempt = sessionData(Route.useLoaderData())
   return isManagerView(attempt) ? <ManagerAttempt /> : <LearnerAttempt />
 }
 
@@ -101,8 +104,7 @@ function AttemptHead({
 function ManagerAttempt() {
   const { locale } = useRouteContext({ from: '__root__' })
   const { previewRole } = useRouteContext({ from: '/app' })
-  // biome-ignore lint/style/noNonNullAssertion: AppLayout only renders children with a session.
-  const attempt = Route.useLoaderData()!
+  const attempt = sessionData(Route.useLoaderData())
   const copy = messages(locale)
   return (
     <section className="classroom grade-page" aria-labelledby="attempt-heading">
@@ -124,8 +126,7 @@ function ManagerAttempt() {
 function LearnerAttempt() {
   const { locale } = useRouteContext({ from: '__root__' })
   const { previewRole } = useRouteContext({ from: '/app' })
-  // biome-ignore lint/style/noNonNullAssertion: AppLayout only renders children with a session.
-  const attempt = Route.useLoaderData()!
+  const attempt = sessionData(Route.useLoaderData())
   const copy = messages(locale)
   const router = useRouter()
   const open = attempt.status === 'assigned'
