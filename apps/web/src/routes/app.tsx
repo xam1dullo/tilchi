@@ -60,7 +60,7 @@ function AppLayout() {
           </button>
         </div>
       </header>
-      <aside className="app-sidebar">
+      <div className="app-sidebar">
         <Link className="logo app-sidebar-brand" to="/">
           tilchi
         </Link>
@@ -80,7 +80,6 @@ function AppLayout() {
                     to={item.to}
                     search={search}
                     activeOptions={{ exact: true }}
-                    activeProps={{ 'aria-current': 'page' }}
                   >
                     {copy[item.id]}
                   </Link>
@@ -88,7 +87,7 @@ function AppLayout() {
             </div>
           ))}
         </nav>
-      </aside>
+      </div>
       <div className="app-main">
         <Outlet />
       </div>

@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import { createElement, type ReactNode } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it, vi } from 'vitest'
@@ -18,19 +19,16 @@ vi.mock('@tanstack/react-router', () => ({
     children,
     to,
     className,
-    activeProps,
   }: {
     children: ReactNode
     to: string
     className?: string
-    activeProps?: Record<string, string>
   }) =>
     createElement(
       'a',
       {
         href: to,
         className,
-        ...(to === '/app' ? activeProps : {}),
       },
       children,
     ),
@@ -55,11 +53,14 @@ describe('app sidebar shell', () => {
         html.match(/<nav class="app-nav"[\s\S]*?<\/nav>/)?.[0] ?? ''
       const mobile =
         html.match(/<nav class="app-sheet"[\s\S]*?<\/nav>/)?.[0] ?? ''
-      expect(html).toContain('class="app-sidebar"')
+      expect(html).toContain('<div class="app-sidebar">')
       expect(desktop).toContain('Learning')
       expect(desktop).toContain('Updates')
       expect(desktop).toContain('aria-label="Main navigation"')
-      expect(desktop).toContain('href="/app" aria-current="page"')
+      // Active state belongs to the real router; this mock only renders links.
+      expect(
+        readFileSync(new URL('../routes/app.tsx', import.meta.url), 'utf8'),
+      ).not.toContain('activeProps=')
       expect(desktop.match(/href=/g)).toHaveLength(paths.length)
       expect(mobile.match(/href=/g)).toHaveLength(paths.length)
       for (const path of paths) {
@@ -67,5 +68,39 @@ describe('app sidebar shell', () => {
         expect(mobile).toContain(`href="${path}"`)
       }
     },
+  )
+})
+
+const shellCss = readFileSync(
+  new URL('../styles/app-shell.css', import.meta.url),
+  'utf8',
+)
+const classroomCss = readFileSync(
+  new URL('../styles/classroom.css', import.meta.url),
+  'utf8',
+)
+
+describe('sidebar layout constraints', () => {
+  it('draws every desktop sidebar link focus ring inside its scroll clip', () => {
+    expect(shellCss).toMatch(
+      /\.app-shell \.app-sidebar a:focus-visible\s*\{[^}]*outline: 2px solid var\(--bg\);[^}]*outline-offset: -2px;/,
+    )
+  })
+})
+
+it('expands grade and attempt columns only when their page has room', () => {
+  expect(classroomCss).toMatch(
+    /:is\(\.attempt-page, \.grade-page\)\s*\{[^}]*container: assessment \/ inline-size;/,
+  )
+  expect(classroomCss).toContain('@container assessment (min-width: 780px)')
+  expect(classroomCss).not.toMatch(/@media \(min-width: 780px\)/)
+})
+
+it('stretches the intermediate sidebar divider for the full shell height', () => {
+  expect(shellCss).toMatch(
+    /\.app-sidebar\s*\{[^}]*border-right: 1px solid var\(--line\);/,
+  )
+  expect(shellCss).toMatch(
+    /\.app-shell \.app-sidebar\s*\{[^}]*border-right: 0;/,
   )
 })

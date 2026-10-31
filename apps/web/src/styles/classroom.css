@@ -194,7 +194,7 @@
   text-underline-offset: 4px;
 }
 
-/* Meeting: the page stays light; only the video tiles are ink-dark. */
+/* Meeting content stays light; video tiles and the desktop app sidebar use ink-dark. */
 .meet-stage {
   display: flex;
   flex-direction: column;
@@ -817,6 +817,7 @@
 
 /* Attempt and grading layouts: shared classroom pages retain their own styles. */
 :is(.attempt-page, .grade-page) {
+  container: assessment / inline-size;
   max-width: 1040px;
   overflow-wrap: anywhere;
 }
@@ -989,7 +990,7 @@
   border-top: 1px solid var(--line-strong);
 }
 
-@media (min-width: 780px) {
+@container assessment (min-width: 780px) {
   :is(.attempt-page, .grade-page) .question-row {
     grid-template-columns: 64px minmax(0, 1fr);
     gap: 24px;
