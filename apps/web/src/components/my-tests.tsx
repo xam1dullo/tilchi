@@ -9,26 +9,33 @@ import type { Copy } from '../lib/i18n'
 import type { AppRole } from '../lib/nav'
 import { keepAppSearch } from '../lib/preview'
 
-export function MyTestsList({
-  assignments,
-  copy,
-  locale,
-  previewRole,
-}: {
+type MyTestsProps = {
   assignments: MyAssignment[]
   copy: Copy
   locale: string
   previewRole: AppRole | null
-}) {
+}
+
+export function MyTestsList(props: MyTestsProps) {
   const [filter, setFilter] = useState<AssignmentFilter>('all')
+  return <MyTestsView {...props} filter={filter} onFilter={setFilter} />
+}
+
+export function MyTestsView({
+  assignments,
+  copy,
+  locale,
+  previewRole,
+  filter,
+  onFilter,
+}: MyTestsProps & {
+  filter: AssignmentFilter
+  onFilter: (filter: AssignmentFilter) => void
+}) {
   const { counts, rows } = assignmentView(assignments, filter)
   const filters = ['all', ...ATTEMPT_STATUSES] as const
   const filterLabel = (value: AssignmentFilter) =>
-    value === 'all'
-      ? copy.assignmentFilterAll
-      : value === 'submitted'
-        ? copy.assignmentFilterSubmitted
-        : copy[statusKey[value]]
+    value === 'all' ? copy.assignmentFilterAll : copy[statusKey[value]]
   const hints = {
     assigned: copy.cabinetAssignedHint,
     submitted: copy.cabinetSubmittedHint,
@@ -44,22 +51,25 @@ export function MyTestsList({
           hint: hints[status],
         }))}
       />
-      <fieldset
-        className="assignment-filters"
-        aria-label={copy.assignmentFilters}
-      >
-        {filters.map((value) => (
-          <button
-            key={value}
-            type="button"
-            aria-pressed={filter === value}
-            onClick={() => setFilter(value)}
-          >
-            {filterLabel(value)}{' '}
-            <span className="assignment-filter-count">{counts[value]}</span>
-          </button>
-        ))}
-      </fieldset>
+      {assignments.length > 0 && (
+        <fieldset
+          className="assignment-filters"
+          aria-label={copy.assignmentFilters}
+        >
+          {filters.map((value) => (
+            <button
+              key={value}
+              type="button"
+              aria-pressed={filter === value}
+              aria-label={`${filterLabel(value)}: ${counts[value]}`}
+              onClick={() => onFilter(value)}
+            >
+              {filterLabel(value)}{' '}
+              <span className="assignment-filter-count">{counts[value]}</span>
+            </button>
+          ))}
+        </fieldset>
+      )}
       {rows.length === 0 ? (
         <p className="hint">
           {assignments.length === 0

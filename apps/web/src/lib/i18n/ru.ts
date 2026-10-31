@@ -212,7 +212,6 @@ export const ru = {
   myTests: 'Мои тесты',
   assignmentFilters: 'Фильтр заданий',
   assignmentFilterAll: 'Все',
-  assignmentFilterSubmitted: 'На проверке',
   assignmentFilterEmpty: 'Заданий с таким статусом нет.',
   myTestsEmpty: 'Пока вам не назначено тестов.',
   attemptNotFound: 'Тест не найден.',

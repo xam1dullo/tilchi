@@ -211,7 +211,6 @@ export const en = {
   myTests: 'My tests',
   assignmentFilters: 'Filter assignments',
   assignmentFilterAll: 'All',
-  assignmentFilterSubmitted: 'Awaiting review',
   assignmentFilterEmpty: 'No assignments with this status.',
   myTestsEmpty: 'No tests have been assigned to you yet.',
   attemptNotFound: 'Test not found.',

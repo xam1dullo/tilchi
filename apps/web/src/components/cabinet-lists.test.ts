@@ -112,9 +112,9 @@ describe('assignment cabinet', () => {
     expect(html.match(/aria-pressed="true"/g)).toHaveLength(1)
     expect(html.match(/aria-pressed="false"/g)).toHaveLength(4)
     expect(html).toContain(
-      'aria-pressed="true">All <span class="assignment-filter-count">2</span>',
+      'aria-pressed="true" aria-label="All: 2">All <span class="assignment-filter-count">2</span>',
     )
-    expect(html).toContain('Awaiting review')
+    expect(html).toContain('aria-label="Submitted: 1"')
     expect(html.match(/<li /g)).toHaveLength(2)
   })
   it('counts each status separately and retains status, zero grade and attempt link', () => {

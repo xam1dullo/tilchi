@@ -63,11 +63,8 @@ describe('notifications', () => {
     const DateTimeFormat = Intl.DateTimeFormat
     const formatter = vi
       .spyOn(Intl, 'DateTimeFormat')
-      .mockImplementation(function fallbackDateTimeFormat(locale, options) {
-        return new DateTimeFormat(
-          locale === 'uz' || locale === 'uz-UZ' ? 'en' : locale,
-          options,
-        )
+      .mockImplementation(function passthrough(locale, options) {
+        return new DateTimeFormat(locale, options)
       })
     try {
       const html = renderToStaticMarkup(
@@ -80,6 +77,13 @@ describe('notifications', () => {
           error: false,
           onRead: () => {},
         }),
+      )
+      expect(formatter).toHaveBeenCalled()
+      expect(formatter.mock.calls.map(([locale]) => locale)).not.toEqual(
+        expect.arrayContaining(['uz']),
+      )
+      expect(formatter.mock.calls.map(([locale]) => locale)).not.toEqual(
+        expect.arrayContaining(['uz-UZ']),
       )
       expect(html).toContain('52')
       expect(html).toContain('Yangi dars')

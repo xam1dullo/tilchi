@@ -234,7 +234,6 @@ export const uz = {
   myTests: 'Mening testlarim',
   assignmentFilters: 'Topshiriqlarni saralash',
   assignmentFilterAll: 'Barchasi',
-  assignmentFilterSubmitted: 'Tekshirilmoqda',
   assignmentFilterEmpty: 'Bu holatda topshiriqlar yo‘q.',
   myTestsEmpty: 'Hozircha sizga test berilmagan.',
   attemptNotFound: 'Test topilmadi.',
