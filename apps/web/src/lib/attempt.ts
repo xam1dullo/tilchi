@@ -1,6 +1,7 @@
 import { ApiError } from './api'
 import type { AttemptStatus } from './assignments'
 import type { Copy } from './i18n'
+import type { AppRole } from './nav'
 
 type ErrorKey = keyof Copy
 
@@ -33,6 +34,9 @@ export type AttemptQuestion = {
 /** `GET /api/attempts/:id` as its learner sees it: never the answer key. */
 export type AttemptRecord = {
   id: string
+  /** Manager response only. */
+  learnerName?: string | null
+  groupId?: string
   title: string
   status: AttemptStatus
   deadline: string
@@ -210,4 +214,11 @@ export function openOutside(host: Pick<Window, 'Telegram'>, url: string) {
   if (!app?.openLink) return false
   app.openLink(url)
   return true
+}
+
+/** Navigation fallback only; permissions remain server controlled. */
+export function attemptFallback(role: AppRole | undefined) {
+  return role === 'teacher' || role === 'admin'
+    ? ({ to: '/app/tests', label: 'tests' } as const)
+    : ({ to: '/app/assignments', label: 'myTests' } as const)
 }
