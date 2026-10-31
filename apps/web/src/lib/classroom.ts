@@ -1,3 +1,5 @@
+import { uzShortMonths } from './i18n/uz'
+
 /** Permissions the API computed for this caller; the web never re-derives them. */
 export type GroupCan = {
   createLesson: boolean
@@ -50,6 +52,24 @@ export function groupsView(input: {
 export function formatLessonTime(iso: string, locale: string) {
   const date = new Date(iso)
   if (Number.isNaN(date.getTime())) return iso
+  if (locale === 'uz' || locale.startsWith('uz-')) {
+    // Numeric parts keep timezone conversion in Intl without relying on Uzbek
+    // month data (some runtimes fall back to labels such as "M11").
+    const parts = Object.fromEntries(
+      new Intl.DateTimeFormat('en-GB', {
+        timeZone: 'Asia/Tashkent',
+        year: 'numeric',
+        month: 'numeric',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hourCycle: 'h23',
+      })
+        .formatToParts(date)
+        .map(({ type, value }) => [type, value]),
+    )
+    return `${Number(parts.day)}-${uzShortMonths[Number(parts.month) - 1]}, ${parts.year}, ${parts.hour}:${parts.minute}`
+  }
   return new Intl.DateTimeFormat(locale, {
     timeZone: 'Asia/Tashkent',
     dateStyle: 'medium',

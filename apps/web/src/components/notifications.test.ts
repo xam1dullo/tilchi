@@ -73,9 +73,29 @@ describe('notifications', () => {
     )
     expect(html).toContain('52')
     expect(html).toContain('Yangi dars')
+    expect(html).toContain('29-okt, 2026, 15:00')
     expect(html).toContain(`/app/groups/${id}?preview=teacher`)
     expect(html).toContain('/app/notifications?preview=teacher')
     expect(html).toContain('aria-label="O‘qilgan deb belgilash: Yangi dars"')
+  })
+
+  it('keeps invalid notification timestamps empty', () => {
+    const html = renderToStaticMarkup(
+      createElement(NotificationList, {
+        inbox: {
+          ...inbox,
+          notifications: [{ ...inbox.notifications[0], createdAt: 'invalid' }],
+        },
+        copy: copy.uz,
+        locale: 'uz',
+        previewRole: null,
+        busyId: null,
+        error: false,
+        onRead: () => {},
+      }),
+    )
+    expect(html).not.toContain('invalid')
+    expect(html).not.toContain('<time')
   })
 
   it('shows an empty state and reports failed actions without losing the item', () => {

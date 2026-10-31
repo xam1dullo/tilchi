@@ -1,6 +1,6 @@
 import { createElement, type ReactNode } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { MyAssignment } from '../lib/attempt'
 import type { AppRole } from '../lib/nav'
 import { messages } from '../lib/i18n'
@@ -10,6 +10,11 @@ const state = vi.hoisted(() => ({
   role: 'teacher' as AppRole,
   previewRole: 'teacher' as AppRole | null,
 }))
+afterEach(() => {
+  state.data = {}
+  state.role = 'teacher'
+  state.previewRole = 'teacher'
+})
 vi.mock('@tanstack/react-router', () => ({
   createFileRoute: () => (options: unknown) => ({
     options,
@@ -185,8 +190,6 @@ describe('role-specific group statistics', () => {
         role === 'admin' ? 'Across all groups' : 'Across your groups',
       )
       if (role === 'admin') expect(html).not.toContain('Across your groups')
-      state.role = 'teacher'
-      state.previewRole = 'teacher'
     },
   )
 })

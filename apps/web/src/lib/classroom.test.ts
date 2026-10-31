@@ -1,5 +1,69 @@
-import { describe, expect, it } from 'vitest'
-import { groupsView, tashkentInputToIso } from './classroom'
+import { describe, expect, it, vi } from 'vitest'
+import { formatLessonTime, groupsView, tashkentInputToIso } from './classroom'
+
+describe('formatLessonTime', () => {
+  it('uses Uzbek short months even when Intl lacks Uzbek locale data', () => {
+    const DateTimeFormat = Intl.DateTimeFormat
+    const formatter = vi
+      .spyOn(Intl, 'DateTimeFormat')
+      .mockImplementation(function fallbackDateTimeFormat(locale, options) {
+        return new DateTimeFormat(
+          locale === 'uz' || locale === 'uz-UZ' ? 'en' : locale,
+          options,
+        )
+      })
+    try {
+      const months = [
+        'yan',
+        'fev',
+        'mar',
+        'apr',
+        'may',
+        'iyn',
+        'iyl',
+        'avg',
+        'sen',
+        'okt',
+        'noy',
+        'dek',
+      ]
+      for (const [month, name] of months.entries()) {
+        const iso = new Date(Date.UTC(2026, month, 1, 20, 30)).toISOString()
+        for (const locale of ['uz', 'uz-UZ']) {
+          expect(formatLessonTime(iso, locale)).toBe(`2-${name}, 2026, 01:30`)
+        }
+      }
+    } finally {
+      formatter.mockRestore()
+    }
+  })
+
+  it('uses the Tashkent date across month and year boundaries, including midnight', () => {
+    expect(formatLessonTime('2026-10-31T19:00:00Z', 'uz')).toBe(
+      '1-noy, 2026, 00:00',
+    )
+    expect(formatLessonTime('2026-12-31T20:30:00Z', 'uz')).toBe(
+      '1-yan, 2027, 01:30',
+    )
+  })
+
+  it.each(['ru', 'en'])('preserves native Intl output for %s', (locale) => {
+    const iso = '2026-10-31T20:30:00Z'
+    expect(formatLessonTime(iso, locale)).toBe(
+      new Intl.DateTimeFormat(locale, {
+        timeZone: 'Asia/Tashkent',
+        dateStyle: 'medium',
+        timeStyle: 'short',
+      }).format(new Date(iso)),
+    )
+  })
+
+  it('preserves invalid input for every locale', () => {
+    for (const locale of ['uz', 'ru', 'en']) {
+      expect(formatLessonTime('invalid', locale)).toBe('invalid')
+    }
+  })
+})
 
 const can = {
   createLesson: false,
