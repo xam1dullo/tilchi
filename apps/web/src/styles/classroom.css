@@ -748,11 +748,92 @@
   overflow-wrap: anywhere;
 }
 
+.group-page {
+  container: group / inline-size;
+}
+
+.group-page .group-layout {
+  display: grid;
+  gap: 24px;
+  align-items: start;
+}
+
+.group-page .group-main,
+.group-page .group-lessons {
+  min-width: 0;
+}
+
+.group-page .group-lessons {
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--bg-elev);
+}
+
+.group-page .group-lessons h3 {
+  margin: 0 0 16px;
+  font-size: var(--fs-body);
+}
+
+.group-page .group-lessons .classroom-list {
+  margin: 0 0 16px;
+}
+
+.group-page .group-lessons .lesson-row {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  gap: 12px;
+  padding: 16px 0;
+}
+
+.group-page .group-lesson-index {
+  font-variant-numeric: tabular-nums;
+}
+
 .group-page .group-lesson-meta {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px 12px;
+  display: grid;
+  justify-items: start;
+  gap: 8px;
+  min-width: 0;
+}
+
+.group-page .group-lessons .lesson-row .lesson-actions {
+  grid-column: 2;
+}
+
+.group-page .group-lessons .lesson-actions .btn {
+  min-height: 44px;
+  max-width: 100%;
+  white-space: normal;
+  text-align: center;
+}
+
+.group-page .group-lessons > .lesson-actions .btn {
+  width: 100%;
+}
+
+.group-page :where(.group-lessons) .classroom-row a::after {
+  content: none;
+}
+
+.group-page .group-schedule {
+  margin-bottom: 24px;
+}
+
+@container group (min-width: 880px) {
+  .group-page .group-layout {
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 320px);
+  }
+
+  .group-page .group-lessons {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .group-page .group-main {
+    grid-column: 1;
+    grid-row: 1;
+  }
 }
 
 .group-page .group-schedule {

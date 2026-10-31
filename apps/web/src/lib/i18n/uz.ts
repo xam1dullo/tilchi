@@ -110,6 +110,7 @@ export const uz = {
   meetUnavailable: "Uchrashuv tokeni hozircha yo'q.",
   backToGroup: 'Guruhga qaytish',
   members: "A'zolar",
+  groupLessons: 'Darslar',
   noLessons: "Hali dars yo'q.",
   leaveMeet: 'Chiqish',
   meetConnecting: 'Uchrashuvga ulanilmoqda…',

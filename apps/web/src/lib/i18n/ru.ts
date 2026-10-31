@@ -90,6 +90,7 @@ export const ru = {
   meetUnavailable: 'Токен встречи пока недоступен.',
   backToGroup: 'К группе',
   members: 'Участники',
+  groupLessons: 'Уроки',
   noLessons: 'Уроков пока нет.',
   leaveMeet: 'Выйти',
   meetConnecting: 'Подключаемся к встрече…',

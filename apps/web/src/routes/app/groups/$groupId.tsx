@@ -75,6 +75,19 @@ function GroupPage() {
   )
   const copy = messages(locale)
   const search = keepAppSearch(previewRole)
+  const nextLesson = lessons.reduce<LessonRecord | undefined>(
+    (next, lesson) =>
+      lesson.status === 'scheduled' &&
+      (!next || Date.parse(lesson.scheduledAt) < Date.parse(next.scheduledAt))
+        ? lesson
+        : next,
+    undefined,
+  )
+  const lessonCopy = {
+    start: copy.startLesson,
+    end: copy.endLesson,
+    join: copy.joinMeet,
+  }
   return (
     <section className="classroom group-page">
       <p className="eyebrow">
@@ -89,78 +102,95 @@ function GroupPage() {
             {copy.members} {group.learnerCount}/{group.capacity}
           </p>
         </div>
-        {group.can.createLesson ? (
-          <ScheduleForm
-            groupId={group.id}
-            previewRole={previewRole}
-            copy={{
-              schedule: copy.scheduleLesson,
-              time: copy.lessonDateTime,
-            }}
-          />
-        ) : null}
       </div>
-      {lessons.length === 0 ? (
-        <p className="hint">{copy.noLessons}</p>
-      ) : (
-        <ul className="rows classroom-list">
-          {lessons.map((lesson) => {
-            const status =
-              lesson.status === 'live'
-                ? copy.lessonLive
-                : lesson.status === 'ended'
-                  ? copy.lessonEnded
-                  : lesson.status === 'cancelled'
-                    ? copy.lessonCancelled
-                    : copy.lessonScheduled
-            return (
-              <li key={lesson.id} className="row classroom-row lesson-row">
-                <div className="group-lesson-meta">
-                  <strong>
-                    {formatLessonTime(lesson.scheduledAt, locale)}
-                  </strong>
-                  <span className={`tag status-${lesson.status}`}>
-                    {status}
-                  </span>
-                </div>
-                <LessonButtons
-                  lesson={lesson}
-                  previewRole={previewRole}
-                  search={search}
-                  copy={{
-                    start: copy.startLesson,
-                    end: copy.endLesson,
-                    join: copy.joinMeet,
-                  }}
-                />
-              </li>
-            )
-          })}
-        </ul>
-      )}
-      {group.can.assignTest ? (
-        <AssignForm
-          groupId={group.id}
-          previewRole={previewRole}
-          tests={tests}
-          copy={copy}
-        />
-      ) : null}
-      {group.can.viewAssignments ? (
-        <AssignmentsList
-          assignments={assignments}
-          copy={copy}
-          locale={locale}
-          canGrade={group.can.gradeAttempts}
-          previewRole={previewRole}
-        />
-      ) : null}
-      {group.can.seeMembers ? (
-        <MembersList members={members} copy={copy} />
-      ) : null}
-      {group.can.manageMembers ? (
-        <EnrolPanel group={group} previewRole={previewRole} copy={copy} />
-      ) : null}
+      <div className="group-layout">
+        <aside className="group-lessons" aria-labelledby="group-lessons-title">
+          <h3 id="group-lessons-title">{copy.groupLessons}</h3>
+          {lessons.length === 0 ? (
+            <p className="hint">{copy.noLessons}</p>
+          ) : (
+            <ul className="rows classroom-list">
+              {lessons.map((lesson, index) => {
+                const status =
+                  lesson.status === 'live'
+                    ? copy.lessonLive
+                    : lesson.status === 'ended'
+                      ? copy.lessonEnded
+                      : lesson.status === 'cancelled'
+                        ? copy.lessonCancelled
+                        : copy.lessonScheduled
+                return (
+                  <li key={lesson.id} className="row classroom-row lesson-row">
+                    <span className="group-lesson-index" aria-hidden="true">
+                      {index + 1}
+                    </span>
+                    <div className="group-lesson-meta">
+                      <strong>
+                        {formatLessonTime(lesson.scheduledAt, locale)}
+                      </strong>
+                      <span className={`tag status-${lesson.status}`}>
+                        {status}
+                      </span>
+                    </div>
+                    {lesson.id !== nextLesson?.id ? (
+                      <LessonButtons
+                        lesson={lesson}
+                        previewRole={previewRole}
+                        search={search}
+                        copy={lessonCopy}
+                      />
+                    ) : null}
+                  </li>
+                )
+              })}
+            </ul>
+          )}
+          {nextLesson ? (
+            <LessonButtons
+              lesson={nextLesson}
+              previewRole={previewRole}
+              search={search}
+              copy={lessonCopy}
+              primary
+            />
+          ) : null}
+        </aside>
+        <div className="group-main">
+          {group.can.createLesson ? (
+            <ScheduleForm
+              groupId={group.id}
+              previewRole={previewRole}
+              copy={{
+                schedule: copy.scheduleLesson,
+                time: copy.lessonDateTime,
+              }}
+            />
+          ) : null}
+          {group.can.assignTest ? (
+            <AssignForm
+              groupId={group.id}
+              previewRole={previewRole}
+              tests={tests}
+              copy={copy}
+            />
+          ) : null}
+          {group.can.viewAssignments ? (
+            <AssignmentsList
+              assignments={assignments}
+              copy={copy}
+              locale={locale}
+              canGrade={group.can.gradeAttempts}
+              previewRole={previewRole}
+            />
+          ) : null}
+          {group.can.seeMembers ? (
+            <MembersList members={members} copy={copy} />
+          ) : null}
+          {group.can.manageMembers ? (
+            <EnrolPanel group={group} previewRole={previewRole} copy={copy} />
+          ) : null}
+        </div>
+      </div>
     </section>
   )
 }
@@ -232,11 +262,13 @@ function ScheduleForm({
 }
 
 function LessonButtons({
+  primary = false,
   lesson,
   previewRole,
   search,
   copy,
 }: {
+  primary?: boolean
   lesson: LessonRecord
   previewRole: 'learner' | 'teacher' | 'admin' | null
   search: ReturnType<typeof keepAppSearch>
@@ -254,7 +286,7 @@ function LessonButtons({
     <div className="lesson-actions">
       {lesson.can.start ? (
         <button
-          className="btn btn-outline"
+          className={primary ? 'btn btn-primary' : 'btn btn-outline'}
           type="button"
           disabled={busy}
           onClick={() => post(`/api/lessons/${lesson.id}/start`)}
