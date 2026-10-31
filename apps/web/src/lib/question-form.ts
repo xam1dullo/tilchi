@@ -239,3 +239,26 @@ export function testLoadError(error: unknown): ErrorKey {
     ? 'testNotFound'
     : 'error'
 }
+
+/** What the form was a render ago: open or not, and which question it edited. */
+export type FormState = { open: boolean; editId: string | null }
+
+/** Where focus lands when a collapsible form closes. */
+export type CloseFocus = { edit: string } | 'new' | null
+
+/**
+ * Null unless the form just closed (so first render and open → open move
+ * nothing). An edit hands focus back to that row's Edit button while the row
+ * is still listed; otherwise focus returns to the New button.
+ */
+export function focusAfterClose(
+  before: FormState,
+  open: boolean,
+  listedIds: readonly string[],
+): CloseFocus {
+  if (!before.open || open) return null
+  if (before.editId && listedIds.includes(before.editId)) {
+    return { edit: before.editId }
+  }
+  return 'new'
+}

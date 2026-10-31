@@ -21,6 +21,9 @@ import {
   draftFromQuestion,
   emptyDraft,
   filterQuestions,
+  type CloseFocus,
+  focusAfterClose,
+  type FormState,
   MAX_TITLE,
   type QuestionRecord,
   questionRowView,
@@ -203,6 +206,25 @@ function TestsPage() {
   const published = questions.filter((q) => q.status === 'published')
   const shown = filterQuestions(questions, filter)
 
+  const questionBefore = useRef<FormState>({ open: false, editId: null })
+  const testBefore = useRef<FormState>({ open: false, editId: null })
+  const editId = editing?.id ?? null
+  const shownIds = shown.map((q) => q.id).join(' ')
+  useEffect(() => {
+    const target = focusAfterClose(
+      questionBefore.current,
+      questionOpen,
+      shownIds.split(' '),
+    )
+    questionBefore.current = { open: questionOpen, editId }
+    returnFocus(target, NEW_QUESTION_ID)
+  }, [questionOpen, editId, shownIds])
+  useEffect(() => {
+    const target = focusAfterClose(testBefore.current, testOpen, [])
+    testBefore.current = { open: testOpen, editId: null }
+    returnFocus(target, NEW_TEST_ID)
+  }, [testOpen])
+
   return (
     <section className="classroom tests-page" aria-labelledby="tests-heading">
       <h2 id="tests-heading" className="tests-title">
@@ -214,6 +236,7 @@ function TestsPage() {
           <Collapsible
             open={questionOpen}
             label={copy.questionNew}
+            buttonId={NEW_QUESTION_ID}
             primary
             onOpen={() => {
               setConfirm(null)
@@ -303,6 +326,7 @@ function TestsPage() {
                         <>
                           {row.edit ? (
                             <button
+                              id={editButtonId(q.id)}
                               type="button"
                               className="btn btn-outline"
                               disabled={busy}
@@ -364,6 +388,7 @@ function TestsPage() {
           <Collapsible
             open={testOpen}
             label={copy.testNew}
+            buttonId={NEW_TEST_ID}
             onOpen={() => setTestOpen(true)}
           >
             <form
@@ -465,3 +490,16 @@ function TestsPage() {
 }
 
 const questionPath = (id: string) => `/api/questions/${encodeURIComponent(id)}`
+
+const NEW_QUESTION_ID = 'new-question'
+const NEW_TEST_ID = 'new-test'
+const editButtonId = (id: string) => `edit-question-${id}`
+
+/** Edit row's button when it can take focus, else the New button. */
+function returnFocus(target: CloseFocus, newId: string) {
+  if (!target) return
+  const edit =
+    target === 'new' ? null : document.getElementById(editButtonId(target.edit))
+  const usable = edit instanceof HTMLButtonElement && !edit.disabled
+  ;(usable ? edit : document.getElementById(newId))?.focus()
+}

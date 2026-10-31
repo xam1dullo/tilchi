@@ -8,6 +8,7 @@ import {
   draftFromQuestion,
   emptyDraft,
   filterQuestions,
+  focusAfterClose,
   type QuestionDraft,
   type QuestionRecord,
   questionRowView,
@@ -245,5 +246,29 @@ describe('testLoadError', () => {
     )
     expect(testLoadError(new ApiError(500, null))).toBe('error')
     expect(testLoadError(new TypeError('network'))).toBe('error')
+  })
+})
+
+describe('focusAfterClose', () => {
+  const closed = { open: false, editId: null }
+  const adding = { open: true, editId: null }
+  const editingA = { open: true, editId: 'a' }
+
+  it('moves nothing on first render or while the form stays open', () => {
+    expect(focusAfterClose(closed, false, ['a'])).toBeNull()
+    expect(focusAfterClose(closed, true, ['a'])).toBeNull()
+    expect(focusAfterClose(editingA, true, ['a'])).toBeNull()
+  })
+
+  it('returns to the Edit button of the row that was being edited', () => {
+    expect(focusAfterClose(editingA, false, ['b', 'a'])).toEqual({ edit: 'a' })
+  })
+
+  it('falls back to the New button when the edited row is gone', () => {
+    expect(focusAfterClose(editingA, false, ['b'])).toBe('new')
+  })
+
+  it('returns to the New button after adding', () => {
+    expect(focusAfterClose(adding, false, ['a'])).toBe('new')
   })
 })

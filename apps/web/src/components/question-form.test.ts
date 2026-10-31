@@ -62,6 +62,7 @@ describe('Collapsible', () => {
         {
           open,
           label: copy.questionNew,
+          buttonId: 'new-question',
           primary: true,
           onOpen: () => {},
         },

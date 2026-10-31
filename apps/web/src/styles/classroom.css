@@ -438,6 +438,79 @@
   margin: 0;
 }
 
+.question-form {
+  margin-bottom: 24px;
+}
+
+.question-form h3,
+.question-wide {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
+.question-options {
+  display: grid;
+  gap: 12px;
+  border: 0;
+  border-top: 1px solid var(--line);
+  padding: 16px 0 0;
+}
+
+.question-options legend {
+  padding: 0;
+  font-weight: 600;
+}
+
+.question-option {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 12px;
+}
+
+.question-option label:first-child {
+  flex: 1 1 240px;
+}
+
+.question-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 0;
+}
+
+.question-view {
+  flex: 1 1 320px;
+}
+
+.question-tags,
+.question-prompt {
+  margin: 0 0 8px;
+}
+
+.question-prompt {
+  white-space: pre-wrap;
+}
+
+.question-answers {
+  margin: 0;
+  padding-inline-start: 20px;
+  color: var(--ink-2);
+}
+
+.question-answers li[data-correct="true"] {
+  color: var(--accent-ink);
+  font-weight: 600;
+}
+
+.question-lock {
+  display: contents;
+}
+
+/* Tests index page only. Every rule is scoped to .tests-section so the
+   test detail, attempt and grading pages keep the shared rules above. */
 .tests-page {
   container-type: inline-size;
 }
@@ -473,7 +546,7 @@
   line-height: 1.15;
 }
 
-.collapsible-open {
+.tests-section .collapsible-open {
   margin-bottom: 24px;
 }
 
@@ -482,174 +555,141 @@
   margin: 0 0 8px;
 }
 
-.question-filter {
+.tests-section .question-filter {
   color: var(--muted);
   font-size: var(--fs-sm);
 }
 
-.question-filter select {
+.tests-section .question-filter select {
   min-height: 44px;
 }
 
 /* An open form is a quiet paper panel, one column, never wider than a reading line. */
-.question-form {
+.tests-section .question-form {
   grid-template-columns: minmax(0, 1fr);
   max-width: 40rem;
   margin: 0 0 32px;
-  padding: clamp(16px, 4cqi, 24px);
+  padding: 16px;
   border-radius: var(--r-lg);
   background: var(--bg-alt);
 }
 
-.question-form h3,
+/* Older engines without container units keep the plain 16px. */
+@supports (padding: 1cqi) {
+  .tests-section .question-form {
+    padding: clamp(16px, 4cqi, 24px);
+  }
+}
+
 .tests-section .question-form h3 {
   margin: 0;
   font: 600 var(--fs-body) / 1.3 var(--font-sans);
   letter-spacing: 0;
 }
 
-.question-wide {
-  grid-column: 1 / -1;
-  margin: 0;
-}
-
-.question-form select {
+.tests-section .question-form select {
   max-width: 18rem;
 }
 
-.question-options {
-  display: grid;
-  gap: 12px;
+.tests-section .question-options {
   min-inline-size: 0;
   margin: 0;
-  border: 0;
-  border-top: 1px solid var(--line-strong);
-  padding: 16px 0 0;
-}
-
-.question-options legend {
-  padding: 0;
-  font-weight: 600;
+  border-top-color: var(--line-strong);
 }
 
 /* Option text, correct mark, remove: one aligned row. */
-.question-option {
+.tests-section .question-option {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto auto;
-  align-items: end;
   gap: 8px 12px;
 }
 
 @container (max-width: 480px) {
-  .question-option {
+  .tests-section .question-option {
     grid-template-columns: minmax(0, 1fr) auto;
   }
 
-  .question-option > label:first-child {
+  .tests-section .question-option > label:first-child {
     grid-column: 1 / -1;
   }
 }
 
-.question-options > .btn {
+.tests-section .question-options > .btn {
   justify-self: start;
 }
 
-.question-form .catalog-publish {
-  align-items: center;
+.tests-section .question-form .catalog-publish {
   line-height: 1.35;
 }
 
 /* Index-style rows: number, question, actions. */
-.question-list {
+.tests-section .question-list {
   list-style: none;
   margin: 0;
   padding: 0;
 }
 
-.question-row {
+.tests-section .question-row {
   display: grid;
   grid-template-columns: 2rem minmax(0, 1fr);
-  align-items: start;
   gap: 12px;
-  padding: 16px 0;
 }
 
-.question-index {
+.tests-section .question-index {
   color: var(--accent);
   font: italic 400 1.25rem / 1.4 var(--font-display);
 }
 
-.question-row .lesson-actions {
+.tests-section .question-row .lesson-actions {
   grid-column: 2;
   align-items: center;
 }
 
 @container (min-width: 500px) {
-  .question-row {
+  .tests-section .question-row {
     grid-template-columns: 2.5rem minmax(0, 1fr) auto;
     column-gap: 16px;
   }
 
-  .question-row .lesson-actions {
+  .tests-section .question-row .lesson-actions {
     grid-column: 3;
     justify-content: end;
     max-width: 18rem;
   }
 }
 
-.question-row .lesson-actions .btn {
+.tests-section .question-row .lesson-actions .btn {
   min-height: 44px;
   padding: 0 14px;
 }
 
-.question-row .lesson-actions .hint {
+.tests-section .question-row .lesson-actions .hint {
   flex-basis: 100%;
   margin: 0;
   color: var(--muted);
   font-size: var(--fs-xs);
 }
 
-.question-view {
+.tests-section .question-view {
   min-width: 0;
 }
 
-.question-tags,
-.question-prompt {
-  margin: 0 0 8px;
-}
-
-.question-prompt {
+.tests-section .question-prompt {
   color: var(--ink);
-  white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
 
 /* Status is said in words; draft is a hairline, published the green tag. */
-.question-type {
+.tests-section .question-type {
   padding-inline: 0;
   background: transparent;
   color: var(--muted);
 }
 
-.tag[data-status="draft"] {
+.tests-section .tag[data-status="draft"] {
   background: transparent;
   color: var(--ink-2);
   box-shadow: inset 0 0 0 1px var(--line-strong);
-}
-
-.question-answers {
-  margin: 0;
-  padding-inline-start: 20px;
-  color: var(--ink-2);
-}
-
-.question-answers li[data-correct="true"] {
-  color: var(--accent-ink);
-  font-weight: 600;
-}
-
-.question-lock {
-  display: contents;
 }
 
 .assign-field {

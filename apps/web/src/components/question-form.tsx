@@ -1,5 +1,5 @@
 import { redirect } from '@tanstack/react-router'
-import { type ReactNode, type Ref, useEffect, useRef } from 'react'
+import type { ReactNode, Ref } from 'react'
 import { apiFetch } from '../lib/api'
 import type { Copy } from '../lib/i18n'
 import type { AppRole } from '../lib/nav'
@@ -176,31 +176,27 @@ export function QuestionForm({
 
 /**
  * A form kept behind one button. Closed, only the button shows; open, the
- * form takes its place. Closing hands focus back to the button.
+ * form takes its place. The page moves focus (see focusAfterClose).
  */
 export function Collapsible({
   open,
   label,
+  buttonId,
   primary = false,
   onOpen,
   children,
 }: {
   open: boolean
   label: string
+  buttonId: string
   primary?: boolean
   onOpen: () => void
   children?: ReactNode
 }) {
-  const button = useRef<HTMLButtonElement>(null)
-  const wasOpen = useRef(open)
-  useEffect(() => {
-    if (wasOpen.current && !open) button.current?.focus()
-    wasOpen.current = open
-  }, [open])
   if (open) return children
   return (
     <button
-      ref={button}
+      id={buttonId}
       type="button"
       className={`btn ${primary ? 'btn-primary' : 'btn-outline'} collapsible-open`}
       onClick={onOpen}
