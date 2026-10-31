@@ -296,7 +296,7 @@ describe.skipIf(!hasTestDatabase)('tests, assignments and grading', () => {
       `test.reminder.24h:${assignmentId}`,
       `test.reminder.3h:${assignmentId}`,
     ])
-    await worker.drainOnce(new Date())
+    await worker.kick()
     expect(await inboxOf('ana')).toEqual(['test.assigned'])
     expect(await inboxOf('bob')).toEqual(['test.assigned'])
     expect(await inboxOf('eve')).toEqual([])
@@ -313,7 +313,7 @@ describe.skipIf(!hasTestDatabase)('tests, assignments and grading', () => {
 
   it('walks assigned, submitted, graded and tells the right people', async () => {
     const t = await setup()
-    await worker.drainOnce(new Date())
+    await worker.kick()
     const view = await call('ana', 'GET', `/api/attempts/${t.attemptId}`)
     expect(view.status).toBe(200)
     expect(view.body).toMatchObject({ status: 'assigned', title: 'Unit 1' })
@@ -368,7 +368,7 @@ describe.skipIf(!hasTestDatabase)('tests, assignments and grading', () => {
     expect(again.status).toBe(409)
     expect(again.body).toMatchObject({ error: 'already_submitted' })
 
-    await worker.drainOnce(new Date())
+    await worker.kick()
     expect(await inboxOf('teacher')).toEqual(['test.submitted'])
 
     const review = await call('teacher', 'GET', `/api/attempts/${t.attemptId}`)
@@ -428,7 +428,7 @@ describe.skipIf(!hasTestDatabase)('tests, assignments and grading', () => {
     )
     expect(regrade.status).toBe(409)
 
-    await worker.drainOnce(new Date())
+    await worker.kick()
     expect(await inboxOf('ana')).toEqual(
       expect.arrayContaining(['test.graded']),
     )
@@ -820,12 +820,12 @@ describe.skipIf(!hasTestDatabase)('tests, assignments and grading', () => {
     await db.database.db.execute(
       sql`update assignments set deadline = now() - interval '1 hour' where id = ${closed.assignmentId}`,
     )
-    await worker.drainOnce(new Date())
+    await worker.kick()
     const assignedTo = async (name: string) =>
       (await inboxOf(name)).filter((e) => e === 'test.assigned').length
     expect(await assignedTo('ana')).toBe(2)
     await groups.putMember(group, who.eve)
-    await worker.drainOnce(new Date())
+    await worker.kick()
     // Only eve hears about the open test; nobody is told twice.
     expect(await assignedTo('eve')).toBe(1)
     expect(await assignedTo('ana')).toBe(2)
@@ -846,12 +846,12 @@ describe.skipIf(!hasTestDatabase)('tests, assignments and grading', () => {
 
   it('drops a late joiner’s own notice if they are deleted before it is sent', async () => {
     await setup()
-    await worker.drainOnce(new Date())
+    await worker.kick()
     await groups.putMember(group, who.eve)
     await db.database.db.execute(
       sql`update users set deleted_at = now() where id = ${who.eve}`,
     )
-    await worker.drainOnce(new Date())
+    await worker.kick()
     const assigned = (await inboxOf('ana')).filter((e) => e === 'test.assigned')
     expect(assigned).toHaveLength(1)
   })
