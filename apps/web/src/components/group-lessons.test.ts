@@ -90,7 +90,9 @@ describe('group lessons rail', () => {
         /<aside[^>]*aria-labelledby="group-lessons-title"[^>]*>([\s\S]*?)<\/aside>/,
       )?.[1]
       expect(rail).toBeDefined()
-      expect(rail).toContain('<h3 id="group-lessons-title">Lessons</h3>')
+      expect(rail).toContain(
+        '<h3 id="group-lessons-title" tabindex="-1">Lessons</h3>',
+      )
       expect(html.match(/<ul/g)).toHaveLength(1)
       expect(rail).toContain(copy.lessonEnded)
       expect(rail).toContain(copy.lessonScheduled)
@@ -148,6 +150,21 @@ describe('group lessons rail', () => {
       html.indexOf('group-layout'),
     )
     expect(html.indexOf('group-main')).toBeLessThan(html.indexOf('<aside'))
+  })
+  it('leads the live lesson with Join and keeps End as a secondary danger action', () => {
+    state.teacher = true
+    state.lessons = [lesson('live', 'live', '2030-01-02T06:00:00Z')]
+    const html = render()
+    const primary = html.slice(html.indexOf('<aside'), html.indexOf('<ul'))
+    const join = primary.indexOf('/app/meet/live')
+    const end = primary.indexOf(copy.endLesson)
+    expect(join).toBeGreaterThan(-1)
+    expect(join).toBeLessThan(end)
+    expect(primary).toMatch(
+      /<a class="btn btn-primary"[^>]*href="\/app\/meet\/live"/,
+    )
+    expect(primary).toMatch(/<button class="btn btn-outline lesson-end"/)
+    expect(primary).not.toContain(copy.confirmEndLesson)
   })
   it('keeps the empty state inside the labelled rail', () => {
     state.lessons = []

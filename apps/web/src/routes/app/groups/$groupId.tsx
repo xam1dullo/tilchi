@@ -17,6 +17,10 @@ import {
 } from '../../../lib/classroom'
 import { EnrolPanel } from '../../../components/enrol-panel'
 import {
+  LessonActions,
+  type LessonActionsCopy,
+} from '../../../components/lesson-actions'
+import {
   AssignForm,
   AssignmentsList,
 } from '../../../components/group-assignments'
@@ -25,6 +29,7 @@ import { loadAssessment } from '../../../lib/assignments'
 import { displayName, type Member } from '../../../lib/enrol'
 import { messages, type Copy } from '../../../lib/i18n'
 import { keepAppSearch } from '../../../lib/preview'
+import { createEndConfirm, lessonAction } from '../../../lib/lesson-actions'
 
 export const Route = createFileRoute('/app/groups/$groupId')({
   loader: ({ context, params }) =>
@@ -105,6 +110,9 @@ function GroupPage() {
     start: copy.startLesson,
     end: copy.endLesson,
     join: copy.joinMeet,
+    confirmEnd: copy.confirmEndLesson,
+    confirmEndHint: copy.confirmEndLessonHint,
+    failed: copy.lessonActionFailed,
   }
   return (
     <section className="classroom group-page">
@@ -158,7 +166,9 @@ function GroupPage() {
           ) : null}
         </div>
         <aside className="group-lessons" aria-labelledby="group-lessons-title">
-          <h3 id="group-lessons-title">{copy.groupLessons}</h3>
+          <h3 id="group-lessons-title" tabIndex={-1}>
+            {copy.groupLessons}
+          </h3>
           {primaryLesson ? (
             <div className="group-lesson-primary">
               <LessonMeta
@@ -320,53 +330,44 @@ function LessonButtons({
   lesson: LessonRecord
   previewRole: 'learner' | 'teacher' | 'admin' | null
   search: ReturnType<typeof keepAppSearch>
-  copy: { start: string; end: string; join: string }
+  copy: LessonActionsCopy
 }) {
   const router = useRouter()
   const [busy, setBusy] = useState(false)
-  const post = (path: string) => {
+  const [failed, setFailed] = useState(false)
+  const [confirming, setConfirming] = useState(false)
+  const run = (path: string) => {
     setBusy(true)
-    void apiFetch(path, { method: 'POST', previewRole })
-      .then(() => router.invalidate())
-      .finally(() => setBusy(false))
+    setFailed(false)
+    void lessonAction(
+      () => apiFetch(path, { method: 'POST', previewRole }),
+      () => router.invalidate(),
+    ).then((ok) => {
+      setBusy(false)
+      setFailed(!ok)
+      // The pressed button is gone after a refresh; keep focus in the rail.
+      if (ok) document.getElementById('group-lessons-title')?.focus()
+    })
   }
+  const endRef = useRef(() => {})
+  endRef.current = () => run(`/api/lessons/${lesson.id}/end`)
+  const [endConfirm] = useState(() =>
+    createEndConfirm(setConfirming, () => endRef.current()),
+  )
+  useEffect(() => () => endConfirm.cancel(), [endConfirm])
   if (!lesson.can.start && !lesson.can.end && !lesson.can.join) return null
-  const describedBy = primary ? `primary-lesson-time-${lesson.id}` : undefined
   return (
-    <div className="lesson-actions">
-      {lesson.can.start ? (
-        <button
-          className={primary ? 'btn btn-primary' : 'btn btn-outline'}
-          type="button"
-          disabled={busy}
-          aria-describedby={describedBy}
-          onClick={() => post(`/api/lessons/${lesson.id}/start`)}
-        >
-          {copy.start}
-        </button>
-      ) : null}
-      {lesson.can.end ? (
-        <button
-          className={primary ? 'btn btn-primary' : 'btn btn-outline'}
-          type="button"
-          disabled={busy}
-          aria-describedby={describedBy}
-          onClick={() => post(`/api/lessons/${lesson.id}/end`)}
-        >
-          {copy.end}
-        </button>
-      ) : null}
-      {lesson.can.join ? (
-        <Link
-          className="btn btn-primary"
-          aria-describedby={describedBy}
-          to="/app/meet/$lessonId"
-          params={{ lessonId: lesson.id }}
-          search={search}
-        >
-          {copy.join}
-        </Link>
-      ) : null}
-    </div>
+    <LessonActions
+      lesson={lesson}
+      primary={primary}
+      busy={busy}
+      confirming={confirming}
+      failed={failed}
+      search={search}
+      copy={copy}
+      onStart={() => run(`/api/lessons/${lesson.id}/start`)}
+      onEnd={endConfirm.press}
+      onCancelEnd={endConfirm.cancel}
+    />
   )
 }

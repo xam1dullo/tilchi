@@ -77,6 +77,10 @@ export const ru = {
   startLesson: 'Начать урок',
   endLesson: 'Завершить урок',
   joinMeet: 'Войти на урок',
+  confirmEndLesson: 'Да, завершить урок',
+  lessonActionFailed: 'Не получилось. Попробуйте ещё раз.',
+  confirmEndLessonHint:
+    'Урок завершится для всех. Нажмите ещё раз, чтобы подтвердить.',
   lessonLive: 'Идёт',
   lessonScheduled: 'Запланирован',
   lessonEnded: 'Завершён',
