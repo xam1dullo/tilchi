@@ -209,6 +209,7 @@ describe.skipIf(!hasTestDatabase)('tests, assignments and grading', () => {
     const mine = await call('ana', 'GET', '/api/me/assignments')
     const attemptId = mine.body.assignments[0].attemptId as string
     return {
+      groupId: mine.body.assignments[0].groupId as string,
       single,
       multi,
       speaking,
@@ -317,6 +318,8 @@ describe.skipIf(!hasTestDatabase)('tests, assignments and grading', () => {
     expect(view.status).toBe(200)
     expect(view.body).toMatchObject({ status: 'assigned', title: 'Unit 1' })
     expect(JSON.stringify(view.body)).not.toContain('answerKey')
+    expect(view.body).not.toHaveProperty('learnerName')
+    expect(view.body).not.toHaveProperty('groupId')
     const listed = await call('ana', 'GET', '/api/me/assignments')
     expect(listed.body.assignments[0]).toMatchObject({
       attemptId: t.attemptId,
@@ -369,6 +372,10 @@ describe.skipIf(!hasTestDatabase)('tests, assignments and grading', () => {
     expect(await inboxOf('teacher')).toEqual(['test.submitted'])
 
     const review = await call('teacher', 'GET', `/api/attempts/${t.attemptId}`)
+    expect(review.body).toMatchObject({
+      learnerName: 'ana',
+      groupId: t.groupId,
+    })
     expect(
       review.body.questions.map(
         (q: { autoCorrect: boolean | null }) => q.autoCorrect,

@@ -343,13 +343,20 @@ export class AssessmentService {
     const found = await this.repo.getTest(ctx.assignment.testId)
     if (!found) return notFound()
     const audio = await this.repo.audioFor(ctx.attempt.id)
-    return this.view(
+    const view = this.view(
       ctx.attempt,
       { ...ctx.assignment, title: found.test.title },
       found.questions.map(toTestQuestion),
       audio,
       ctx.as,
     )
+    return ctx.as === 'manager'
+      ? {
+          ...view,
+          learnerName: await this.repo.learnerName(ctx.attempt.userId),
+          groupId: ctx.assignment.groupId,
+        }
+      : view
   }
 
   private view(

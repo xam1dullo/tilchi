@@ -169,7 +169,7 @@ export default function SpeakingRecorder({
   }
   if (phase === 'starting' || phase === 'recording') {
     return (
-      <div className="lesson-actions">
+      <div className="lesson-actions speaking-controls">
         <span role="status">
           {phase === 'starting' ? copy.recordLoading : copy.recordRecording}
         </span>
@@ -189,7 +189,7 @@ export default function SpeakingRecorder({
     )
   }
   return (
-    <div>
+    <div className="speaking-recorder">
       {take ? (
         // biome-ignore lint/a11y/useMediaCaption: the learner's own voice, no captions exist
         <audio controls src={take.url} />

@@ -3,10 +3,27 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it, vi } from 'vitest'
 import type { MyAssignment } from '../lib/attempt'
 import { messages } from '../lib/i18n'
-import { AttemptQuestionView, AttemptSummary } from './attempt-view'
+import {
+  AttemptIdentity,
+  AttemptQuestionView,
+  AttemptSummary,
+} from './attempt-view'
 
 vi.mock('@tanstack/react-router', () => ({
-  Link: ({ children }: { children: unknown }) => children,
+  Link: ({
+    children,
+    to,
+    params,
+  }: {
+    children: import('react').ReactNode
+    to: string
+    params?: { groupId: string }
+  }) =>
+    createElement(
+      'a',
+      { href: params ? to.replace('$groupId', params.groupId) : to },
+      children,
+    ),
 }))
 const { MyTestsList } = await import('./my-tests')
 
@@ -53,6 +70,7 @@ describe('AttemptSummary', () => {
   it('says awaiting grade, then the score and feedback', () => {
     expect(render('assigned')).toBe('')
     expect(render('submitted')).toContain(copy.attemptAwaitingGrade)
+    expect(render('graded')).toContain('<output class="attempt-score"')
     expect(render('graded')).toContain('5 / 7')
     expect(render('graded')).toContain('Good')
   })
@@ -93,4 +111,17 @@ describe('MyTestsList', () => {
   it('says so when nothing is assigned', () => {
     expect(render([])).toContain(copy.myTestsEmpty)
   })
+})
+
+it('shows the learner identity and a group back link for grading', () => {
+  const html = renderToStaticMarkup(
+    createElement(AttemptIdentity, {
+      name: 'Ana',
+      groupId: 'group-1',
+      copy,
+      previewRole: null,
+    }),
+  )
+  expect(html).toContain('Ana')
+  expect(html).toContain('href="/app/groups/group-1"')
 })

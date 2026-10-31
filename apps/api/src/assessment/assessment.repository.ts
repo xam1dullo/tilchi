@@ -128,6 +128,14 @@ export class AssessmentRepository {
     return row ?? null
   }
 
+  async learnerName(userId: string) {
+    const [row] = await this.db
+      .select({ name: users.name })
+      .from(users)
+      .where(eq(users.id, userId))
+    return row?.name ?? null
+  }
+
   /** Locks the attempt row until the transaction ends. */
   async lockAttempt(id: string, x: Executor) {
     const [row] = await x

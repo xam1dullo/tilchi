@@ -77,8 +77,11 @@ export function GradeAttempt({
         </p>
       ) : null}
       <ol className="rows question-list">
-        {questions.map((q) => (
+        {questions.map((q, index) => (
           <li className="row question-row" key={q.id}>
+            <span className="attempt-index" aria-hidden="true">
+              {String(index + 1).padStart(2, '0')}
+            </span>
             <GradeQuestion
               copy={copy}
               question={q}
@@ -101,7 +104,7 @@ export function GradeAttempt({
       </ol>
       {gradable ? (
         <>
-          <label>
+          <label className="grade-feedback">
             {copy.gradeFeedback}
             <textarea
               value={draft.feedback}
@@ -112,12 +115,12 @@ export function GradeAttempt({
               }
             />
           </label>
-          <div className="lesson-actions">
+          <div className="lesson-actions grade-save">
             <span>
               {copy.gradeTotal}{' '}
-              <span className="num">
+              <output className="attempt-score" aria-label={copy.gradeTotal}>
                 {gradeTotal(questions, recorded, draft)} / {attempt.maxScore}
-              </span>
+              </output>
             </span>
             <button className="btn btn-primary" type="submit" disabled={busy}>
               {busy ? copy.gradeSaving : copy.gradeSave}
@@ -207,11 +210,11 @@ export function GradeQuestion({
         </>
       ) : (
         <>
-          <p>
+          <p className="grade-answer">
             {copy.gradeLearnerAnswer}{' '}
             {answer.length ? optionTexts(q, answer) : copy.gradeNoAnswer}
           </p>
-          <p>
+          <p className="grade-key">
             {copy.gradeCorrectAnswer} {optionTexts(q, q.answerKey ?? [])}
           </p>
           <p className="question-tags">

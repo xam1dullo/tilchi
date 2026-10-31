@@ -15,12 +15,14 @@ import {
   type Upload,
   answersBody,
   attemptError,
+  attemptFallback,
   canSubmit,
   markActive,
   pick,
   uploadAudio,
 } from '../../../lib/attempt'
 import {
+  AttemptIdentity,
   AttemptQuestionView,
   AttemptSummary,
 } from '../../../components/attempt-view'
@@ -44,7 +46,8 @@ const attemptPath = (id: string) => `/api/attempts/${encodeURIComponent(id)}`
 
 function AttemptError({ error }: { error: unknown }) {
   const { locale } = useRouteContext({ from: '__root__' })
-  const { previewRole } = useRouteContext({ from: '/app' })
+  const { previewRole, session } = useRouteContext({ from: '/app' })
+  const fallback = attemptFallback(session?.role)
   const copy = messages(locale)
   const gone = error instanceof ApiError && [403, 404].includes(error.status)
   return (
@@ -53,10 +56,10 @@ function AttemptError({ error }: { error: unknown }) {
       {gone ? (
         <Link
           className="btn btn-outline"
-          to="/app/assignments"
+          to={fallback.to}
           search={keepAppSearch(previewRole)}
         >
-          {copy.myTests}
+          {copy[fallback.label]}
         </Link>
       ) : (
         <RetryButton label={copy.retry} />
@@ -97,12 +100,13 @@ function ManagerAttempt() {
   const attempt = Route.useLoaderData()
   const copy = messages(locale)
   return (
-    <section className="classroom" aria-labelledby="attempt-heading">
-      <p className="eyebrow">
-        <Link to="/app" search={keepAppSearch(previewRole)}>
-          {copy.groups}
-        </Link>
-      </p>
+    <section className="classroom grade-page" aria-labelledby="attempt-heading">
+      <AttemptIdentity
+        name={attempt.learnerName}
+        groupId={attempt.groupId}
+        copy={copy}
+        previewRole={previewRole}
+      />
       <AttemptHead attempt={attempt} copy={copy} />
       {attempt.status === 'graded' ? (
         <AttemptSummary attempt={attempt} copy={copy} />
@@ -177,7 +181,10 @@ function LearnerAttempt() {
   }
 
   return (
-    <section className="classroom" aria-labelledby="attempt-heading">
+    <section
+      className="classroom attempt-page"
+      aria-labelledby="attempt-heading"
+    >
       <p className="eyebrow">
         <Link to="/app/assignments" search={keepAppSearch(previewRole)}>
           {copy.myTests}
@@ -200,8 +207,11 @@ function LearnerAttempt() {
       >
         <fieldset className="question-lock" disabled={busy || !open}>
           <ol className="rows question-list">
-            {attempt.questions.map((q) => (
+            {attempt.questions.map((q, index) => (
               <li className="row question-row" key={q.id}>
+                <span className="attempt-index" aria-hidden="true">
+                  {String(index + 1).padStart(2, '0')}
+                </span>
                 <AttemptQuestionView
                   copy={copy}
                   question={q}
@@ -234,7 +244,7 @@ function LearnerAttempt() {
             ))}
           </ol>
           {open ? (
-            <div className="lesson-actions">
+            <div className="lesson-actions attempt-submit">
               {confirming ? (
                 <>
                   <span>{copy.attemptSubmitPrompt}</span>

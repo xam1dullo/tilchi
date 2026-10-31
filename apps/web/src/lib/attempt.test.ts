@@ -5,6 +5,7 @@ import {
   MAX_AUDIO_BYTES,
   answersBody,
   attemptError,
+  attemptFallback,
   canSubmit,
   markActive,
   micSupported,
@@ -237,5 +238,17 @@ describe('recorderSlots', () => {
     expect(slots.isCurrent(next)).toBe(true)
     slots.end(old)
     expect(slots.begin()).toBeNull()
+  })
+})
+
+describe('attempt fallback', () => {
+  it('takes managers to tests and learners to assignments', () => {
+    expect(attemptFallback('teacher')).toEqual({
+      to: '/app/tests',
+      label: 'tests',
+    })
+    expect(attemptFallback('admin').to).toBe('/app/tests')
+    expect(attemptFallback('learner').to).toBe('/app/assignments')
+    expect(attemptFallback(undefined).to).toBe('/app/assignments')
   })
 })
