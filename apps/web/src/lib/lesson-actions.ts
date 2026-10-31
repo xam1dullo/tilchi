@@ -4,6 +4,7 @@ export const END_DISARM_MS = 8000
 
 // Two-step End: the first press arms, a press after END_GUARD_MS ends.
 // Arming lapses after END_DISARM_MS; cancel() disarms (Escape, blur, unmount).
+// Keyboard auto-repeat (a held Enter) never arms or ends.
 export function createEndConfirm(
   onArmedChange: (armed: boolean) => void,
   onEnd: () => void,
@@ -16,7 +17,8 @@ export function createEndConfirm(
     armedAt = null
     onArmedChange(false)
   }
-  const press = () => {
+  const press = (repeat = false) => {
+    if (repeat) return
     if (armedAt === null) {
       armedAt = Date.now()
       onArmedChange(true)
@@ -31,6 +33,7 @@ export function createEndConfirm(
 }
 
 // Runs a lesson action and refreshes; false means the request failed.
+// A failed refresh still resolves true: the action itself succeeded.
 export async function lessonAction(
   request: () => Promise<unknown>,
   refresh: () => Promise<unknown>,
@@ -40,6 +43,10 @@ export async function lessonAction(
   } catch {
     return false
   }
-  await refresh()
+  try {
+    await refresh()
+  } catch {
+    // Stale view until the next load; never an unhandled rejection.
+  }
   return true
 }

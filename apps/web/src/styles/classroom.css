@@ -241,6 +241,15 @@
   color: var(--danger);
 }
 
+.meet-notice[data-tone="alert"]::before {
+  content: "!";
+  /* biome-ignore lint/suspicious/noDuplicateProperties: fallback where alt text is unsupported */
+  content: "!" / "";
+  display: inline-block;
+  width: 1.25em;
+  font-weight: 700;
+}
+
 .meet-notice[data-tone="status"] {
   border-inline-start: 3px solid var(--line-strong);
 }

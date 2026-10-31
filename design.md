@@ -57,8 +57,7 @@ Brand (owner decision 2026-10-31, after vibecoding.uz): warm cream paper, near-b
 | `--accent-ink` | `#7A2412` | text on `--accent-soft` | 8.43:1 |
 | `--on-accent` | `#FFFFFF` | text on `--accent-solid` / `--accent-2` | 4.59 / 7.32 |
 | `--on-accent-muted` | `#F6D5CB` | secondary text on `--accent-2` | 5.33:1 |
-| `--success` | `#B8301A` | `.check` glyph only (= accent); done notices are neutral (`--ink-2` edge + ✓) | |
-| `--focus` | `#B8301A` | focus ring | 5.50 bg · 5.08 bg-alt · 6.04 bg-elev · 5.07 accent-soft (≥3 needed) |
+| `--focus` | `#B8301A` | focus ring | 5.50 bg · 5.08 bg-alt · 6.04 bg-elev · 5.07 accent-soft · 3.05 ink (≥3 needed) |
 | `--tg` | `#2AABEE` | Telegram glyph only | |
 
 Light content theme with no dark-mode toggle (parents on phones in daylight; one theme keeps the contrast gate meaningful). The `/app` desktop sidebar is `--ink` with `--bg` text; its active item is `--accent-solid` with `--on-accent` text. `::selection` = `--accent-soft`.
@@ -66,7 +65,7 @@ Light content theme with no dark-mode toggle (parents on phones in daylight; one
 Rules:
 - `#D93A1C` is a surface colour. Text on it is white (`--on-accent`), never cream `--bg` (4.18:1). It is never a text colour on light surfaces (4.18 on bg, 3.86 on bg-alt); use `--accent` or `--accent-2` for terracotta text. `pnpm contrast` lists these as PROHIBITED and fails if one of them ever passes (the rule would be stale).
 - Never use pure `#000`; shadows carry ink tint `rgba(20,20,19,α)`.
-- Error (`--danger #A3261F`) is near-identical to `--accent-2` (1.01:1, printed as a `note` by `pnpm contrast`). Danger, primary and success are told apart by shape: error notices carry `!` + text, done notices are neutral with ✓, `.meet-leave` is the only filled-danger control, live status is a dot + word.
+- Error (`--danger #A3261F`: 6.70 bg · 7.36 bg-elev · 5.98 danger-soft) is near-identical to `--accent-2` (1.01:1, printed as a `note` by `pnpm contrast`). The outline-danger End button (`.lesson-end`) sits on the `--bg-elev` rail. Danger, primary and success are told apart by shape: error notices carry `!` + text, done notices are neutral with ✓, `.meet-leave` is the only filled-danger control, live status is a dot + word.
 
 ---
 
@@ -122,7 +121,6 @@ Fonts are self-hosted from fontsource packages (`@fontsource-variable/fraunces` 
 | `.tag` | square label: `--fs-xs` 600, padding 4px 8px, radius `--r-sm`, bg `--accent-soft`, text `--accent-ink`. Replaces all pills. |
 | `.stat` | big serif tabular number. |
 | `.rows` / `.row` | hairline list: `.row` has `border-top`, last also `border-bottom`; hover bg `--bg-alt` (only when `.row` is a link). |
-| `.check` svg | 16px, `--success`. |
 | `.notice` | `data-tone` = `status` (neutral) · `done` (neutral, `--ink-2` edge, ✓ glyph) · `warn` (amber) · `error` (`--danger`, `!` glyph). Done and error differ by glyph and colour, never colour alone; done never uses terracotta (it would read as primary/error). |
 | `.meet-leave` | the only filled `--danger` control (white text/icon); pressed toggles use `--accent-soft`. `.tag.status-live` is a danger dot + word, not a tag. |
 | `.choice` (TgCard) | radio chip: white, hairline, radius `--r-md`, min-height 46px; checked = bg `--ink` white text; focus ring via `input:focus-visible + span`. |
