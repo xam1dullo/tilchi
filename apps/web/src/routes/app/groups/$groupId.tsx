@@ -167,9 +167,9 @@ function GroupPage() {
           ) : null}
         </div>
         <aside className="group-lessons" aria-labelledby="group-lessons-title">
-          <h3 id="group-lessons-title" tabIndex={-1}>
+          <h2 id="group-lessons-title" tabIndex={-1}>
             {copy.groupLessons}
-          </h3>
+          </h2>
           {primaryLesson ? (
             <div className="group-lesson-primary">
               <LessonMeta
@@ -267,7 +267,7 @@ function MembersList({ members, copy }: { members: Member[]; copy: Copy }) {
   }
   return (
     <section className="members" aria-labelledby="members-title">
-      <h3 id="members-title">{copy.members}</h3>
+      <h2 id="members-title">{copy.members}</h2>
       <ul className="rows classroom-list">
         {members.map((member) => (
           <li key={member.id} className="row classroom-row">

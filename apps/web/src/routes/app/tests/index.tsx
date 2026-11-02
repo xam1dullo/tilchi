@@ -237,7 +237,7 @@ function TestsPage() {
       <CabinetStats items={testStats(tests, questions, copy)} />
       <div className="tests-grid">
         <section className="tests-section" aria-labelledby="bank-heading">
-          <h3 id="bank-heading">{copy.questionBank}</h3>
+          <h2 id="bank-heading">{copy.questionBank}</h2>
           <Collapsible
             open={questionOpen}
             label={copy.questionNew}
@@ -389,7 +389,7 @@ function TestsPage() {
         </section>
 
         <section className="tests-section" aria-labelledby="tests-list-heading">
-          <h3 id="tests-list-heading">{copy.tests}</h3>
+          <h2 id="tests-list-heading">{copy.tests}</h2>
           <Collapsible
             open={testOpen}
             label={copy.testNew}

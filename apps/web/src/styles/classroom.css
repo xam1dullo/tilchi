@@ -450,10 +450,10 @@
   margin-top: 32px;
 }
 
-.members h3,
-.enrol h3,
-.assign h3,
-.assignments h3 {
+.members h2,
+.enrol h2,
+.assign h2,
+.assignments h2 {
   margin: 0 0 12px;
   font-size: var(--fs-h3);
 }
@@ -565,7 +565,7 @@
   min-width: 0;
 }
 
-.tests-section h3 {
+.tests-section h2 {
   margin: 0 0 16px;
   font-size: var(--fs-h3);
   line-height: 1.15;
@@ -704,7 +704,7 @@
   overflow-wrap: anywhere;
 }
 
-/* Status is said in words; draft is a hairline, published the accent tag. */
+/* Status is said in words; draft is a hairline, published the neutral tag. */
 .tests-section .question-type {
   padding-inline: 0;
   background: transparent;
@@ -799,7 +799,7 @@
   background: var(--bg-elev);
 }
 
-.group-page .group-lessons h3 {
+.group-page .group-lessons h2 {
   margin: 0 0 16px;
   font-size: var(--fs-body);
 }
@@ -1383,8 +1383,9 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* Page titles on plain classroom pages match the head titles. */
-.classroom > h1 {
+/* Page titles on plain classroom pages match the head titles.
+   :where keeps it below page-specific title classes like .tests-title. */
+:where(.classroom) > h1 {
   margin: 0 0 24px;
   font-size: var(--fs-h2);
   line-height: 1.02;

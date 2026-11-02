@@ -183,7 +183,7 @@ a {
   font: 600 var(--fs-xs) / 1.45 var(--font-sans);
 }
 
-/* Colour means something: the teacher's mark (a grade) or a miss. */
+/* Colour means something: mark is the teacher's grade, warn a miss. */
 .tag[data-tone="mark"] {
   background: var(--accent-soft);
   color: var(--accent-ink);

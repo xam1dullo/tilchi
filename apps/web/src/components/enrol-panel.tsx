@@ -83,7 +83,7 @@ export function EnrolPanel({
 
   return (
     <section className="enrol" aria-labelledby={`${ids}-title`}>
-      <h3 id={`${ids}-title`}>{copy.addLearner}</h3>
+      <h2 id={`${ids}-title`}>{copy.addLearner}</h2>
       <form
         className="classroom-form"
         onSubmit={(event) => {

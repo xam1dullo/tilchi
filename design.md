@@ -80,7 +80,7 @@ Rules:
 | Body | Onest | `--fs-body` = 1.0625rem | 400 | 1.6 | 0 |
 | Small | Onest | `--fs-sm` = 0.9375rem | 400/500 | 1.5 | 0 |
 | Caption | Onest | `--fs-xs` = 0.8125rem | 500 | 1.45 | 0 |
-| Label (`.eyebrow`) | Onest | `--fs-label` = 0.75rem | 600 | 1 | +0.12em, uppercase |
+| Label (`.eyebrow`) | Onest | `--fs-label` = 0.75rem | 500 | 1 | 0, sentence case |
 | Big number (`.stat`) | Fraunces | clamp(2.25rem, 3vw, 3rem) | 400 | 1 | −0.03em, tabular |
 
 Fonts are self-hosted from fontsource packages (`@fontsource-variable/fraunces` SOFT axes, `@fontsource-variable/onest` wght; both OFL), imported in `apps/web/src/styles/app.css`; `__root.tsx` preloads the Fraunces and Onest latin files (plus Onest cyrillic for `ru`). Onest covers Latin, Cyrillic and the Uzbek apostrophes (U+2018/2019, U+02BB/02BC), so ru uses Onest too; Fraunces has no Cyrillic, so ru headings fall back to Onest. The vibecoding.uz heading face (Tiempos Headline) is paid and not used; headings stay Fraunces. Italic Fraunces is the only emphasis inside headings (`em` = italic, colour `--accent`). Body `p` max-width 64ch, `text-wrap: pretty`; headings `text-wrap: balance`. `.num` → `font-variant-numeric: tabular-nums`. Uzbek apostrophe is not unified yet: `apps/web/src/lib/i18n/uz.ts` uses `‘` (U+2018, e.g. `o‘chirish`); `packages/content/src/site.ts` mixes `'` (U+0027) and `ʻ` (U+02BB, one U+02BC). When editing, keep the file's existing character; do not mass-convert (open, §14).
@@ -95,13 +95,12 @@ Fonts are self-hosted from fontsource packages (`@fontsource-variable/fraunces` 
 - **Radius**: `--r-sm` 6px (tags), `--r-md` 12px (buttons, inputs, chips), `--r-lg` 20px (panels), `--r-xl` 28px (portrait), `--r-full` 999px (only the progress dot).
 - **Borders**: 1px `--line`. Hairline rows: `border-top: 1px solid var(--line)`; last row also gets `border-bottom`.
 - **Elevation**: `--sh-panel: 0 24px 48px -28px rgba(20,20,19,0.25)` — used only on the portrait and the booking panel. `--sh-focus: 0 0 0 3px rgba(217,58,28,0.35)`.
-- **Z-index**: grain 1 · sticky CTA 90 · nav 100 · progress 101 · skip 200.
+- **Z-index**: sticky CTA 90 · nav 100 · progress 101 · skip 200.
 - **Breakpoints**: ≤520 phone-small · ≤780 phone/menu · ≤920 tablet (grids collapse) · ≥921 desktop.
 - **Icons**: inline SVG, 1.75 stroke, 16/20/24px, `currentColor`. No icon library.
 - **Focus**: `:focus-visible` 2px solid `--focus`, offset 3px.
 - **Touch targets**: ≥44px.
 - **Motion tokens**: `--ease: cubic-bezier(0.16,1,0.3,1)`, `--dur-fast 160ms`, `--dur-med 240ms`, `--dur-slow 600ms`. GSAP ease `tilchi` = same curve.
-- **Grain**: fixed SVG noise overlay, opacity 0.028, multiply.
 - **Loading**: static export; no skeletons needed. Images get explicit width/height.
 
 ---
@@ -115,10 +114,10 @@ Fonts are self-hosted from fontsource packages (`@fontsource-variable/fraunces` 
 | `.btn-ink` | bg `--ink`, text `--bg`; hover `--ink-2`. Used for the Telegram CTA. |
 | `.btn-outline` | transparent, 1px `--line-strong` inset ring, text `--ink`; hover bg `--bg-alt`, ring `--ink`. |
 | `.btn-text` | underlined link, 600/`--fs-sm`, underline `--line-strong` → hover `--accent`. |
-| `.eyebrow` | label style; `::before` 6×6px square `--accent`. |
+| `.eyebrow` | small sentence-case label or breadcrumb; no mark, no tracked caps. A breadcrumb link is a 24px target. Never repeats the title below it. |
 | `.h2`, `.lede`, `.sec-intro` | section header primitives; `.sec-intro` max-width 640px. |
 | `.sec-split` | 2-col header: title left, lede right, aligned to baseline end; collapses ≤920. |
-| `.tag` | square label: `--fs-xs` 600, padding 4px 8px, radius `--r-sm`, bg `--accent-soft`, text `--accent-ink`. Replaces all pills. |
+| `.tag` | square label: `--fs-xs` 600, padding 4px 8px, radius `--r-sm`, neutral bg `--bg-alt`, text `--ink-2`. `data-tone="mark"` (`--accent-soft`/`--accent-ink`) only for the teacher's mark — a grade, score or correct answer; `data-tone="warn"` (`--warn-soft`/`--warn`) for missed, cancelled or wrong. Status mapping: `statusTone` in `apps/web/src/lib/tone.ts`. Replaces all pills. |
 | `.stat` | big serif tabular number. |
 | `.rows` / `.row` | hairline list: `.row` has `border-top`, last also `border-bottom`; hover bg `--bg-alt` (only when `.row` is a link). |
 | `.notice` | `data-tone` = `status` (neutral) · `done` (neutral, `--ink-2` edge, ✓ glyph) · `warn` (amber) · `error` (`--danger`, `!` glyph). Done and error differ by glyph and colour, never colour alone; done never uses terracotta (it would read as primary/error). |

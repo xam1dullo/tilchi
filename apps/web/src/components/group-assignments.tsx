@@ -63,7 +63,7 @@ export function AssignForm({
 
   return (
     <section className="assign" aria-labelledby="assign-title">
-      <h3 id="assign-title">{copy.assignTitle}</h3>
+      <h2 id="assign-title">{copy.assignTitle}</h2>
       {tests === null ? (
         <p className="hint" role="alert">
           {copy.error}
@@ -154,7 +154,7 @@ export function AssignmentsList({
 }) {
   return (
     <section className="assignments" aria-labelledby="assignments-title">
-      <h3 id="assignments-title">{copy.assignments}</h3>
+      <h2 id="assignments-title">{copy.assignments}</h2>
       {assignments === null ? (
         <p className="hint" role="alert">
           {copy.error}
