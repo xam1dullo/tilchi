@@ -293,10 +293,14 @@ a {
 }
 
 .notice[data-tone="done"]::before {
+  content: "\2713";
+  /* biome-ignore lint/suspicious/noDuplicateProperties: fallback where alt text is unsupported */
   content: "\2713" / "";
 }
 
 .notice[data-tone="error"]::before {
+  content: "!";
+  /* biome-ignore lint/suspicious/noDuplicateProperties: fallback where alt text is unsupported */
   content: "!" / "";
 }
 

@@ -33,7 +33,7 @@ export function LessonActions({
   search: ReturnType<typeof keepAppSearch>
   copy: LessonActionsCopy
   onStart: () => void
-  onEnd: () => void
+  onEnd: (repeat: boolean) => void
   onCancelEnd: () => void
 }) {
   const describedBy = primary ? `primary-lesson-time-${lesson.id}` : undefined
@@ -69,9 +69,15 @@ export function LessonActions({
             disabled={busy}
             data-confirming={confirming || undefined}
             aria-describedby={describedBy}
-            onClick={onEnd}
+            onClick={() => onEnd(false)}
             onKeyDown={(event) => {
               if (confirming && event.key === 'Escape') onCancelEnd()
+              // Enter clicks on every auto-repeat; handle it here so a held
+              // key cannot confirm End once the guard has passed.
+              if (event.key === 'Enter') {
+                event.preventDefault()
+                onEnd(event.repeat)
+              }
             }}
             onBlur={confirming ? onCancelEnd : undefined}
           >
