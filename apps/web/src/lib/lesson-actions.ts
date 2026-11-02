@@ -32,6 +32,22 @@ export function createEndConfirm(
   return { press, cancel }
 }
 
+// Keys on the End button. Enter clicks on every auto-repeat, so it is handled
+// here (the caller must preventDefault) and passes `repeat` to the guard.
+export type EndKey =
+  | { kind: 'cancel' }
+  | { kind: 'press'; repeat: boolean }
+  | null
+export function endKey(
+  key: string,
+  repeat: boolean,
+  confirming: boolean,
+): EndKey {
+  if (key === 'Escape') return confirming ? { kind: 'cancel' } : null
+  if (key === 'Enter') return { kind: 'press', repeat }
+  return null
+}
+
 // Runs a lesson action and refreshes; false means the request failed.
 // A failed refresh still resolves true: the action itself succeeded.
 export async function lessonAction(
