@@ -58,9 +58,7 @@
 .ai-label {
   color: var(--muted);
   font-size: var(--fs-label);
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-weight: 500;
 }
 
 .ai-question {

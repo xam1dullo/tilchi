@@ -55,7 +55,7 @@ function MeetPage() {
           <span aria-hidden="true">←</span> {copy.backToGroup}
         </Link>
       </p>
-      <h2 id="meet-title">{copy.meetTitle}</h2>
+      <h1 id="meet-title">{copy.meetTitle}</h1>
       <p className="hint">{group.name}</p>
       <div className="meet-tools">
         <Suspense fallback={null}>

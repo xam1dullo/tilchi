@@ -127,7 +127,7 @@ describe('assignment cabinet', () => {
     for (const label of ['Submitted', 'Graded', 'Missed'])
       expect(html).toContain(`<dt>${label}</dt><dd>1</dd>`)
     expect(html).toContain('href="/app/attempts/a3?preview=learner"')
-    expect(html).toContain('<span class="tag">Graded</span>')
+    expect(html).toContain('<span class="tag" data-tone="mark">Graded</span>')
     expect(html).toContain('class="num">0</span>')
     for (const hint of [
       copy.cabinetAssignedHint,

@@ -1,4 +1,4 @@
-import { CabinetStats, CabinetIcon } from '../../components/cabinet-stats'
+import { CabinetStats } from '../../components/cabinet-stats'
 import { groupStats } from '../../lib/cabinet'
 import { loadForSession, sessionData } from '../../lib/session'
 import { botLink, tgLinkProps } from '@tilchi/content'
@@ -50,8 +50,8 @@ function GroupsPage() {
     <section className="classroom groups-page">
       <div className="classroom-head">
         <div>
-          <p className="eyebrow">{copy.groups}</p>
-          <h2>{view.empty ? copy.emptyTitle : copy.groups}</h2>
+          {view.empty ? <p className="eyebrow">{copy.groups}</p> : null}
+          <h1>{view.empty ? copy.emptyTitle : copy.groups}</h1>
         </div>
         {view.canCreate ? (
           <CreateGroup
@@ -76,7 +76,6 @@ function GroupsPage() {
                 params={{ groupId: group.id }}
                 search={keepAppSearch(previewRole)}
               >
-                <CabinetIcon />
                 <strong>{group.name}</strong>
                 <span>
                   {copy.members} {group.learnerCount}/{group.capacity}

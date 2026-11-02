@@ -15,7 +15,7 @@
   flex-wrap: wrap;
   padding: 6px var(--sec-pad-app);
   border-bottom: 1px solid var(--line);
-  background: color-mix(in srgb, var(--bg) 86%, transparent);
+  background: var(--bg);
   position: sticky;
   top: 0;
   z-index: var(--z-nav);
@@ -244,9 +244,7 @@
     margin: 0 12px 12px;
     color: var(--bg);
     font-size: var(--fs-label);
-    font-weight: 600;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
+    font-weight: 500;
   }
 
   .app-shell .app-nav a {

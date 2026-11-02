@@ -175,7 +175,7 @@ export function GradeQuestion({
       <p className="question-prompt">{q.prompt}</p>
       {q.result ? (
         <p className="question-tags">
-          <span className="tag">
+          <span className="tag" data-tone="mark">
             {copy.attemptScore}:{' '}
             <span className="num">
               {q.result.points} / {q.result.max}
@@ -218,7 +218,7 @@ export function GradeQuestion({
             {copy.gradeCorrectAnswer} {optionTexts(q, q.answerKey ?? [])}
           </p>
           <p className="question-tags">
-            <span className="tag">
+            <span className="tag" data-tone={q.autoCorrect ? 'mark' : 'warn'}>
               {q.autoCorrect ? copy.gradeAutoCorrect : copy.gradeAutoWrong}
             </span>
           </p>

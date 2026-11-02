@@ -1,7 +1,8 @@
+import { statusTone } from '../lib/tone'
 import { useState } from 'react'
 import { assignmentView, type AssignmentFilter } from '../lib/cabinet'
 import { Link } from '@tanstack/react-router'
-import { CabinetStats, CabinetIcon } from './cabinet-stats'
+import { CabinetStats } from './cabinet-stats'
 import { ATTEMPT_STATUSES, statusKey } from '../lib/assignments'
 import type { MyAssignment } from '../lib/attempt'
 import { formatLessonTime } from '../lib/classroom'
@@ -85,7 +86,6 @@ export function MyTestsView({
                 params={{ attemptId: a.attemptId }}
                 search={keepAppSearch(previewRole)}
               >
-                <CabinetIcon />
                 <span className="cabinet-title">
                   <strong>{a.title}</strong>
                   <span className="cabinet-meta">
@@ -93,7 +93,9 @@ export function MyTestsView({
                     {formatLessonTime(a.deadline, locale)}
                   </span>
                 </span>
-                <span className="tag">{copy[statusKey[a.status]]}</span>
+                <span className="tag" data-tone={statusTone(a.status)}>
+                  {copy[statusKey[a.status]]}
+                </span>
                 <span className="cabinet-score">
                   {a.status === 'graded' && a.score !== null ? (
                     <>

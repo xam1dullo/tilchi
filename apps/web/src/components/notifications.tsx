@@ -61,10 +61,9 @@ export function NotificationList({
     <section className="notifications" aria-labelledby="notifications-title">
       <div className="classroom-head">
         <div>
-          <p className="eyebrow">{copy.notifications}</p>
-          <h2 id="notifications-title" ref={titleRef} tabIndex={-1}>
+          <h1 id="notifications-title" ref={titleRef} tabIndex={-1}>
             {copy.notifications}
-          </h2>
+          </h1>
         </div>
         <div className="notifications-actions">
           <p className="notifications-count" aria-live="polite">

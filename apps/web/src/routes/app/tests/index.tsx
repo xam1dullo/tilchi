@@ -1,4 +1,4 @@
-import { CabinetStats, CabinetIcon } from '../../../components/cabinet-stats'
+import { CabinetStats } from '../../../components/cabinet-stats'
 import { testStats } from '../../../lib/cabinet'
 import { loadForSession, sessionData } from '../../../lib/session'
 import { RetryButton } from '../../../components/retry-button'
@@ -231,9 +231,9 @@ function TestsPage() {
 
   return (
     <section className="classroom tests-page" aria-labelledby="tests-heading">
-      <h2 id="tests-heading" className="tests-title">
+      <h1 id="tests-heading" className="tests-title">
         {copy.tests}
-      </h2>
+      </h1>
       <CabinetStats items={testStats(tests, questions, copy)} />
       <div className="tests-grid">
         <section className="tests-section" aria-labelledby="bank-heading">
@@ -479,7 +479,6 @@ function TestsPage() {
                     params={{ testId: test.id }}
                     search={search}
                   >
-                    <CabinetIcon />
                     <strong>{test.title}</strong>
                     <span className="num">
                       {copy.testQuestionCount} {test.questionCount}

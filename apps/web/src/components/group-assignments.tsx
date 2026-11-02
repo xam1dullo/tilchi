@@ -1,3 +1,4 @@
+import { statusTone } from '../lib/tone'
 import { Link, useRouter } from '@tanstack/react-router'
 import { useState } from 'react'
 import { apiFetch } from '../lib/api'
@@ -214,7 +215,10 @@ export function AssignmentsList({
                               )}
                             </th>
                             <td>
-                              <span className="tag">
+                              <span
+                                className="tag"
+                                data-tone={statusTone(a.status)}
+                              >
                                 {copy[statusKey[a.status]]}
                               </span>
                             </td>

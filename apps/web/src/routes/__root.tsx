@@ -91,7 +91,6 @@ function RootDocument() {
         <a className="skip" href="#main">
           {copy.skip}
         </a>
-        <div className="grain" aria-hidden="true" />
         <main id="main" tabIndex={-1}>
           <Outlet />
         </main>

@@ -1,3 +1,4 @@
+import { statusTone } from '../../../lib/tone'
 import { AppNotFound } from '../../app'
 import { loadForSession, sessionData } from '../../../lib/session'
 import {
@@ -123,7 +124,7 @@ function GroupPage() {
       </p>
       <div className="classroom-head">
         <div>
-          <h2>{group.name}</h2>
+          <h1>{group.name}</h1>
           <p className="hint">
             {copy.members} {group.learnerCount}/{group.capacity}
           </p>
@@ -248,7 +249,12 @@ function LessonMeta({
       >
         <strong>{formatLessonTime(lesson.scheduledAt, locale)}</strong>
       </time>
-      <span className={`tag status-${lesson.status}`}>{status}</span>
+      <span
+        className={`tag status-${lesson.status}`}
+        data-tone={statusTone(lesson.status)}
+      >
+        {status}
+      </span>
     </div>
   )
 }

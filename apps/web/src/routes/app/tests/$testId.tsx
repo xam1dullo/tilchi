@@ -52,7 +52,7 @@ function TestPage() {
       </p>
       <div className="classroom-head">
         <div>
-          <h2 id="test-heading">{test.title}</h2>
+          <h1 id="test-heading">{test.title}</h1>
           <p className="hint">
             {copy.testQuestionCount} {test.questions.length} ·{' '}
             {copy.testMaxScore} <span className="num">{test.maxScore}</span>
