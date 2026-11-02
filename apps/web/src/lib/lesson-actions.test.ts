@@ -3,8 +3,25 @@ import {
   END_DISARM_MS,
   END_GUARD_MS,
   createEndConfirm,
+  endKey,
   lessonAction,
 } from './lesson-actions'
+
+describe('endKey', () => {
+  it('passes a held Enter on as a repeat so the guard can drop it', () => {
+    expect(endKey('Enter', true, true)).toEqual({ kind: 'press', repeat: true })
+    expect(endKey('Enter', false, false)).toEqual({
+      kind: 'press',
+      repeat: false,
+    })
+  })
+
+  it('cancels on Escape only while confirming; other keys do nothing', () => {
+    expect(endKey('Escape', false, true)).toEqual({ kind: 'cancel' })
+    expect(endKey('Escape', false, false)).toBeNull()
+    expect(endKey(' ', false, true)).toBeNull()
+  })
+})
 
 describe('createEndConfirm', () => {
   beforeEach(() => vi.useFakeTimers())

@@ -1,5 +1,6 @@
 import { Link } from '@tanstack/react-router'
 import type { LessonRecord } from '../lib/classroom'
+import { endKey } from '../lib/lesson-actions'
 import type { keepAppSearch } from '../lib/preview'
 
 export type LessonActionsCopy = {
@@ -71,12 +72,11 @@ export function LessonActions({
             aria-describedby={describedBy}
             onClick={() => onEnd(false)}
             onKeyDown={(event) => {
-              if (confirming && event.key === 'Escape') onCancelEnd()
-              // Enter clicks on every auto-repeat; handle it here so a held
-              // key cannot confirm End once the guard has passed.
-              if (event.key === 'Enter') {
+              const action = endKey(event.key, event.repeat, confirming)
+              if (action?.kind === 'cancel') onCancelEnd()
+              if (action?.kind === 'press') {
                 event.preventDefault()
-                onEnd(event.repeat)
+                onEnd(action.repeat)
               }
             }}
             onBlur={confirming ? onCancelEnd : undefined}
