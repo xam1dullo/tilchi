@@ -1,3 +1,4 @@
+import { statusTone } from '../../../lib/tone'
 import { AppNotFound } from '../../app'
 import { loadForSession, sessionData } from '../../../lib/session'
 import {
@@ -123,7 +124,7 @@ function GroupPage() {
       </p>
       <div className="classroom-head">
         <div>
-          <h2>{group.name}</h2>
+          <h1>{group.name}</h1>
           <p className="hint">
             {copy.members} {group.learnerCount}/{group.capacity}
           </p>
@@ -166,9 +167,9 @@ function GroupPage() {
           ) : null}
         </div>
         <aside className="group-lessons" aria-labelledby="group-lessons-title">
-          <h3 id="group-lessons-title" tabIndex={-1}>
+          <h2 id="group-lessons-title" tabIndex={-1}>
             {copy.groupLessons}
-          </h3>
+          </h2>
           {primaryLesson ? (
             <div className="group-lesson-primary">
               <LessonMeta
@@ -248,7 +249,12 @@ function LessonMeta({
       >
         <strong>{formatLessonTime(lesson.scheduledAt, locale)}</strong>
       </time>
-      <span className={`tag status-${lesson.status}`}>{status}</span>
+      <span
+        className={`tag status-${lesson.status}`}
+        data-tone={statusTone(lesson.status)}
+      >
+        {status}
+      </span>
     </div>
   )
 }
@@ -261,7 +267,7 @@ function MembersList({ members, copy }: { members: Member[]; copy: Copy }) {
   }
   return (
     <section className="members" aria-labelledby="members-title">
-      <h3 id="members-title">{copy.members}</h3>
+      <h2 id="members-title">{copy.members}</h2>
       <ul className="rows classroom-list">
         {members.map((member) => (
           <li key={member.id} className="row classroom-row">

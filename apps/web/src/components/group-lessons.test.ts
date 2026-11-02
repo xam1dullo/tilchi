@@ -91,7 +91,7 @@ describe('group lessons rail', () => {
       )?.[1]
       expect(rail).toBeDefined()
       expect(rail).toContain(
-        '<h3 id="group-lessons-title" tabindex="-1">Lessons</h3>',
+        '<h2 id="group-lessons-title" tabindex="-1">Lessons</h2>',
       )
       expect(html.match(/<ul/g)).toHaveLength(1)
       expect(rail).toContain(copy.lessonEnded)

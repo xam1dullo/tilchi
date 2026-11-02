@@ -129,7 +129,7 @@ function AiSheet({
       }}
     >
       <header className="ai-head">
-        <h3 id="ai-title">{copy.aiTitle}</h3>
+        <h2 id="ai-title">{copy.aiTitle}</h2>
         <button type="button" className="btn btn-text" onClick={onClose}>
           {copy.aiClose}
         </button>

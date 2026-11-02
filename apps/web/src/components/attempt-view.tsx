@@ -53,7 +53,7 @@ export function AttemptQuestionView({
       <legend className="question-prompt">{question.prompt}</legend>
       {question.result ? (
         <p className="question-tags">
-          <span className="tag">
+          <span className="tag" data-tone="mark">
             {copy.attemptScore}:{' '}
             <span className="num">
               {question.result.points} / {question.result.max}

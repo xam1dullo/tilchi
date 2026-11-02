@@ -114,7 +114,7 @@ function CoursesPage() {
     return <p role="alert">{copy.courseUnavailable}</p>
   return (
     <section className="classroom" aria-labelledby="courses-heading">
-      <h2 id="courses-heading">{copy.catalogTitle}</h2>
+      <h1 id="courses-heading">{copy.catalogTitle}</h1>
       <form
         key={formKey}
         className="classroom-form catalog-form"

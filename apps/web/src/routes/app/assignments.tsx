@@ -35,7 +35,7 @@ function MyTestsPage() {
   const copy = messages(locale)
   return (
     <section className="classroom" aria-labelledby="my-tests-heading">
-      <h2 id="my-tests-heading">{copy.myTests}</h2>
+      <h1 id="my-tests-heading">{copy.myTests}</h1>
       <MyTestsList
         assignments={assignments}
         copy={copy}

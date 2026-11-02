@@ -26,7 +26,7 @@
   gap: 12px;
 }
 
-.ai-head h3 {
+.ai-head h2 {
   margin: 0;
   font-size: var(--fs-h3);
   letter-spacing: -0.02em;
@@ -58,9 +58,7 @@
 .ai-label {
   color: var(--muted);
   font-size: var(--fs-label);
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-weight: 500;
 }
 
 .ai-question {

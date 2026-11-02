@@ -229,8 +229,6 @@ html[lang="ru"] .l-hero h1 {
 
 .l-stats dt {
   font-size: var(--fs-xs);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
 }
 
 .l-steps {

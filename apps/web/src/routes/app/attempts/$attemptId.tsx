@@ -1,3 +1,4 @@
+import { statusTone } from '../../../lib/tone'
 import { AppNotFound } from '../../app'
 import { loadForSession, sessionData } from '../../../lib/session'
 import {
@@ -91,9 +92,11 @@ function AttemptHead({
   return (
     <div className="classroom-head">
       <div>
-        <h2 id="attempt-heading">{attempt.title}</h2>
+        <h1 id="attempt-heading">{attempt.title}</h1>
         <p className="hint">
-          <span className="tag">{copy[statusKey[attempt.status]]}</span>{' '}
+          <span className="tag" data-tone={statusTone(attempt.status)}>
+            {copy[statusKey[attempt.status]]}
+          </span>{' '}
           {copy.assignmentDeadline} {formatLessonTime(attempt.deadline, locale)}
         </p>
       </div>
