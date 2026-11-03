@@ -360,6 +360,21 @@ const ROWS: Row[] = [
     expect: [401, 403, 404, 201, 404, 201],
   },
   {
+    name: 'lesson attendance',
+    handler: 'AttendanceController.forLesson',
+    method: 'GET',
+    lesson: 'live',
+    path: (c) => `/api/lessons/${c.lesson}/attendance`,
+    expect: [401, 200, 404, 200, 404, 200],
+  },
+  {
+    name: 'group attendance',
+    handler: 'AttendanceController.forGroup',
+    method: 'GET',
+    path: (c) => `/api/groups/${c.group}/attendance`,
+    expect: [401, 200, 404, 200, 404, 200],
+  },
+  {
     name: 'join meeting',
     handler: 'MeetController.livekitToken',
     method: 'POST',

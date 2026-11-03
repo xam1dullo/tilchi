@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common'
-import { eq } from 'drizzle-orm'
+import { and, asc, eq, inArray } from 'drizzle-orm'
 import { Database } from '../db/database'
-import { attendanceEvents, meetings, users } from '../db/schema'
+import { attendanceEvents, lessons, meetings, users } from '../db/schema'
 import { isUuid } from '../db/uuid'
 import { uuidv7 } from '../id'
 
@@ -35,6 +35,50 @@ export class AttendanceRepository {
       .onConflictDoNothing()
       .returning({ id: attendanceEvents.id })
     return rows.length > 0
+  }
+
+  /** Join/leave/token events of these lessons, oldest first. */
+  async eventsFor(lessonIds: string[]) {
+    if (lessonIds.length === 0) return []
+    return this.database.db
+      .select({
+        lessonId: attendanceEvents.lessonId,
+        userId: attendanceEvents.userId,
+        kind: attendanceEvents.kind,
+        at: attendanceEvents.at,
+      })
+      .from(attendanceEvents)
+      .where(inArray(attendanceEvents.lessonId, lessonIds))
+      .orderBy(asc(attendanceEvents.at), asc(attendanceEvents.id))
+  }
+
+  /** A lesson's window: it started (or was due) and ended, if it has. */
+  async lessonWindow(lessonId: string) {
+    if (!isUuid(lessonId)) return null
+    const [row] = await this.windows(eq(lessons.id, lessonId))
+    return row ?? null
+  }
+
+  /** The group's ended lessons, in time order. */
+  async endedLessons(groupId: string) {
+    if (!isUuid(groupId)) return []
+    return this.windows(
+      and(eq(lessons.groupId, groupId), eq(lessons.status, 'ended')),
+    )
+  }
+
+  private windows(where: ReturnType<typeof and>) {
+    return this.database.db
+      .select({
+        id: lessons.id,
+        status: lessons.status,
+        scheduledAt: lessons.scheduledAt,
+        startedAt: lessons.startedAt,
+        endedAt: lessons.endedAt,
+      })
+      .from(lessons)
+      .where(where)
+      .orderBy(asc(lessons.scheduledAt), asc(lessons.id))
   }
 
   async lessonIdForRoom(room: string): Promise<string | null> {

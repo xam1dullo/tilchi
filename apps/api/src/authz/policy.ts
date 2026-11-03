@@ -27,6 +27,7 @@ export type Action =
   | 'lesson.editMaterials'
   | 'meeting.join'
   | 'meeting.moderate'
+  | 'attendance.view'
   | 'question.manage'
   | 'test.manage'
   | 'test.assign'

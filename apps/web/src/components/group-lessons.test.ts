@@ -8,6 +8,21 @@ import { messages } from '../lib/i18n'
 const state = vi.hoisted(() => ({
   lessons: [] as LessonRecord[],
   teacher: false,
+  seeMembers: false,
+  members: [] as {
+    id: string
+    name: string | null
+    role: 'learner' | 'teacher'
+  }[],
+  attendance: {
+    attendance: [] as {
+      userId: string
+      name: string | null
+      lessonsHeld: number
+      lessonsPresent: number
+    }[],
+    lessons: [] as { lessonId: string; present: number }[],
+  },
 }))
 vi.mock('../routes/app', () => ({ AppNotFound: () => null }))
 vi.mock('../lib/session', () => ({ sessionData: (data: unknown) => data }))
@@ -18,12 +33,13 @@ vi.mock('@tanstack/react-router', () => ({
       group: {
         id: 'g',
         name: 'Group',
-        learnerCount: 1,
+        learnerCount: 5,
         capacity: 12,
-        can: { createLesson: state.teacher },
+        can: { createLesson: state.teacher, seeMembers: state.seeMembers },
       },
       lessons: state.lessons,
-      members: [],
+      members: state.members,
+      attendance: state.attendance,
       tests: [],
       assignments: [],
     }),
@@ -219,5 +235,68 @@ describe('group lessons rail', () => {
     )
     expect(html).not.toContain('<ul')
     expect(html).not.toContain('lesson-actions')
+  })
+})
+
+describe('attendance on the group page', () => {
+  const ended = lesson('done', 'ended', '2030-01-01T06:00:00Z')
+  const next = lesson('next', 'scheduled', '2030-01-02T06:00:00Z')
+  it('shows present/members on an ended lesson row and per-member figures to the teacher', () => {
+    state.teacher = true
+    state.seeMembers = true
+    state.lessons = [ended, next]
+    state.members = [
+      { id: 't', name: 'T', role: 'teacher' },
+      { id: 'u1', name: 'Ali', role: 'learner' },
+    ]
+    state.attendance = {
+      attendance: [
+        { userId: 'u1', name: 'Ali', lessonsHeld: 5, lessonsPresent: 4 },
+      ],
+      lessons: [{ lessonId: 'done', present: 3 }],
+    }
+    const html = render()
+    const rows = html.slice(html.indexOf('<ul'), html.lastIndexOf('</ul>'))
+    const doneRow = rows.slice(
+      rows.indexOf('lesson-time-done'),
+      rows.indexOf('lesson-time-next'),
+    )
+    expect(doneRow).toContain(`${copy.attendance} <span class="num">3/5</span>`)
+    expect(rows.slice(rows.indexOf('lesson-time-next'))).not.toContain(
+      copy.attendance,
+    )
+    const members = html.match(
+      /<section class="members"[\s\S]*?<\/section>/,
+    )?.[0]
+    expect(members).toContain(`4/5 ${copy.attendanceLessons}`)
+    expect(members?.indexOf('4/5')).toBeGreaterThan(members?.indexOf('T') ?? 0)
+    expect(html).not.toContain('class="figures"')
+  })
+  it('shows a learner only their own attendance line, never other members', () => {
+    state.teacher = false
+    state.seeMembers = false
+    state.lessons = [ended]
+    state.members = []
+    state.attendance = {
+      attendance: [
+        { userId: 'me', name: 'Me', lessonsHeld: 5, lessonsPresent: 4 },
+      ],
+      lessons: [],
+    }
+    const html = render()
+    expect(html).toContain(
+      `<p class="figures">${copy.attendance} <span class="num">4/5</span></p>`,
+    )
+    expect(html).not.toContain('3/5')
+    expect(html).not.toContain('<section class="members"')
+    state.attendance = { attendance: [], lessons: [] }
+    expect(render()).not.toContain('class="figures"')
+    state.attendance = {
+      attendance: [
+        { userId: 'me', name: 'Me', lessonsHeld: 0, lessonsPresent: 0 },
+      ],
+      lessons: [],
+    }
+    expect(render()).not.toContain('class="figures"')
   })
 })

@@ -857,6 +857,22 @@
   overflow-wrap: anywhere;
 }
 
+/* A count as a sentence, next to the time: "Davomat 3/5". */
+.group-lesson-attendance {
+  color: var(--muted);
+  font-size: var(--fs-sm);
+}
+
+.group-lesson-attendance .num {
+  color: var(--ink);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.group-page .group-lessons .lesson-row .group-lesson-attendance {
+  grid-column: 2;
+}
+
 /* Native disclosure: the teacher opens it only when there is something to change. */
 .group-page .group-lessons .lesson-materials {
   grid-column: 2;

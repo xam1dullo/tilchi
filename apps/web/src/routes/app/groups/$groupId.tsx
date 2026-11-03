@@ -15,6 +15,7 @@ import {
   nextGroupLesson,
   tashkentInputToIso,
   type MaterialsForm,
+  type GroupAttendance,
   type GroupRecord,
   type LessonRecord,
 } from '../../../lib/classroom'
@@ -48,17 +49,29 @@ export const Route = createFileRoute('/app/groups/$groupId')({
       )
       const { previewRole } = context
       const path = `/api/groups/${params.groupId}`
-      const [{ members }, { tests, assignments }] = await Promise.all([
-        group.can.seeMembers
-          ? apiFetch<{ members: Member[] }>(`${path}/members`, {
-              previewRole,
-            })
-          : { members: [] },
-        loadAssessment(group.can, group.id, (url) =>
-          apiFetch(url, { previewRole }),
-        ),
-      ])
-      return { group, lessons: lessons.lessons, members, tests, assignments }
+      const [{ members }, { tests, assignments }, attendance] =
+        await Promise.all([
+          group.can.seeMembers
+            ? apiFetch<{ members: Member[] }>(`${path}/members`, {
+                previewRole,
+              })
+            : { members: [] },
+          loadAssessment(group.can, group.id, (url) =>
+            apiFetch(url, { previewRole }),
+          ),
+          // Counts are secondary: without them the page still opens.
+          apiFetch<GroupAttendance>(`${path}/attendance`, {
+            previewRole,
+          }).catch((): GroupAttendance => ({ attendance: [], lessons: [] })),
+        ])
+      return {
+        group,
+        lessons: lessons.lessons,
+        members,
+        tests,
+        assignments,
+        attendance,
+      }
     }),
   notFoundComponent: AppNotFound,
   component: GroupPage,
@@ -79,9 +92,8 @@ function GroupError() {
 function GroupPage() {
   const { locale } = useRouteContext({ from: '__root__' })
   const { previewRole } = useRouteContext({ from: '/app' })
-  const { group, lessons, members, tests, assignments } = sessionData(
-    Route.useLoaderData(),
-  )
+  const { group, lessons, members, tests, assignments, attendance } =
+    sessionData(Route.useLoaderData())
   const copy = messages(locale)
   const search = keepAppSearch(previewRole)
   const [now, setNow] = useState<number | null>(null)
@@ -109,6 +121,14 @@ function GroupPage() {
     (nextLesson.can.start || nextLesson.can.end || nextLesson.can.join)
       ? nextLesson
       : undefined
+  const presentIn = new Map(
+    attendance.lessons.map((row) => [row.lessonId, row.present]),
+  )
+  const byLearner = new Map(
+    attendance.attendance.map((row) => [row.userId, row]),
+  )
+  // A learner's reply holds only their own row; the teacher sees it per member.
+  const mine = group.can.seeMembers ? undefined : attendance.attendance[0]
   const lessonCopy = {
     start: copy.startLesson,
     end: copy.endLesson,
@@ -130,6 +150,14 @@ function GroupPage() {
           <p className="hint">
             {copy.members} {group.learnerCount}/{group.capacity}
           </p>
+          {mine && mine.lessonsHeld > 0 ? (
+            <p className="figures">
+              {copy.attendance}{' '}
+              <span className="num">
+                {mine.lessonsPresent}/{mine.lessonsHeld}
+              </span>
+            </p>
+          ) : null}
         </div>
         {group.can.createLesson ? (
           <ScheduleForm
@@ -159,7 +187,7 @@ function GroupPage() {
             />
           ) : null}
           {group.can.seeMembers ? (
-            <MembersList members={members} copy={copy} />
+            <MembersList members={members} attendance={byLearner} copy={copy} />
           ) : null}
           {group.can.manageMembers ? (
             <EnrolPanel group={group} previewRole={previewRole} copy={copy} />
@@ -202,6 +230,14 @@ function GroupPage() {
                       {index + 1}
                     </span>
                     <LessonMeta lesson={lesson} locale={locale} copy={copy} />
+                    {lesson.status === 'ended' && presentIn.has(lesson.id) ? (
+                      <span className="group-lesson-attendance">
+                        {copy.attendance}{' '}
+                        <span className="num">
+                          {presentIn.get(lesson.id)}/{group.learnerCount}
+                        </span>
+                      </span>
+                    ) : null}
                     {lesson.can.editMaterials ? (
                       <MaterialsEditor
                         lesson={lesson}
@@ -268,7 +304,15 @@ function LessonMeta({
   )
 }
 
-function MembersList({ members, copy }: { members: Member[]; copy: Copy }) {
+function MembersList({
+  members,
+  attendance,
+  copy,
+}: {
+  members: Member[]
+  attendance: Map<string, GroupAttendance['attendance'][number]>
+  copy: Copy
+}) {
   const role = {
     learner: copy.roleLearner,
     teacher: copy.roleTeacher,
@@ -281,6 +325,13 @@ function MembersList({ members, copy }: { members: Member[]; copy: Copy }) {
         {members.map((member) => (
           <li key={member.id} className="row classroom-row">
             <strong>{displayName(member)}</strong>
+            {attendance.get(member.id)?.lessonsHeld ? (
+              <span className="group-lesson-attendance">
+                {attendance.get(member.id)?.lessonsPresent}/
+                {attendance.get(member.id)?.lessonsHeld}{' '}
+                {copy.attendanceLessons}
+              </span>
+            ) : null}
             <span className="tag">{role[member.role]}</span>
           </li>
         ))}

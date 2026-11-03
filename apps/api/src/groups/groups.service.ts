@@ -78,6 +78,11 @@ export class GroupsService {
     return this.groups.members(id)
   }
 
+  /** The members with no permission check: callers authorize the group first. */
+  membersOf(id: string) {
+    return this.groups.members(id)
+  }
+
   /** Creates the group with `actorId` as its first member, or returns it as it is. */
   async ensure(input: { id: string; name: string; actorId: string }) {
     const created = await this.groups.insert({
