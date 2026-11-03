@@ -257,7 +257,8 @@ describeWithDatabase('outbox', (current) => {
       expect(text).toContain('Yangi dars')
       expect(text).toContain('02.01 09:00')
       expect(text).toContain('https://app.example/app/groups/')
-      expect(text).not.toMatch(/Ada|Bob|998/)
+      // +998, not 998: the group link's UUID can contain the bare digits.
+      expect(text).not.toMatch(/Ada|Bob|\+998/)
     })
 
     it('never sends twice when a row is redelivered', async () => {
@@ -439,7 +440,7 @@ describeWithDatabase('outbox', (current) => {
       expect(alerts.map((m) => m.chat)).toEqual(['1001', '1002'])
       expect(alerts[0]?.text).toContain('Ada L')
       expect(alerts[0]?.text).toContain('tg://user?id=99')
-      expect(alerts[0]?.text).not.toContain('998')
+      expect(alerts[0]?.text).not.toContain('+998')
     })
 
     it('records a revoke-all in the inbox of that user only, with no second DM', async () => {
