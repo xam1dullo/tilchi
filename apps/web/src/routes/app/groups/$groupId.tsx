@@ -11,8 +11,10 @@ import { useEffect, useRef, useState } from 'react'
 import { apiFetch, loadDetail } from '../../../lib/api'
 import {
   formatLessonTime,
+  lessonMaterialsBody,
   nextGroupLesson,
   tashkentInputToIso,
+  type MaterialsForm,
   type GroupRecord,
   type LessonRecord,
 } from '../../../lib/classroom'
@@ -22,6 +24,10 @@ import {
   AssignmentsList,
 } from '../../../components/group-assignments'
 import { LessonButtons } from '../../../components/lesson-buttons'
+import {
+  MaterialFields,
+  MaterialsEditor,
+} from '../../../components/lesson-materials'
 import { RetryButton } from '../../../components/retry-button'
 import { loadAssessment } from '../../../lib/assignments'
 import { displayName, type Member } from '../../../lib/enrol'
@@ -129,10 +135,7 @@ function GroupPage() {
           <ScheduleForm
             groupId={group.id}
             previewRole={previewRole}
-            copy={{
-              schedule: copy.scheduleLesson,
-              time: copy.lessonDateTime,
-            }}
+            copy={copy}
           />
         ) : null}
       </div>
@@ -199,6 +202,13 @@ function GroupPage() {
                       {index + 1}
                     </span>
                     <LessonMeta lesson={lesson} locale={locale} copy={copy} />
+                    {lesson.can.editMaterials ? (
+                      <MaterialsEditor
+                        lesson={lesson}
+                        previewRole={previewRole}
+                        copy={copy}
+                      />
+                    ) : null}
                     {lesson.id !== primaryLesson?.id ? (
                       <LessonButtons
                         lesson={lesson}
@@ -245,6 +255,9 @@ function LessonMeta({
       >
         <strong>{formatLessonTime(lesson.scheduledAt, locale)}</strong>
       </time>
+      {lesson.topic ? (
+        <span className="group-lesson-topic">{lesson.topic}</span>
+      ) : null}
       <span
         className={`tag status-${lesson.status}`}
         data-tone={statusTone(lesson.status)}
@@ -283,10 +296,15 @@ function ScheduleForm({
 }: {
   groupId: string
   previewRole: 'learner' | 'teacher' | 'admin' | null
-  copy: { schedule: string; time: string }
+  copy: Copy
 }) {
   const router = useRouter()
   const [scheduledAt, setScheduledAt] = useState('')
+  const [materials, setMaterials] = useState<MaterialsForm>({
+    topic: '',
+    slideUrl: '',
+    canvasUrl: '',
+  })
   const [busy, setBusy] = useState(false)
   return (
     <form
@@ -299,14 +317,17 @@ function ScheduleForm({
         void apiFetch(`/api/groups/${groupId}/lessons`, {
           method: 'POST',
           previewRole,
-          body: JSON.stringify({ scheduledAt: iso }),
+          body: JSON.stringify({
+            scheduledAt: iso,
+            ...lessonMaterialsBody(materials),
+          }),
         })
           .then(() => router.invalidate())
           .finally(() => setBusy(false))
       }}
     >
       <label>
-        <span>{copy.time} (Asia/Tashkent)</span>
+        <span>{copy.lessonDateTime} (Asia/Tashkent)</span>
         <input
           type="datetime-local"
           required
@@ -314,8 +335,9 @@ function ScheduleForm({
           onChange={(event) => setScheduledAt(event.target.value)}
         />
       </label>
+      <MaterialFields form={materials} onChange={setMaterials} copy={copy} />
       <button className="btn btn-primary" type="submit" disabled={busy}>
-        {copy.schedule}
+        {copy.scheduleLesson}
       </button>
     </form>
   )

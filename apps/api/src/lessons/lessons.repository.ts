@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common'
-import { and, asc, eq, sql } from 'drizzle-orm'
+import { and, asc, eq, inArray, sql } from 'drizzle-orm'
 import { Database, type Tx, inTransaction } from '../db/database'
 import { lessons, meetings } from '../db/schema'
 import { isUuid } from '../db/uuid'
@@ -21,8 +21,23 @@ export type Lesson = {
   groupId: string
   scheduledAt: string
   status: LessonStatus
+  topic: string | null
+  slideUrl: string | null
+  canvasUrl: string | null
   meetingId: string | null
 }
+
+/** The syllabus fields a teacher may set; null clears one. */
+export type LessonMaterials = {
+  topic?: string | null
+  slideUrl?: string | null
+  canvasUrl?: string | null
+}
+
+export type MaterialsResult =
+  | { kind: 'changed'; lesson: Lesson }
+  | { kind: 'not_found' }
+  | { kind: 'conflict' }
 
 export type Meeting = {
   id: string
@@ -57,6 +72,9 @@ function toLesson(
     groupId: row.groupId,
     scheduledAt: row.scheduledAt.toISOString(),
     status: row.status,
+    topic: row.topic,
+    slideUrl: row.slideUrl,
+    canvasUrl: row.canvasUrl,
     meetingId,
   }
 }
@@ -81,7 +99,11 @@ export class LessonsRepository {
    * transaction (pass `tx` to join a larger one).
    */
   async insert(
-    input: { id: string; groupId: string; scheduledAt: Date },
+    input: {
+      id: string
+      groupId: string
+      scheduledAt: Date
+    } & LessonMaterials,
     tx?: Tx,
   ): Promise<Lesson | null> {
     return inTransaction(this.database.db, tx, async (t) => {
@@ -251,6 +273,29 @@ export class LessonsRepository {
       if (meeting) await enqueueAll(tx, endEntries(id, meeting.room))
       return { kind: 'ended', lesson: toLesson(ended, meeting?.id ?? null) }
     })
+  }
+
+  /**
+   * Sets the materials of a scheduled or live lesson; ended and cancelled
+   * ones are a conflict. Fields left out of `patch` keep their value.
+   */
+  async setMaterials(
+    id: string,
+    patch: LessonMaterials,
+  ): Promise<MaterialsResult> {
+    if (!isUuid(id)) return { kind: 'not_found' }
+    const [row] = await this.database.db
+      .update(lessons)
+      .set(patch)
+      .where(
+        and(eq(lessons.id, id), inArray(lessons.status, ['scheduled', 'live'])),
+      )
+      .returning()
+    if (row) {
+      const meeting = await this.meetingForLesson(id)
+      return { kind: 'changed', lesson: toLesson(row, meeting?.id ?? null) }
+    }
+    return (await this.get(id)) ? { kind: 'conflict' } : { kind: 'not_found' }
   }
 
   private async select(

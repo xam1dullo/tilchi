@@ -34,6 +34,9 @@ export function HomeLead({
       {next ? (
         <div className="home-lead-body">
           <div>
+            {next.lesson.topic ? (
+              <p className="home-lead-topic">{next.lesson.topic}</p>
+            ) : null}
             <p className="home-lead-time">
               <time
                 id={`primary-lesson-time-${next.lesson.id}`}

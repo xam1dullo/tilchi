@@ -29,6 +29,7 @@ const MANAGE: Action[] = [
   'lesson.end',
   'lesson.cancel',
   'lesson.reschedule',
+  'lesson.editMaterials',
   'meeting.moderate',
 ]
 
@@ -196,6 +197,7 @@ describe('views', () => {
       end: false,
       cancel: true,
       reschedule: true,
+      editMaterials: true,
       join: false,
     })
     expect(lessonView(owner, group, lesson('live')).can).toEqual({
@@ -203,6 +205,7 @@ describe('views', () => {
       end: true,
       cancel: false,
       reschedule: false,
+      editMaterials: true,
       join: true,
     })
     expect(lessonView(visiting, group, lesson('scheduled')).can.start).toBe(
@@ -213,8 +216,12 @@ describe('views', () => {
       end: false,
       cancel: false,
       reschedule: false,
+      editMaterials: false,
       join: true,
     })
     expect(lessonView(owner, group, lesson('ended')).can.join).toBe(false)
+    expect(lessonView(owner, group, lesson('ended')).can.editMaterials).toBe(
+      false,
+    )
   })
 })

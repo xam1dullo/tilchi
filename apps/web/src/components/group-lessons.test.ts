@@ -64,6 +64,9 @@ const lesson = (
   groupId: 'g',
   scheduledAt,
   status,
+  topic: null,
+  slideUrl: null,
+  canvasUrl: null,
   meetingId: null,
   // Mirrors lessonView for an enrolled learner or the enrolled group teacher.
   can: {
@@ -71,6 +74,8 @@ const lesson = (
     end: state.teacher && status === 'live',
     cancel: state.teacher && status === 'scheduled',
     reschedule: state.teacher && status === 'scheduled',
+    editMaterials:
+      state.teacher && (status === 'scheduled' || status === 'live'),
     join: status === 'live',
   },
 })
@@ -165,6 +170,46 @@ describe('group lessons rail', () => {
     )
     expect(primary).toMatch(/<button class="btn btn-outline lesson-end"/)
     expect(primary).not.toContain(copy.confirmEndLesson)
+  })
+  it('shows the topic under the time and a materials form only for whoever may edit', () => {
+    state.teacher = true
+    state.lessons = [
+      {
+        ...lesson('next', 'scheduled', '2030-01-02T06:00:00Z'),
+        topic: 'Unit 1',
+      },
+      { ...lesson('done', 'ended', '2030-01-01T06:00:00Z'), topic: 'Unit 0' },
+    ]
+    const html = render()
+    const rows = html.slice(html.indexOf('<ul'), html.indexOf('</ul>'))
+    const next = rows.slice(0, rows.indexOf('lesson-time-done'))
+    expect(next.indexOf('lesson-time-next')).toBeLessThan(
+      next.indexOf('Unit 1'),
+    )
+    expect(next).toContain('lesson-materials')
+    expect(next).toContain('name="slideUrl"')
+    expect(rows.slice(rows.indexOf('lesson-time-done'))).not.toContain(
+      'lesson-materials',
+    )
+    state.teacher = false
+    state.lessons = [
+      {
+        ...lesson('next', 'scheduled', '2030-01-02T06:00:00Z'),
+        topic: 'Unit 1',
+      },
+    ]
+    expect(render()).not.toContain('lesson-materials')
+    expect(render()).toContain('Unit 1')
+  })
+  it('asks for a topic and two links when scheduling', () => {
+    state.teacher = true
+    state.lessons = []
+    const form = render().match(/<form[^>]*group-schedule[\s\S]*?<\/form>/)?.[0]
+    expect(form).toContain('name="topic"')
+    expect(form).toMatch(/<input type="url"[^>]*name="slideUrl"/)
+    expect(form).toMatch(/<input type="url"[^>]*name="canvasUrl"/)
+    expect(form).toMatch(/maxLength="120"[^>]*name="topic"/)
+    expect(form).toContain(copy.lessonTopic)
   })
   it('keeps the empty state inside the labelled rail', () => {
     state.lessons = []

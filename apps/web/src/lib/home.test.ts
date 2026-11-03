@@ -26,12 +26,16 @@ const lesson = (
   groupId,
   scheduledAt,
   status,
+  topic: null,
+  slideUrl: null,
+  canvasUrl: null,
   meetingId: null,
   can: {
     start: false,
     end: false,
     cancel: false,
     reschedule: false,
+    editMaterials: false,
     join: status === 'live',
   },
 })

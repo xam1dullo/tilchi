@@ -351,6 +351,15 @@ const ROWS: Row[] = [
     expect: [401, 403, 404, 201, 404, 201],
   },
   {
+    name: 'set lesson materials',
+    handler: 'LessonsController.setMaterials',
+    method: 'POST',
+    lesson: 'scheduled',
+    path: (c) => `/api/lessons/${c.lesson}/materials`,
+    body: () => ({ topic: 'Unit 1', slideUrl: 'https://slides.example/1' }),
+    expect: [401, 403, 404, 201, 404, 201],
+  },
+  {
     name: 'join meeting',
     handler: 'MeetController.livekitToken',
     method: 'POST',
@@ -692,6 +701,7 @@ describe.skipIf(!hasTestDatabase)('route x role matrix', () => {
       end: false,
       cancel: false,
       reschedule: false,
+      editMaterials: false,
       join: false,
     })
     await groups.putMember(group, ids.other)

@@ -12,6 +12,12 @@ function scheduledAtOf(body: unknown) {
   return typeof value === 'string' ? value : ''
 }
 
+/** The material keys as sent; `parseMaterials` validates them. */
+function materialsOf(body: unknown) {
+  const b = (body ?? {}) as Record<string, unknown>
+  return { topic: b.topic, slideUrl: b.slideUrl, canvasUrl: b.canvasUrl }
+}
+
 @Controller('api')
 export class LessonsController {
   private readonly log = new Logger(LessonsController.name)
@@ -43,6 +49,7 @@ export class LessonsController {
       groupId,
       scheduledAt: scheduledAtOf(body),
       actor,
+      ...materialsOf(body),
     })
   }
 
@@ -87,6 +94,15 @@ export class LessonsController {
   @Post('lessons/:lessonId/cancel')
   cancel(@Param('lessonId') lessonId: string, @Actor() actor: Actor) {
     return this.lessons.cancel({ lessonId, actor })
+  }
+
+  @Post('lessons/:lessonId/materials')
+  setMaterials(
+    @Param('lessonId') lessonId: string,
+    @Actor() actor: Actor,
+    @Body() body: unknown,
+  ) {
+    return this.lessons.setMaterials({ lessonId, actor, ...materialsOf(body) })
   }
 
   @Post('lessons/:lessonId/reschedule')

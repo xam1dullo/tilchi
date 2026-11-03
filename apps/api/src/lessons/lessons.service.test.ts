@@ -5,7 +5,11 @@ import { uuidv7 } from '../id'
 import { describeWithDatabase } from '../test/postgres'
 import { UsersRepository } from '../users/users.repository'
 import { LessonsRepository } from './lessons.repository'
-import { LessonsService, parseScheduledAt } from './lessons.service'
+import {
+  LessonsService,
+  parseMaterials,
+  parseScheduledAt,
+} from './lessons.service'
 import { actorOf } from '../test/actors'
 
 const AT = '2026-11-01T09:00:00+05:00'
@@ -30,6 +34,69 @@ describe('parseScheduledAt', () => {
     }
     expect(parseScheduledAt('0001-01-01T00:00:00Z')).not.toBeNull()
     expect(parseScheduledAt('9999-12-31T23:59:59Z')).not.toBeNull()
+  })
+})
+
+describe('parseMaterials', () => {
+  const status = (body: unknown) => {
+    try {
+      parseMaterials(body)
+      return 200
+    } catch (error) {
+      return (error as { status: number }).status
+    }
+  }
+
+  it('keeps only the three fields, trimmed, and leaves absent ones alone', () => {
+    expect(parseMaterials({})).toEqual({})
+    expect(parseMaterials(null)).toEqual({})
+    expect(
+      parseMaterials({
+        topic: '  Present simple ',
+        slideUrl: 'https://docs.google.com/x',
+        canvasUrl: 'http://board.example/1',
+        status: 'ended',
+      }),
+    ).toEqual({
+      topic: 'Present simple',
+      slideUrl: 'https://docs.google.com/x',
+      canvasUrl: 'http://board.example/1',
+    })
+  })
+
+  it('clears a field on null or an empty string', () => {
+    expect(
+      parseMaterials({ topic: '', slideUrl: null, canvasUrl: '  ' }),
+    ).toEqual({
+      topic: null,
+      slideUrl: null,
+      canvasUrl: null,
+    })
+  })
+
+  it('refuses a long topic, a relative or non-http link, and javascript:', () => {
+    expect(status({ topic: 'a'.repeat(121) })).toBe(400)
+    expect(status({ topic: 'a'.repeat(120) })).toBe(200)
+    expect(status({ topic: 7 })).toBe(400)
+    expect(status({ slideUrl: 'docs.google.com/x' })).toBe(400)
+    expect(status({ slideUrl: '/slides' })).toBe(400)
+    expect(status({ slideUrl: 'ftp://x.example/a' })).toBe(400)
+    expect(status({ canvasUrl: 'javascript:alert(1)' })).toBe(400)
+    expect(status({ canvasUrl: 'JavaScript:alert(1)' })).toBe(400)
+    expect(status({ canvasUrl: `https://x.example/${'a'.repeat(2040)}` })).toBe(
+      400,
+    )
+    expect(status({ canvasUrl: 'HTTPS://x.example/a' })).toBe(200)
+    expect(status({ slideUrl: 'https://docs.google.com@evil.example/' })).toBe(
+      400,
+    )
+    expect(status({ slideUrl: 'https://:pw@evil.example/' })).toBe(400)
+  })
+
+  it('strips control characters from the topic', () => {
+    expect(parseMaterials({ topic: 'Unit\u0000 1\u001f\n' })).toEqual({
+      topic: 'Unit 1',
+    })
   })
 })
 
@@ -75,6 +142,9 @@ describeWithDatabase('LessonsService', (current) => {
       groupId: group.id,
       scheduledAt: '2026-11-01T04:00:00.000Z',
       status: 'scheduled',
+      topic: null,
+      slideUrl: null,
+      canvasUrl: null,
       meetingId: null,
     })
     expect(await lessons.meetingForLesson(lesson.id)).toBeNull()
