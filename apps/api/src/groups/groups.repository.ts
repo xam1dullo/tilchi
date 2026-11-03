@@ -4,6 +4,7 @@ import { Database } from '../db/database'
 import {
   assignments,
   attempts,
+  courses,
   groupMembers,
   groups,
   users,
@@ -14,11 +15,15 @@ import { enqueue } from '../outbox/outbox.repository'
 
 export type GroupKind = (typeof groups.$inferSelect)['kind']
 
+export type GroupCourse = { id: string; title: string; level: string }
+
 export type GroupRecord = {
   id: string
   name: string
   kind: GroupKind
   teacherId: string
+  /** The course the group follows; null until one is chosen. */
+  course: GroupCourse | null
   /** In the order they joined; the teacher is the first member. */
   memberIds: string[]
   /** Learners only; the teacher and admins are not counted (Q11). */
@@ -45,11 +50,13 @@ export class GroupsRepository {
     id: string
     name: string
     teacherId: string
+    course?: GroupCourse | null
   }): Promise<GroupRecord | null> {
+    const { course = null, ...row } = input
     return this.database.db.transaction(async (tx) => {
       const created = await tx
         .insert(groups)
-        .values(input)
+        .values({ ...row, courseId: course?.id ?? null })
         .onConflictDoNothing()
         .returning({ id: groups.id })
       if (created.length === 0) return null
@@ -57,12 +64,34 @@ export class GroupsRepository {
         .insert(groupMembers)
         .values({ groupId: input.id, userId: input.teacherId })
       return {
-        ...input,
+        ...row,
         kind: 'adult',
+        course,
         memberIds: [input.teacherId],
         learnerCount: 0,
       }
     })
+  }
+
+  /** The course as the group DTO shows it, or null when it is missing or deleted. */
+  async course(id: string): Promise<GroupCourse | null> {
+    if (!isUuid(id)) return null
+    const [row] = await this.database.db
+      .select({ id: courses.id, title: courses.title, level: courses.level })
+      .from(courses)
+      .where(and(eq(courses.id, id), isNull(courses.deletedAt)))
+    return row ?? null
+  }
+
+  /** False when the group is missing or deleted. */
+  async setCourse(groupId: string, courseId: string | null) {
+    if (!isUuid(groupId)) return false
+    const updated = await this.database.db
+      .update(groups)
+      .set({ courseId })
+      .where(and(eq(groups.id, groupId), isNull(groups.deletedAt)))
+      .returning({ id: groups.id })
+    return updated.length > 0
   }
 
   async isTeacher(id: string) {
@@ -197,6 +226,23 @@ export class GroupsRepository {
     rows: (typeof groups.$inferSelect)[],
   ): Promise<GroupRecord[]> {
     if (rows.length === 0) return []
+    const courseIds = rows.flatMap((row) =>
+      row.courseId ? [row.courseId] : [],
+    )
+    const courseRows =
+      courseIds.length === 0
+        ? []
+        : await this.database.db
+            .select({
+              id: courses.id,
+              title: courses.title,
+              level: courses.level,
+            })
+            .from(courses)
+            .where(
+              and(inArray(courses.id, courseIds), isNull(courses.deletedAt)),
+            )
+    const courseOf = new Map(courseRows.map((c) => [c.id, c]))
     const members = await this.database.db
       .select({
         groupId: groupMembers.groupId,
@@ -218,6 +264,7 @@ export class GroupsRepository {
       name: row.name,
       kind: row.kind,
       teacherId: row.teacherId,
+      course: (row.courseId && courseOf.get(row.courseId)) || null,
       memberIds: inGroup(row.id).map((member) => member.userId),
       learnerCount: inGroup(row.id).filter((m) => m.role === 'learner').length,
     }))

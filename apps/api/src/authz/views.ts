@@ -7,6 +7,7 @@ export type GroupCan = {
   createLesson: boolean
   manageMembers: boolean
   seeMembers: boolean
+  setCourse: boolean
   assignTest: boolean
   viewAssignments: boolean
   gradeAttempts: boolean
@@ -29,6 +30,7 @@ export function groupView(
     createLesson: can(actor, 'lesson.create', group),
     manageMembers: can(actor, 'group.addMember'),
     seeMembers: can(actor, 'group.seeMembers', group),
+    setCourse: can(actor, 'group.setCourse', group),
     assignTest: can(actor, 'test.assign', group),
     viewAssignments: can(actor, 'assignment.view', group),
     gradeAttempts: can(actor, 'attempt.grade', group),

@@ -3,6 +3,7 @@ import { uuidv7 } from '../id'
 import type { Role } from '../auth/policy'
 import { type Actor, authorize } from '../authz/policy'
 import {
+  type GroupCourse,
   type GroupKind,
   type GroupRecord,
   GroupsRepository,
@@ -14,6 +15,7 @@ export type Group = {
   capacity: number
   kind: GroupKind
   teacherId: string
+  course: GroupCourse | null
   memberIds: string[]
   learnerCount: number
 }
@@ -31,6 +33,7 @@ function toGroup(record: GroupRecord): Group {
     capacity: GROUP_CAPACITY,
     kind: record.kind,
     teacherId: record.teacherId,
+    course: record.course,
     memberIds: record.memberIds,
     learnerCount: record.learnerCount,
   }
@@ -47,14 +50,46 @@ export class GroupsService {
   ) {}
 
   /** A teacher teaches their own group; an admin must name the teacher. */
-  async create(input: { name: string; actor: Actor; teacherId?: string }) {
+  async create(input: {
+    name: string
+    actor: Actor
+    teacherId?: string
+    courseId?: string
+  }) {
     authorize(input.actor, 'group.create')
     const teacherId =
       input.actor.role === 'admin' ? input.teacherId : input.actor.userId
     if (!teacherId || !(await this.groups.isTeacher(teacherId))) {
       throw new HttpException({ error: 'teacher_required' }, 400)
     }
-    return this.ensure({ id: uuidv7(), name: input.name, actorId: teacherId })
+    const course =
+      input.courseId === undefined
+        ? null
+        : await this.existingCourse(input.courseId)
+    return this.ensure({
+      id: uuidv7(),
+      name: input.name,
+      actorId: teacherId,
+      course,
+    })
+  }
+
+  /** The group's teacher and admins pick its course; null clears it. */
+  async setCourse(actor: Actor, groupId: string, courseId: string | null) {
+    const group = await this.get(groupId)
+    if (!group) throw new HttpException({ error: 'not_found' }, 404)
+    authorize(actor, 'group.setCourse', group)
+    if (courseId !== null) await this.existingCourse(courseId)
+    if (!(await this.groups.setCourse(groupId, courseId))) {
+      throw new HttpException({ error: 'not_found' }, 404)
+    }
+    return this.existing(groupId)
+  }
+
+  private async existingCourse(courseId: string) {
+    const course = await this.groups.course(courseId)
+    if (!course) throw new HttpException({ error: 'invalid_course' }, 400)
+    return course
   }
 
   async addMember(input: { groupId: string; userId: string; actor: Actor }) {
@@ -84,11 +119,17 @@ export class GroupsService {
   }
 
   /** Creates the group with `actorId` as its first member, or returns it as it is. */
-  async ensure(input: { id: string; name: string; actorId: string }) {
+  async ensure(input: {
+    id: string
+    name: string
+    actorId: string
+    course?: GroupCourse | null
+  }) {
     const created = await this.groups.insert({
       id: input.id,
       name: cleanName(input.name),
       teacherId: input.actorId,
+      course: input.course,
     })
     if (created) return toGroup(created)
     return this.existing(input.id)

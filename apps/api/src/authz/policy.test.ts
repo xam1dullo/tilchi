@@ -13,6 +13,7 @@ const group: Group = {
   teacherId: 'owner',
   memberIds: ['owner', 'other-teacher', 'learner'],
   learnerCount: 1,
+  course: null,
 }
 
 const owner = actorOf('teacher', 'owner')
@@ -24,6 +25,7 @@ const admin = actorOf('admin', 'admin')
 
 const MANAGE: Action[] = [
   'group.seeMembers',
+  'group.setCourse',
   'lesson.create',
   'lesson.start',
   'lesson.end',
@@ -168,6 +170,7 @@ describe('views', () => {
       createLesson: false,
       manageMembers: false,
       seeMembers: false,
+      setCourse: false,
       assignTest: false,
       viewAssignments: false,
       gradeAttempts: false,
@@ -185,6 +188,7 @@ describe('views', () => {
       createLesson: true,
       manageMembers: true,
       seeMembers: true,
+      setCourse: true,
       assignTest: true,
       viewAssignments: true,
       gradeAttempts: true,

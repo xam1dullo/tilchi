@@ -19,6 +19,7 @@ export type Action =
   | 'group.view'
   | 'group.addMember'
   | 'group.seeMembers'
+  | 'group.setCourse'
   | 'lesson.create'
   | 'lesson.start'
   | 'lesson.end'
