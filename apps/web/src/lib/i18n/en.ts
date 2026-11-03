@@ -298,4 +298,10 @@ export const en = {
   cabinetDraftQuestions: 'Draft questions',
   cabinetPublishedHint: 'Questions ready to use',
   cabinetDraftHint: 'Questions in progress',
+  homeNextLesson: 'Next lesson',
+  homeNoLesson: 'No lesson scheduled yet',
+  homeLiveNow: 'The lesson has started',
+  homeDueTests: 'Tests due',
+  homeAllTests: 'All tests',
+  homeGroupNoLesson: 'No lesson scheduled',
 }

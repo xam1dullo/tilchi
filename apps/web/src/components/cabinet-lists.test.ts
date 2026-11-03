@@ -162,8 +162,12 @@ describe('group and test cabinets', () => {
       ],
       can: { createGroup: false },
       teachers: [],
+      lessonsByGroup: { g: [], h: [] },
+      assignments: [],
+      now: 0,
     }
     const html = page(GroupsRoute)
+    expect(html).toContain('Next lesson')
     for (const [label, number] of [
       ['Group count', 2],
       ['Members', 5],
@@ -203,9 +207,17 @@ describe('group and test cabinets', () => {
     expect(html).toContain('Open')
   })
   it('renders zero statistics and existing empty messages for both pages', () => {
-    state.data = { groups: [], can: {}, teachers: [] }
+    state.data = {
+      groups: [],
+      can: {},
+      teachers: [],
+      lessonsByGroup: {},
+      assignments: [],
+      now: 0,
+    }
     const groups = page(GroupsRoute)
-    expect(groups.match(/<dd>0<\/dd>/g)).toHaveLength(4)
+    // No groups: the empty state alone, never a row of zero counts.
+    expect(groups).not.toContain('<dd>')
     expect(groups).toContain(copy.emptyBody)
     state.data = { tests: [], questions: [] }
     const tests = page(TestsRoute)
@@ -220,16 +232,28 @@ describe('role-specific group statistics', () => {
     (role) => {
       state.role = role
       state.previewRole = null
-      state.data = { groups: [], can: {}, teachers: [] }
+      state.data = {
+        groups: [
+          { id: 'g', name: 'Evening', learnerCount: 3, capacity: 8, can: {} },
+        ],
+        can: {},
+        teachers: [],
+        lessonsByGroup: { g: [] },
+        assignments: [],
+        now: 0,
+      }
       const html = page(GroupsRoute)
-      expect(html.match(/<dt>/g)).toHaveLength(role === 'learner' ? 2 : 4)
+      // A learner sees the next lesson, not membership statistics.
+      expect(html.match(/<dt>/g) ?? []).toHaveLength(role === 'learner' ? 0 : 4)
+      expect(html).toContain('Next lesson')
       expect(html.includes('<dt>Learner places</dt>')).toBe(role !== 'learner')
       expect(html.includes('<dt>Available places</dt>')).toBe(
         role !== 'learner',
       )
-      expect(html).toContain(
-        role === 'admin' ? 'Across all groups' : 'Across your groups',
-      )
+      if (role !== 'learner')
+        expect(html).toContain(
+          role === 'admin' ? 'Across all groups' : 'Across your groups',
+        )
       if (role === 'admin') expect(html).not.toContain('Across your groups')
     },
   )

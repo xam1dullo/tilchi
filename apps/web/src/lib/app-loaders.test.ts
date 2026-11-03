@@ -100,11 +100,19 @@ describe('app child loaders', () => {
     {
       route: Groups,
       path: '/api/groups',
-      body: { groups: [], can: { createGroup: false, assignTeacher: false } },
+      body: {
+        groups: [],
+        can: { createGroup: false, assignTeacher: false },
+        // The same body answers the learner's assignments call too.
+        assignments: [],
+      },
       expected: {
         groups: [],
         can: { createGroup: false, assignTeacher: false },
         teachers: [],
+        lessonsByGroup: {},
+        assignments: [],
+        now: expect.any(Number),
       },
     },
     {

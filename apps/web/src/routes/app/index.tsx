@@ -1,4 +1,7 @@
 import { CabinetStats } from '../../components/cabinet-stats'
+import { HomeDueTests, HomeLead } from '../../components/home-lead'
+import { homeView } from '../../lib/home'
+import type { MyAssignment } from '../../lib/attempt'
 import { groupStats } from '../../lib/cabinet'
 import { loadForSession, sessionData } from '../../lib/session'
 import { botLink, tgLinkProps } from '@tilchi/content'
@@ -13,9 +16,11 @@ import { apiFetch } from '../../lib/api'
 import {
   createGroupBody,
   createGroupError,
+  formatLessonTime,
   groupsView,
   type CreateGroupForm,
   type GroupRecord,
+  type LessonRecord,
   type Teacher,
 } from '../../lib/classroom'
 import { CreateGroupFormView } from '../../components/create-group-form'
@@ -30,12 +35,36 @@ export const Route = createFileRoute('/app/')({
         groups: GroupRecord[]
         can: { createGroup: boolean; assignTeacher: boolean }
       }>('/api/groups', { previewRole })
-      const { teachers } = list.can.assignTeacher
-        ? await apiFetch<{ teachers: Teacher[] }>('/api/teachers', {
-            previewRole,
-          })
-        : { teachers: [] }
-      return { ...list, teachers }
+      const role = context.session?.role
+      // One small call per group; a group whose lessons cannot be read
+      // (or are not loaded yet) simply shows no next lesson.
+      const [{ teachers }, lessonLists, { assignments }] = await Promise.all([
+        list.can.assignTeacher
+          ? apiFetch<{ teachers: Teacher[] }>('/api/teachers', { previewRole })
+          : { teachers: [] as Teacher[] },
+        Promise.all(
+          list.groups.map((group) =>
+            apiFetch<{ lessons: LessonRecord[] }>(
+              `/api/groups/${group.id}/lessons`,
+              { previewRole },
+            )
+              .then((r) => [group.id, r.lessons] as const)
+              .catch(() => [group.id, [] as LessonRecord[]] as const),
+          ),
+        ),
+        role === 'learner'
+          ? apiFetch<{ assignments: MyAssignment[] }>('/api/me/assignments', {
+              previewRole,
+            }).catch(() => ({ assignments: [] as MyAssignment[] }))
+          : { assignments: [] as MyAssignment[] },
+      ])
+      return {
+        ...list,
+        teachers,
+        lessonsByGroup: Object.fromEntries(lessonLists),
+        assignments,
+        now: Date.now(),
+      }
     }),
   component: GroupsPage,
 })
@@ -43,9 +72,13 @@ export const Route = createFileRoute('/app/')({
 function GroupsPage() {
   const { locale, botUsername } = useRouteContext({ from: '__root__' })
   const { previewRole, session } = useRouteContext({ from: '/app' })
-  const { groups, can, teachers } = sessionData(Route.useLoaderData())
+  const { groups, can, teachers, lessonsByGroup, assignments, now } =
+    sessionData(Route.useLoaderData())
   const copy = messages(locale)
   const view = groupsView({ groups, can })
+  const home = homeView({ groups, lessonsByGroup, assignments, now })
+  const role = session?.role ?? 'learner'
+  const search = keepAppSearch(previewRole)
   return (
     <section className="classroom groups-page">
       <div className="classroom-head">
@@ -62,31 +95,51 @@ function GroupsPage() {
           />
         ) : null}
       </div>
-      <CabinetStats
-        items={groupStats(groups, copy, session?.role ?? 'learner')}
-      />
       {view.empty ? (
         <EmptyGroups copy={copy} botUsername={botUsername} />
       ) : (
-        <ul className="rows classroom-list">
-          {view.groups.map((group) => (
-            <li key={group.id} className="row classroom-row">
-              <Link
-                to="/app/groups/$groupId"
-                params={{ groupId: group.id }}
-                search={keepAppSearch(previewRole)}
-              >
-                <strong>{group.name}</strong>
-                <span>
-                  {copy.members} {group.learnerCount}/{group.capacity}
-                </span>
-                <span className="cabinet-action">
-                  {copy.cabinetOpen} <span aria-hidden="true">→</span>
-                </span>
-              </Link>
-            </li>
-          ))}
-        </ul>
+        <>
+          <HomeLead
+            next={home.next}
+            copy={copy}
+            locale={locale}
+            search={search}
+          />
+          <HomeDueTests
+            tests={home.dueTests}
+            more={home.moreTests}
+            copy={copy}
+            locale={locale}
+            search={search}
+          />
+          {role === 'learner' ? null : (
+            <CabinetStats items={groupStats(groups, copy, role)} />
+          )}
+          <ul className="rows classroom-list">
+            {home.groups.map(({ group, nextLesson }) => (
+              <li key={group.id} className="row classroom-row">
+                <Link
+                  to="/app/groups/$groupId"
+                  params={{ groupId: group.id }}
+                  search={search}
+                >
+                  <strong>{group.name}</strong>
+                  <span>
+                    {role === 'learner'
+                      ? null
+                      : `${copy.members} ${group.learnerCount}/${group.capacity} · `}
+                    {nextLesson
+                      ? formatLessonTime(nextLesson.scheduledAt, locale)
+                      : copy.homeGroupNoLesson}
+                  </span>
+                  <span className="cabinet-action">
+                    {copy.cabinetOpen} <span aria-hidden="true">→</span>
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </>
       )}
     </section>
   )
