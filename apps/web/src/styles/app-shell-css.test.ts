@@ -25,4 +25,31 @@ describe('app chrome styles', () => {
     expect(phone).toMatch(/\.attempt-table tbody tr \{\s*display: grid;/)
     expect(phone).toMatch(/content: attr\(data-label\)/)
   })
+
+  it('gives the submitted time its own line so the learner name is not squeezed', () => {
+    const phone =
+      read('./classroom.css').split('@container (max-width: 30rem)')[1] ?? ''
+    expect(phone).toMatch(
+      /\.attempt-table tbody td:last-child \{\s*grid-column: 1 \/ -1;/,
+    )
+  })
+
+  it('lays the four attempt counts out 2 by 2 in a narrow group page, never 3 + 1', () => {
+    const css = read('./classroom.css')
+    expect(css).toMatch(
+      /\.group-page \.assignment-counts \{[^}]*repeat\(2, minmax\(0, 1fr\)\)/,
+    )
+    expect(css).toMatch(
+      /@container group \(min-width: 32rem\) \{\s*\.group-page \.assignment-counts \{\s*grid-template-columns: repeat\(4, minmax\(0, 1fr\)\);/,
+    )
+  })
+
+  it('numbers questions in plain muted figures, not accent italics', () => {
+    const rule =
+      read('./classroom.css').match(
+        /\.tests-section \.question-index \{([^}]*)\}/,
+      )?.[1] ?? ''
+    expect(rule).not.toMatch(/italic|accent/)
+    expect(rule).toMatch(/tabular-nums/)
+  })
 })
