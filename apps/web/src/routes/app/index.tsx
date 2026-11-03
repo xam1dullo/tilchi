@@ -115,6 +115,7 @@ function GroupsPage() {
           {role === 'learner' ? null : (
             <CabinetStats items={groupStats(groups, copy, role)} />
           )}
+          <h2 className="sr-only">{copy.groups}</h2>
           <ul className="rows classroom-list">
             {home.groups.map(({ group, nextLesson }) => (
               <li key={group.id} className="row classroom-row">

@@ -45,6 +45,8 @@ const pairs = [
   ['accent on accent-soft', '--accent', '--accent-soft'],
   ['accent-2 on bg-elev', '--accent-2', '--bg-elev'],
   ['ink on bg', '--ink', '--bg'],
+  ['ink-2 on bg', '--ink-2', '--bg'],
+  ['ink on bg-alt', '--ink', '--bg-alt'],
   ['ink-2 on bg-alt', '--ink-2', '--bg-alt'],
   ['muted on bg', '--muted', '--bg'],
   ['muted on bg-alt', '--muted', '--bg-alt'],
