@@ -192,6 +192,22 @@
   line-height: 1.05;
 }
 
+/* The lesson topic and its links: quiet lines under the group name. */
+.meet-topic {
+  margin: 0 0 4px;
+  color: var(--ink-2);
+}
+
+.lesson-material-links {
+  margin: 0 0 16px;
+}
+
+.lesson-material-links a {
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 0.14em;
+}
+
 /* Wayfinding: a 44px way back above the title. */
 .meet-back {
   margin: 0 0 8px;
@@ -836,6 +852,38 @@
   min-width: 0;
 }
 
+.group-page .group-lesson-topic {
+  color: var(--ink-2);
+  overflow-wrap: anywhere;
+}
+
+/* Native disclosure: the teacher opens it only when there is something to change. */
+.group-page .group-lessons .lesson-materials {
+  grid-column: 2;
+  min-width: 0;
+}
+
+.group-page .group-lessons .lesson-materials summary {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  cursor: pointer;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+}
+
+.group-page .group-lessons .lesson-materials .classroom-form {
+  display: grid;
+  gap: 8px;
+  padding: 0 0 8px;
+}
+
+.group-page .group-lessons .lesson-materials label {
+  display: grid;
+  gap: 6px;
+  font-size: var(--fs-sm);
+}
+
 .group-page .group-lessons .lesson-row .lesson-actions {
   grid-column: 2;
 }
@@ -1396,6 +1444,12 @@
 .home-lead-group {
   margin: 8px 0 0;
   color: var(--ink-2);
+}
+
+.home-lead-topic {
+  margin: 0 0 6px;
+  font-size: var(--fs-sm);
+  color: var(--muted);
 }
 
 .home-lead-empty {

@@ -7,6 +7,7 @@ import {
   useNavigate,
   useRouteContext,
 } from '@tanstack/react-router'
+import { MaterialLinks } from '../../../components/lesson-materials'
 import { MeetEntry } from '../../../components/meet/meet-room'
 import { apiFetch, loadDetail } from '../../../lib/api'
 import type { GroupRecord, LessonRecord } from '../../../lib/classroom'
@@ -57,6 +58,8 @@ function MeetPage() {
       </p>
       <h1 id="meet-title">{copy.meetTitle}</h1>
       <p className="hint">{group.name}</p>
+      {lesson.topic ? <p className="meet-topic">{lesson.topic}</p> : null}
+      <MaterialLinks lesson={lesson} copy={copy} />
       <div className="meet-tools">
         <Suspense fallback={null}>
           <AiHelper

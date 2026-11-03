@@ -32,12 +32,16 @@ const live: LessonRecord = {
   groupId: 'g',
   scheduledAt: '2030-01-02T06:00:00Z',
   status: 'live',
+  topic: null,
+  slideUrl: null,
+  canvasUrl: null,
   meetingId: null,
   can: {
     start: false,
     end: true,
     cancel: false,
     reschedule: false,
+    editMaterials: false,
     join: true,
   },
 }

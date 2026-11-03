@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import {
+  lessonMaterialsBody,
+  lessonMaterialsError,
   nextGroupLesson,
   formatLessonTime,
   groupsView,
@@ -184,5 +186,30 @@ describe('nextGroupLesson', () => {
     expect(nextGroupLesson([upcoming, current], now)).toBe(current)
     expect(nextGroupLesson([overdue], now)).toBeUndefined()
     expect(nextGroupLesson([], now)).toBeUndefined()
+  })
+})
+
+describe('lesson materials', () => {
+  it('sends trimmed fields and null for a blank one, so blank clears', () => {
+    expect(
+      lessonMaterialsBody({
+        topic: ' Unit 1 ',
+        slideUrl: '',
+        canvasUrl: ' https://board.example/1 ',
+      }),
+    ).toEqual({
+      topic: 'Unit 1',
+      slideUrl: null,
+      canvasUrl: 'https://board.example/1',
+    })
+  })
+  it('maps invalid_material to its copy and everything else to the generic one', () => {
+    expect(lessonMaterialsError(new Error('invalid_material'))).toBe(
+      'materialsInvalid',
+    )
+    expect(lessonMaterialsError(new Error('api_500'))).toBe(
+      'lessonActionFailed',
+    )
+    expect(lessonMaterialsError('x')).toBe('lessonActionFailed')
   })
 })

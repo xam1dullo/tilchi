@@ -26,6 +26,7 @@ export type LessonCan = {
   end: boolean
   cancel: boolean
   reschedule: boolean
+  editMaterials: boolean
   join: boolean
 }
 
@@ -34,6 +35,9 @@ export type LessonRecord = {
   groupId: string
   scheduledAt: string
   status: LessonStatus
+  topic: string | null
+  slideUrl: string | null
+  canvasUrl: string | null
   meetingId: string | null
   can: LessonCan
 }
@@ -142,4 +146,27 @@ export function createGroupError(error: unknown) {
   return error instanceof Error && error.message === 'teacher_required'
     ? ('teacherRequired' as const)
     : ('createGroupFailed' as const)
+}
+
+export type MaterialsForm = {
+  topic: string
+  slideUrl: string
+  canvasUrl: string
+}
+
+/** The request body: a blank field is sent as null, which clears it. */
+export function lessonMaterialsBody(form: MaterialsForm) {
+  const field = (value: string) => value.trim() || null
+  return {
+    topic: field(form.topic),
+    slideUrl: field(form.slideUrl),
+    canvasUrl: field(form.canvasUrl),
+  }
+}
+
+/** Copy key for a failed save; anything but invalid_material is generic. */
+export function lessonMaterialsError(error: unknown) {
+  return error instanceof Error && error.message === 'invalid_material'
+    ? ('materialsInvalid' as const)
+    : ('lessonActionFailed' as const)
 }
