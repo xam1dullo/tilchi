@@ -168,13 +168,8 @@ describe('group and test cabinets', () => {
     }
     const html = page(GroupsRoute)
     expect(html).toContain('Next lesson')
-    for (const [label, number] of [
-      ['Group count', 2],
-      ['Members', 5],
-      ['Learner places', 12],
-      ['Available places', 7],
-    ])
-      expect(html).toContain(`<dt>${label}</dt><dd>${number}</dd>`)
+    // Membership lives on the rows now; no statistics cards for anyone.
+    expect(html).not.toContain('<dt>')
     expect(html).toContain('href="/app/groups/g?preview=teacher"')
     expect(html).toContain('3/8')
     expect(html).toContain('Open')
@@ -243,18 +238,10 @@ describe('role-specific group statistics', () => {
         now: 0,
       }
       const html = page(GroupsRoute)
-      // A learner sees the next lesson, not membership statistics.
-      expect(html.match(/<dt>/g) ?? []).toHaveLength(role === 'learner' ? 0 : 4)
+      // Every role leads with the next lesson; nobody gets statistics cards.
+      expect(html).not.toContain('<dt>')
       expect(html).toContain('Next lesson')
-      expect(html.includes('<dt>Learner places</dt>')).toBe(role !== 'learner')
-      expect(html.includes('<dt>Available places</dt>')).toBe(
-        role !== 'learner',
-      )
-      if (role !== 'learner')
-        expect(html).toContain(
-          role === 'admin' ? 'Across all groups' : 'Across your groups',
-        )
-      if (role === 'admin') expect(html).not.toContain('Across your groups')
+      expect(html.includes('Members 3/8')).toBe(role !== 'learner')
     },
   )
 })

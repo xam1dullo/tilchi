@@ -299,4 +299,6 @@ export const ru = {
   homeDueTests: 'Тесты со сроком',
   homeAllTests: 'Все тесты',
   homeGroupNoLesson: 'Урок не назначен',
+  homeToGrade: 'Очередь на проверку',
+  homeWaiting: 'ждут проверки',
 }

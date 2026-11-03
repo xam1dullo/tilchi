@@ -1,3 +1,4 @@
+import type { AssignmentRecord } from './assignments'
 import type { MyAssignment } from './attempt'
 import {
   type GroupRecord,
@@ -46,4 +47,25 @@ export function homeView(input: {
     moreTests: Math.max(0, open.length - 3),
     groups,
   }
+}
+
+export type GradingItem = ReturnType<typeof gradingQueue>[number]
+
+/** Assignments with attempts waiting for a grade, most waiting first. */
+export function gradingQueue(
+  groups: GroupRecord[],
+  assignmentsByGroup: Record<string, AssignmentRecord[] | null>,
+) {
+  return groups
+    .flatMap((group) =>
+      (assignmentsByGroup[group.id] ?? []).map((a) => ({
+        groupId: group.id,
+        groupName: group.name,
+        assignmentId: a.id,
+        title: a.title,
+        waiting: a.attempts.filter((t) => t.status === 'submitted').length,
+      })),
+    )
+    .filter((q) => q.waiting > 0)
+    .sort((a, b) => b.waiting - a.waiting)
 }

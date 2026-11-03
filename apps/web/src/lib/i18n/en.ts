@@ -304,4 +304,6 @@ export const en = {
   homeDueTests: 'Tests due',
   homeAllTests: 'All tests',
   homeGroupNoLesson: 'No lesson scheduled',
+  homeToGrade: 'To grade',
+  homeWaiting: 'waiting for a grade',
 }

@@ -116,3 +116,38 @@ describe('homeView', () => {
     ])
   })
 })
+
+describe('gradingQueue', () => {
+  const rec = (
+    id: string,
+    title: string,
+    statuses: Array<'assigned' | 'submitted' | 'graded' | 'missed'>,
+  ) => ({
+    id,
+    testId: `t-${id}`,
+    title,
+    deadline: '2030-01-20T00:00:00Z',
+    attempts: statuses.map((status, i) => ({
+      id: `${id}-${i}`,
+      userId: `u${i}`,
+      name: null,
+      status,
+      score: null,
+      submittedAt: null,
+    })),
+  })
+  it('lists assignments with submitted attempts, most waiting first, with the group', async () => {
+    const { gradingQueue } = await import('./home')
+    const queue = gradingQueue([group('g1', 'A1'), group('g2', 'B1')], {
+      g1: [
+        rec('a', 'Unit 1', ['submitted', 'graded']),
+        rec('b', 'Unit 2', ['assigned']),
+      ],
+      g2: [rec('c', 'Unit 3', ['submitted', 'submitted', 'missed'])],
+    })
+    expect(queue.map((q) => [q.title, q.groupName, q.waiting])).toEqual([
+      ['Unit 3', 'B1', 2],
+      ['Unit 1', 'A1', 1],
+    ])
+  })
+})

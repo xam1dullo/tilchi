@@ -1452,7 +1452,7 @@
 }
 
 .home-lead h2,
-.home-tests h2 {
+.home-list h2 {
   margin: 0 0 8px;
   font: 500 var(--fs-sm) / 1.4 var(--font-sans);
   letter-spacing: 0;
@@ -1494,7 +1494,7 @@
   color: var(--muted);
 }
 
-.home-tests {
+.home-list {
   margin: 0 0 32px;
 }
 

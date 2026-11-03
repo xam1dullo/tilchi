@@ -1,8 +1,8 @@
-import { CabinetStats } from '../../components/cabinet-stats'
-import { HomeDueTests, HomeLead } from '../../components/home-lead'
-import { homeView } from '../../lib/home'
+import { HomeDueTests, HomeGrading, HomeLead } from '../../components/home-lead'
+import { LessonButtons } from '../../components/lesson-buttons'
+import { gradingQueue, homeView } from '../../lib/home'
+import type { AssignmentRecord } from '../../lib/assignments'
 import type { MyAssignment } from '../../lib/attempt'
-import { groupStats } from '../../lib/cabinet'
 import { loadForSession, sessionData } from '../../lib/session'
 import { botLink, tgLinkProps } from '@tilchi/content'
 import {
@@ -42,31 +42,48 @@ export const Route = createFileRoute('/app/')({
       // skipped; move "next lesson" into /api/groups when that bites.
       const lessonGroups =
         role === 'admin' && list.groups.length > 10 ? [] : list.groups
-      const [{ teachers }, lessonLists, { assignments }] = await Promise.all([
-        list.can.assignTeacher
-          ? apiFetch<{ teachers: Teacher[] }>('/api/teachers', { previewRole })
-          : { teachers: [] as Teacher[] },
-        Promise.all(
-          lessonGroups.map((group) =>
-            apiFetch<{ lessons: LessonRecord[] }>(
-              `/api/groups/${group.id}/lessons`,
-              { previewRole },
-            )
-              .then((r) => [group.id, r.lessons] as const)
-              .catch(() => [group.id, [] as LessonRecord[]] as const),
+      const [{ teachers }, lessonLists, { assignments }, assignmentLists] =
+        await Promise.all([
+          list.can.assignTeacher
+            ? apiFetch<{ teachers: Teacher[] }>('/api/teachers', {
+                previewRole,
+              })
+            : { teachers: [] as Teacher[] },
+          Promise.all(
+            lessonGroups.map((group) =>
+              apiFetch<{ lessons: LessonRecord[] }>(
+                `/api/groups/${group.id}/lessons`,
+                { previewRole },
+              )
+                .then((r) => [group.id, r.lessons] as const)
+                .catch(() => [group.id, [] as LessonRecord[]] as const),
+            ),
           ),
-        ),
-        role === 'learner'
-          ? apiFetch<{ assignments: MyAssignment[] }>('/api/me/assignments', {
-              previewRole,
-            }).catch(() => ({ assignments: [] as MyAssignment[] }))
-          : { assignments: [] as MyAssignment[] },
-      ])
+          role === 'learner'
+            ? apiFetch<{ assignments: MyAssignment[] }>('/api/me/assignments', {
+                previewRole,
+              }).catch(() => ({ assignments: [] as MyAssignment[] }))
+            : { assignments: [] as MyAssignment[] },
+          // Teachers and admins: what is waiting for a grade, per group.
+          Promise.all(
+            lessonGroups
+              .filter((group) => group.can.viewAssignments)
+              .map((group) =>
+                apiFetch<{ assignments: AssignmentRecord[] }>(
+                  `/api/groups/${group.id}/assignments`,
+                  { previewRole },
+                )
+                  .then((r) => [group.id, r.assignments] as const)
+                  .catch(() => [group.id, [] as AssignmentRecord[]] as const),
+              ),
+          ),
+        ])
       return {
         ...list,
         teachers,
         lessonsByGroup: Object.fromEntries(lessonLists),
         assignments,
+        assignmentsByGroup: Object.fromEntries(assignmentLists),
         now: Date.now(),
       }
     }),
@@ -76,11 +93,27 @@ export const Route = createFileRoute('/app/')({
 function GroupsPage() {
   const { locale, botUsername } = useRouteContext({ from: '__root__' })
   const { previewRole, session } = useRouteContext({ from: '/app' })
-  const { groups, can, teachers, lessonsByGroup, assignments, now } =
-    sessionData(Route.useLoaderData())
+  const {
+    groups,
+    can,
+    teachers,
+    lessonsByGroup,
+    assignments,
+    assignmentsByGroup,
+    now,
+  } = sessionData(Route.useLoaderData())
   const copy = messages(locale)
   const view = groupsView({ groups, can })
   const home = homeView({ groups, lessonsByGroup, assignments, now })
+  const queue = gradingQueue(groups, assignmentsByGroup ?? {})
+  const lessonCopy = {
+    start: copy.startLesson,
+    end: copy.endLesson,
+    join: copy.joinMeet,
+    confirmEnd: copy.confirmEndLesson,
+    confirmEndHint: copy.confirmEndLessonHint,
+    failed: copy.lessonActionFailed,
+  }
   const role = session?.role ?? 'learner'
   const search = keepAppSearch(previewRole)
   return (
@@ -108,7 +141,19 @@ function GroupsPage() {
             copy={copy}
             locale={locale}
             search={search}
+            actions={
+              home.next ? (
+                <LessonButtons
+                  primary
+                  lesson={home.next.lesson}
+                  previewRole={previewRole}
+                  search={search}
+                  copy={lessonCopy}
+                />
+              ) : null
+            }
           />
+          <HomeGrading queue={queue} copy={copy} search={search} />
           <HomeDueTests
             tests={home.dueTests}
             more={home.moreTests}
@@ -116,9 +161,6 @@ function GroupsPage() {
             locale={locale}
             search={search}
           />
-          {role === 'learner' ? null : (
-            <CabinetStats items={groupStats(groups, copy, role)} />
-          )}
           <h2 className="sr-only">{copy.groups}</h2>
           <ul className="rows classroom-list">
             {home.groups.map(({ group, nextLesson }) => (

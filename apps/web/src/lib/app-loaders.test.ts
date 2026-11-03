@@ -112,6 +112,7 @@ describe('app child loaders', () => {
         teachers: [],
         lessonsByGroup: {},
         assignments: [],
+        assignmentsByGroup: {},
         now: expect.any(Number),
       },
     },
