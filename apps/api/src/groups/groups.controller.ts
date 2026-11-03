@@ -30,11 +30,41 @@ export class GroupsController {
         ? (body as { name: string }).name
         : 'Group'
     const teacherId = (body as { teacherId?: unknown } | null)?.teacherId
+    const courseId = (body as { courseId?: unknown } | null)?.courseId
     return this.groups.create({
       name,
       actor,
       teacherId: typeof teacherId === 'string' ? teacherId : undefined,
+      // A missing or null courseId means "no course"; anything else must name one.
+      courseId:
+        courseId === undefined || courseId === null
+          ? undefined
+          : typeof courseId === 'string'
+            ? courseId
+            : '',
     })
+  }
+
+  @Post(':groupId/course')
+  async setCourse(
+    @Param('groupId') groupId: string,
+    @Actor() actor: Actor,
+    @Body() body: unknown,
+  ) {
+    const courseId = (body as { courseId?: unknown } | null)?.courseId
+    return groupView(
+      actor,
+      await this.groups.setCourse(
+        actor,
+        groupId,
+        // null clears; a non-string is an invalid course, not a clear.
+        courseId === null || courseId === undefined
+          ? null
+          : typeof courseId === 'string'
+            ? courseId
+            : '',
+      ),
+    )
   }
 
   @Get(':groupId')

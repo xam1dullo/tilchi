@@ -18,6 +18,7 @@ import {
   createGroupError,
   formatLessonTime,
   groupsView,
+  type CourseOption,
   type CreateGroupForm,
   type GroupRecord,
   type LessonRecord,
@@ -42,45 +43,57 @@ export const Route = createFileRoute('/app/')({
       // skipped; move "next lesson" into /api/groups when that bites.
       const lessonGroups =
         role === 'admin' && list.groups.length > 10 ? [] : list.groups
-      const [{ teachers }, lessonLists, { assignments }, assignmentLists] =
-        await Promise.all([
-          list.can.assignTeacher
-            ? apiFetch<{ teachers: Teacher[] }>('/api/teachers', {
-                previewRole,
-              })
-            : { teachers: [] as Teacher[] },
-          Promise.all(
-            lessonGroups.map((group) =>
-              apiFetch<{ lessons: LessonRecord[] }>(
-                `/api/groups/${group.id}/lessons`,
+      const [
+        { teachers },
+        { courses },
+        lessonLists,
+        { assignments },
+        assignmentLists,
+      ] = await Promise.all([
+        list.can.assignTeacher
+          ? apiFetch<{ teachers: Teacher[] }>('/api/teachers', {
+              previewRole,
+            })
+          : { teachers: [] as Teacher[] },
+        // Published courses for the create form; without them it still works.
+        list.can.createGroup
+          ? apiFetch<{ courses: CourseOption[] }>('/api/courses', {
+              previewRole,
+            }).catch(() => ({ courses: [] as CourseOption[] }))
+          : { courses: [] as CourseOption[] },
+        Promise.all(
+          lessonGroups.map((group) =>
+            apiFetch<{ lessons: LessonRecord[] }>(
+              `/api/groups/${group.id}/lessons`,
+              { previewRole },
+            )
+              .then((r) => [group.id, r.lessons] as const)
+              .catch(() => [group.id, [] as LessonRecord[]] as const),
+          ),
+        ),
+        role === 'learner'
+          ? apiFetch<{ assignments: MyAssignment[] }>('/api/me/assignments', {
+              previewRole,
+            }).catch(() => ({ assignments: [] as MyAssignment[] }))
+          : { assignments: [] as MyAssignment[] },
+        // Teachers and admins: what is waiting for a grade, per group.
+        Promise.all(
+          lessonGroups
+            .filter((group) => group.can.viewAssignments)
+            .map((group) =>
+              apiFetch<{ assignments: AssignmentRecord[] }>(
+                `/api/groups/${group.id}/assignments`,
                 { previewRole },
               )
-                .then((r) => [group.id, r.lessons] as const)
-                .catch(() => [group.id, [] as LessonRecord[]] as const),
+                .then((r) => [group.id, r.assignments] as const)
+                .catch(() => [group.id, [] as AssignmentRecord[]] as const),
             ),
-          ),
-          role === 'learner'
-            ? apiFetch<{ assignments: MyAssignment[] }>('/api/me/assignments', {
-                previewRole,
-              }).catch(() => ({ assignments: [] as MyAssignment[] }))
-            : { assignments: [] as MyAssignment[] },
-          // Teachers and admins: what is waiting for a grade, per group.
-          Promise.all(
-            lessonGroups
-              .filter((group) => group.can.viewAssignments)
-              .map((group) =>
-                apiFetch<{ assignments: AssignmentRecord[] }>(
-                  `/api/groups/${group.id}/assignments`,
-                  { previewRole },
-                )
-                  .then((r) => [group.id, r.assignments] as const)
-                  .catch(() => [group.id, [] as AssignmentRecord[]] as const),
-              ),
-          ),
-        ])
+        ),
+      ])
       return {
         ...list,
         teachers,
+        courses,
         lessonsByGroup: Object.fromEntries(lessonLists),
         assignments,
         // Only the counts leave the server; attempts carry learner names.
@@ -94,8 +107,16 @@ export const Route = createFileRoute('/app/')({
 function GroupsPage() {
   const { locale, botUsername } = useRouteContext({ from: '__root__' })
   const { previewRole, session } = useRouteContext({ from: '/app' })
-  const { groups, can, teachers, lessonsByGroup, assignments, queue, now } =
-    sessionData(Route.useLoaderData())
+  const {
+    groups,
+    can,
+    teachers,
+    courses,
+    lessonsByGroup,
+    assignments,
+    queue,
+    now,
+  } = sessionData(Route.useLoaderData())
   const copy = messages(locale)
   const view = groupsView({ groups, can })
   const home = homeView({ groups, lessonsByGroup, assignments, now })
@@ -122,6 +143,7 @@ function GroupsPage() {
             copy={copy}
             assignTeacher={can.assignTeacher}
             teachers={teachers}
+            courses={courses}
           />
         ) : null}
       </div>
@@ -172,6 +194,12 @@ function GroupsPage() {
                     {nextLesson
                       ? formatLessonTime(nextLesson.scheduledAt, locale)
                       : copy.homeGroupNoLesson}
+                    {group.course ? (
+                      <>
+                        {' '}
+                        <span aria-hidden="true">·</span> {group.course.title}
+                      </>
+                    ) : null}
                   </span>
                   <span className="cabinet-action">
                     {copy.cabinetOpen} <span aria-hidden="true">→</span>
@@ -219,15 +247,18 @@ function CreateGroup({
   copy,
   assignTeacher,
   teachers,
+  courses,
 }: {
   previewRole: 'learner' | 'teacher' | 'admin' | null
   copy: Copy
   assignTeacher: boolean
   teachers: Teacher[]
+  courses: CourseOption[]
 }) {
   const router = useRouter()
   const [name, setName] = useState('')
   const [teacherId, setTeacherId] = useState('')
+  const [courseId, setCourseId] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<ReturnType<
     typeof createGroupError
@@ -237,6 +268,8 @@ function CreateGroup({
     teacherId,
     assignTeacher,
     teachers,
+    courseId,
+    courses,
     busy,
   }
   return (
@@ -246,6 +279,7 @@ function CreateGroup({
       error={error}
       onName={setName}
       onTeacher={setTeacherId}
+      onCourse={setCourseId}
       onSubmit={() => {
         setBusy(true)
         setError(null)
@@ -256,6 +290,7 @@ function CreateGroup({
         })
           .then(() => {
             setName('')
+            setCourseId('')
             return router.invalidate()
           })
           .catch((caught: unknown) => setError(createGroupError(caught)))
