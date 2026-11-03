@@ -177,7 +177,7 @@ describe('messages', () => {
       name: 'Ada',
     })
     expect(message?.link).toBe('/app/meet/L')
-    expect(JSON.stringify(message)).not.toMatch(/998|Ada/)
+    expect(JSON.stringify(message)).not.toMatch(/901112233|Ada/)
     expect(telegramText(message!, 'https://app.example/')).toContain(
       'https://app.example/app/meet/L',
     )
