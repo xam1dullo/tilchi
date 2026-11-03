@@ -38,12 +38,16 @@ export const Route = createFileRoute('/app/')({
       const role = context.session?.role
       // One small call per group; a group whose lessons cannot be read
       // (or are not loaded yet) simply shows no next lesson.
+      // ponytail: an admin sees every group, so past 10 the fan-out is
+      // skipped; move "next lesson" into /api/groups when that bites.
+      const lessonGroups =
+        role === 'admin' && list.groups.length > 10 ? [] : list.groups
       const [{ teachers }, lessonLists, { assignments }] = await Promise.all([
         list.can.assignTeacher
           ? apiFetch<{ teachers: Teacher[] }>('/api/teachers', { previewRole })
           : { teachers: [] as Teacher[] },
         Promise.all(
-          list.groups.map((group) =>
+          lessonGroups.map((group) =>
             apiFetch<{ lessons: LessonRecord[] }>(
               `/api/groups/${group.id}/lessons`,
               { previewRole },
