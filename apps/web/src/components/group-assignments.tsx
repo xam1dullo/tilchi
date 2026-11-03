@@ -214,7 +214,7 @@ export function AssignmentsList({
                                 displayName({ id: a.userId, name: a.name })
                               )}
                             </th>
-                            <td>
+                            <td data-label={copy.questionFilter}>
                               <span
                                 className="tag"
                                 data-tone={statusTone(a.status)}
@@ -222,8 +222,10 @@ export function AssignmentsList({
                                 {copy[statusKey[a.status]]}
                               </span>
                             </td>
-                            <td className="num">{a.score ?? '—'}</td>
-                            <td>
+                            <td className="num" data-label={copy.attemptScore}>
+                              {a.score ?? '—'}
+                            </td>
+                            <td data-label={copy.attemptSubmittedAt}>
                               {a.submittedAt
                                 ? formatLessonTime(a.submittedAt, locale)
                                 : '—'}
