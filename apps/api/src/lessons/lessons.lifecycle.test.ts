@@ -59,6 +59,63 @@ describeWithDatabase('LessonsService cancel and reschedule', (current) => {
     }
   }
 
+  it('stores materials on create and lets the teacher change them while the lesson is open', async () => {
+    const { lessons, group, learner } = await setup()
+    const created = await lessons.create({
+      groupId: group.id,
+      scheduledAt: AT,
+      topic: ' Past simple ',
+      slideUrl: 'https://slides.example/1',
+      actor: actorOf('admin'),
+    })
+    expect(created).toMatchObject({
+      topic: 'Past simple',
+      slideUrl: 'https://slides.example/1',
+      canvasUrl: null,
+    })
+    const set = (
+      actor: ReturnType<typeof actorOf>,
+      patch: Record<string, unknown>,
+    ) => lessons.setMaterials({ lessonId: created.id, actor, ...patch })
+    await expect(set(learner, { topic: 'x' })).rejects.toMatchObject({
+      status: 403,
+    })
+    await expect(
+      set(actorOf('admin'), { slideUrl: 'javascript:alert(1)' }),
+    ).rejects.toMatchObject({
+      status: 400,
+      response: { error: 'invalid_material' },
+    })
+    const changed = await set(actorOf('admin'), {
+      canvasUrl: 'https://board.example/1',
+      slideUrl: null,
+    })
+    expect(changed).toMatchObject({
+      topic: 'Past simple',
+      slideUrl: null,
+      canvasUrl: 'https://board.example/1',
+    })
+    await lessons.start({ lessonId: created.id, actor: actorOf('admin') })
+    expect((await set(actorOf('admin'), { topic: 'Live topic' })).topic).toBe(
+      'Live topic',
+    )
+    await lessons.end({ lessonId: created.id, actor: actorOf('admin') })
+    await expect(
+      set(actorOf('admin'), { topic: 'Too late' }),
+    ).rejects.toMatchObject({
+      status: 409,
+      response: { error: 'lesson_not_editable' },
+    })
+    expect((await lessons.get(created.id))?.topic).toBe('Live topic')
+    await expect(
+      lessons.setMaterials({
+        lessonId: uuidv7(),
+        actor: actorOf('admin'),
+        topic: 'x',
+      }),
+    ).rejects.toMatchObject({ status: 404 })
+  })
+
   it('reschedules only a scheduled lesson and emits one event with both times', async () => {
     const { lessons, lesson, group, seen } = await setup()
     const moved = await lessons.reschedule({

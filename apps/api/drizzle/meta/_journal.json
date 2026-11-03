@@ -43,6 +43,13 @@
       "when": 1793381575315,
       "tag": "0005_assessments",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1793467975315,
+      "tag": "0006_lesson_materials",
+      "breakpoints": true
     }
   ]
 }

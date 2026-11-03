@@ -24,6 +24,7 @@ export type Action =
   | 'lesson.end'
   | 'lesson.cancel'
   | 'lesson.reschedule'
+  | 'lesson.editMaterials'
   | 'meeting.join'
   | 'meeting.moderate'
   | 'question.manage'

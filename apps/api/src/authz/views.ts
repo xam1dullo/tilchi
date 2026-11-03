@@ -16,6 +16,7 @@ export type LessonCan = {
   end: boolean
   cancel: boolean
   reschedule: boolean
+  editMaterials: boolean
   join: boolean
 }
 
@@ -50,6 +51,9 @@ export function lessonView(
       end: lesson.status === 'live' && can(actor, 'lesson.end', group),
       cancel: scheduled && can(actor, 'lesson.cancel', group),
       reschedule: scheduled && can(actor, 'lesson.reschedule', group),
+      editMaterials:
+        (scheduled || lesson.status === 'live') &&
+        can(actor, 'lesson.editMaterials', group),
       join: lesson.status === 'live' && can(actor, 'meeting.join', group),
     },
   }
