@@ -661,8 +661,9 @@
 }
 
 .tests-section .question-index {
-  color: var(--accent);
-  font: italic 400 1.25rem / 1.4 var(--font-display);
+  color: var(--muted);
+  font: 500 var(--fs-sm) / 1.6 var(--font-sans);
+  font-variant-numeric: tabular-nums;
 }
 
 .tests-section .question-row .lesson-actions {
@@ -933,9 +934,16 @@
 
 .group-page .assignment-counts {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(5.5rem, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
   margin: 16px 0;
+}
+
+/* Four counts: 2 by 2 on phones, one row above; never 3 + 1. */
+@media (min-width: 521px) {
+  .group-page .assignment-counts {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
 }
 
 .group-page .assignment-counts > div {
@@ -1001,6 +1009,10 @@
     display: block;
     padding: 0;
     border: 0;
+  }
+
+  .group-page .attempt-table tbody td:last-child {
+    grid-column: 1 / -1;
   }
 
   .group-page .attempt-table td[data-label]:not(:has(.tag))::before {
