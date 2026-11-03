@@ -18,19 +18,15 @@ import {
 } from '../../../lib/classroom'
 import { EnrolPanel } from '../../../components/enrol-panel'
 import {
-  LessonActions,
-  type LessonActionsCopy,
-} from '../../../components/lesson-actions'
-import {
   AssignForm,
   AssignmentsList,
 } from '../../../components/group-assignments'
+import { LessonButtons } from '../../../components/lesson-buttons'
 import { RetryButton } from '../../../components/retry-button'
 import { loadAssessment } from '../../../lib/assignments'
 import { displayName, type Member } from '../../../lib/enrol'
 import { messages, type Copy } from '../../../lib/i18n'
 import { keepAppSearch } from '../../../lib/preview'
-import { createEndConfirm, lessonAction } from '../../../lib/lesson-actions'
 
 export const Route = createFileRoute('/app/groups/$groupId')({
   loader: ({ context, params }) =>
@@ -322,58 +318,5 @@ function ScheduleForm({
         {copy.schedule}
       </button>
     </form>
-  )
-}
-
-function LessonButtons({
-  primary = false,
-  lesson,
-  previewRole,
-  search,
-  copy,
-}: {
-  primary?: boolean
-  lesson: LessonRecord
-  previewRole: 'learner' | 'teacher' | 'admin' | null
-  search: ReturnType<typeof keepAppSearch>
-  copy: LessonActionsCopy
-}) {
-  const router = useRouter()
-  const [busy, setBusy] = useState(false)
-  const [failed, setFailed] = useState(false)
-  const [confirming, setConfirming] = useState(false)
-  const run = (path: string) => {
-    setBusy(true)
-    setFailed(false)
-    void lessonAction(
-      () => apiFetch(path, { method: 'POST', previewRole }),
-      () => router.invalidate(),
-    ).then((ok) => {
-      setBusy(false)
-      setFailed(!ok)
-      // The pressed button is gone after a refresh; keep focus in the rail.
-      if (ok) document.getElementById('group-lessons-title')?.focus()
-    })
-  }
-  const endRef = useRef(() => {})
-  endRef.current = () => run(`/api/lessons/${lesson.id}/end`)
-  const [endConfirm] = useState(() =>
-    createEndConfirm(setConfirming, () => endRef.current()),
-  )
-  useEffect(() => () => endConfirm.cancel(), [endConfirm])
-  if (!lesson.can.start && !lesson.can.end && !lesson.can.join) return null
-  return (
-    <LessonActions
-      lesson={lesson}
-      primary={primary}
-      busy={busy}
-      confirming={confirming}
-      failed={failed}
-      search={search}
-      copy={copy}
-      onStart={() => run(`/api/lessons/${lesson.id}/start`)}
-      onEnd={endConfirm.press}
-      onCancelEnd={endConfirm.cancel}
-    />
   )
 }

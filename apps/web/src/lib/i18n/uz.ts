@@ -326,4 +326,6 @@ export const uz = {
   homeDueTests: 'Muddati yaqin testlar',
   homeAllTests: 'Barcha testlar',
   homeGroupNoLesson: 'Dars belgilanmagan',
+  homeToGrade: 'Baholash navbati',
+  homeWaiting: 'baholashni kutmoqda',
 }

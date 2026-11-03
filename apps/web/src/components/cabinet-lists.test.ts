@@ -162,19 +162,45 @@ describe('group and test cabinets', () => {
       ],
       can: { createGroup: false },
       teachers: [],
-      lessonsByGroup: { g: [], h: [] },
+      lessonsByGroup: {
+        g: [
+          {
+            id: 'l1',
+            groupId: 'g',
+            scheduledAt: '2030-01-02T04:00:00.000Z',
+            status: 'scheduled',
+            meetingId: null,
+            can: {
+              start: true,
+              end: false,
+              cancel: false,
+              reschedule: false,
+              join: false,
+            },
+          },
+        ],
+        h: [],
+      },
       assignments: [],
+      queue: [
+        {
+          groupId: 'g',
+          groupName: 'Evening',
+          assignmentId: 'a',
+          title: 'Unit 1',
+          waiting: 2,
+        },
+      ],
       now: 0,
     }
     const html = page(GroupsRoute)
     expect(html).toContain('Next lesson')
-    for (const [label, number] of [
-      ['Group count', 2],
-      ['Members', 5],
-      ['Learner places', 12],
-      ['Available places', 7],
-    ])
-      expect(html).toContain(`<dt>${label}</dt><dd>${number}</dd>`)
+    // The teacher starts the lesson from here and sees what waits for a grade.
+    expect(html).toContain(copy.startLesson)
+    expect(html).toContain('Unit 1')
+    expect(html).toContain('class="num">2</span>')
+    // Membership lives on the rows now; no statistics cards for anyone.
+    expect(html).not.toContain('<dt>')
     expect(html).toContain('href="/app/groups/g?preview=teacher"')
     expect(html).toContain('3/8')
     expect(html).toContain('Open')
@@ -243,18 +269,10 @@ describe('role-specific group statistics', () => {
         now: 0,
       }
       const html = page(GroupsRoute)
-      // A learner sees the next lesson, not membership statistics.
-      expect(html.match(/<dt>/g) ?? []).toHaveLength(role === 'learner' ? 0 : 4)
+      // Every role leads with the next lesson; nobody gets statistics cards.
+      expect(html).not.toContain('<dt>')
       expect(html).toContain('Next lesson')
-      expect(html.includes('<dt>Learner places</dt>')).toBe(role !== 'learner')
-      expect(html.includes('<dt>Available places</dt>')).toBe(
-        role !== 'learner',
-      )
-      if (role !== 'learner')
-        expect(html).toContain(
-          role === 'admin' ? 'Across all groups' : 'Across your groups',
-        )
-      if (role === 'admin') expect(html).not.toContain('Across your groups')
+      expect(html.includes('Members 3/8')).toBe(role !== 'learner')
     },
   )
 })

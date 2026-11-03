@@ -1,7 +1,8 @@
 import { Link } from '@tanstack/react-router'
+import type { ReactNode } from 'react'
 import type { MyAssignment } from '../lib/attempt'
 import { formatLessonTime } from '../lib/classroom'
-import type { HomeNext } from '../lib/home'
+import type { GradingItem, HomeNext } from '../lib/home'
 import type { Copy } from '../lib/i18n'
 import type { keepAppSearch } from '../lib/preview'
 
@@ -13,23 +14,31 @@ export function HomeLead({
   copy,
   locale,
   search,
+  actions,
 }: {
   next: HomeNext | null
   copy: Copy
   locale: string
   search: Search
+  /** Start / End / Join for the lesson; without one, Open leads to the group. */
+  actions?: ReactNode
 }) {
   const live = next?.lesson.status === 'live'
+  const can = next?.lesson.can
+  const hasActions = Boolean(can && (can.start || can.end || can.join))
   return (
     <section className="home-lead" aria-labelledby="home-lead-title">
-      <h2 id="home-lead-title">
+      <h2 id="home-lead-title" tabIndex={-1}>
         {live ? copy.homeLiveNow : copy.homeNextLesson}
       </h2>
       {next ? (
         <div className="home-lead-body">
           <div>
             <p className="home-lead-time">
-              <time dateTime={next.lesson.scheduledAt}>
+              <time
+                id={`primary-lesson-time-${next.lesson.id}`}
+                dateTime={next.lesson.scheduledAt}
+              >
                 <span className="mark">
                   {formatLessonTime(next.lesson.scheduledAt, locale)}
                 </span>
@@ -45,15 +54,8 @@ export function HomeLead({
               </Link>
             </p>
           </div>
-          {next.lesson.can.join ? (
-            <Link
-              className="btn btn-primary"
-              to="/app/meet/$lessonId"
-              params={{ lessonId: next.lesson.id }}
-              search={search}
-            >
-              {copy.joinMeet}
-            </Link>
+          {hasActions && actions ? (
+            actions
           ) : (
             <Link
               className="btn btn-outline"
@@ -68,6 +70,43 @@ export function HomeLead({
       ) : (
         <p className="home-lead-empty">{copy.homeNoLesson}</p>
       )}
+    </section>
+  )
+}
+
+export function HomeGrading({
+  queue,
+  copy,
+  search,
+}: {
+  queue: GradingItem[]
+  copy: Copy
+  search: Search
+}) {
+  if (queue.length === 0) return null
+  return (
+    <section className="home-list" aria-labelledby="home-grading-title">
+      <h2 id="home-grading-title">{copy.homeToGrade}</h2>
+      <ul className="rows classroom-list">
+        {queue.map((q) => (
+          <li key={q.assignmentId} className="row classroom-row">
+            <Link
+              to="/app/groups/$groupId"
+              params={{ groupId: q.groupId }}
+              search={search}
+            >
+              <strong>{q.title}</strong>
+              <span>
+                {q.groupName} · <span className="num">{q.waiting}</span>{' '}
+                {copy.homeWaiting}
+              </span>
+              <span className="cabinet-action">
+                {copy.cabinetOpen} <span aria-hidden="true">→</span>
+              </span>
+            </Link>
+          </li>
+        ))}
+      </ul>
     </section>
   )
 }
@@ -87,7 +126,7 @@ export function HomeDueTests({
 }) {
   if (tests.length === 0) return null
   return (
-    <section className="home-tests" aria-labelledby="home-tests-title">
+    <section className="home-list" aria-labelledby="home-tests-title">
       <h2 id="home-tests-title">{copy.homeDueTests}</h2>
       <ul className="rows classroom-list">
         {tests.map((a) => (
