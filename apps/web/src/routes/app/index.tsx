@@ -83,7 +83,8 @@ export const Route = createFileRoute('/app/')({
         teachers,
         lessonsByGroup: Object.fromEntries(lessonLists),
         assignments,
-        assignmentsByGroup: Object.fromEntries(assignmentLists),
+        // Only the counts leave the server; attempts carry learner names.
+        queue: gradingQueue(list.groups, Object.fromEntries(assignmentLists)),
         now: Date.now(),
       }
     }),
@@ -93,19 +94,11 @@ export const Route = createFileRoute('/app/')({
 function GroupsPage() {
   const { locale, botUsername } = useRouteContext({ from: '__root__' })
   const { previewRole, session } = useRouteContext({ from: '/app' })
-  const {
-    groups,
-    can,
-    teachers,
-    lessonsByGroup,
-    assignments,
-    assignmentsByGroup,
-    now,
-  } = sessionData(Route.useLoaderData())
+  const { groups, can, teachers, lessonsByGroup, assignments, queue, now } =
+    sessionData(Route.useLoaderData())
   const copy = messages(locale)
   const view = groupsView({ groups, can })
   const home = homeView({ groups, lessonsByGroup, assignments, now })
-  const queue = gradingQueue(groups, assignmentsByGroup ?? {})
   const lessonCopy = {
     start: copy.startLesson,
     end: copy.endLesson,
@@ -153,7 +146,7 @@ function GroupsPage() {
               ) : null
             }
           />
-          <HomeGrading queue={queue} copy={copy} search={search} />
+          <HomeGrading queue={queue ?? []} copy={copy} search={search} />
           <HomeDueTests
             tests={home.dueTests}
             more={home.moreTests}

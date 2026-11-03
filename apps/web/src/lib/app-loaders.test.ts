@@ -112,7 +112,7 @@ describe('app child loaders', () => {
         teachers: [],
         lessonsByGroup: {},
         assignments: [],
-        assignmentsByGroup: {},
+        queue: [],
         now: expect.any(Number),
       },
     },
