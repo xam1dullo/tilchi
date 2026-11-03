@@ -11,6 +11,7 @@ import {
   toAssignBody,
 } from '../lib/assignments'
 import { formatLessonTime } from '../lib/classroom'
+import { Figures } from './figures'
 import { displayName } from '../lib/enrol'
 import type { Copy } from '../lib/i18n'
 import type { AppRole } from '../lib/nav'
@@ -174,14 +175,12 @@ export function AssignmentsList({
                     {formatLessonTime(assignment.deadline, locale)}
                   </span>
                 </p>
-                <dl className="assignment-counts">
-                  {ATTEMPT_STATUSES.map((status) => (
-                    <div key={status}>
-                      <dt>{copy[statusKey[status]]}</dt>
-                      <dd className="num">{counts[status]}</dd>
-                    </div>
-                  ))}
-                </dl>
+                <Figures
+                  items={ATTEMPT_STATUSES.map((status) => ({
+                    label: copy[statusKey[status]],
+                    value: counts[status],
+                  }))}
+                />
                 {assignment.attempts.length === 0 ? (
                   <p className="hint">{copy.attemptNoLearners}</p>
                 ) : (

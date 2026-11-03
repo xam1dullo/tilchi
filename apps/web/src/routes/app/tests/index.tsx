@@ -1,4 +1,4 @@
-import { CabinetStats } from '../../../components/cabinet-stats'
+import { Figures } from '../../../components/figures'
 import { testStats } from '../../../lib/cabinet'
 import { loadForSession, sessionData } from '../../../lib/session'
 import { RetryButton } from '../../../components/retry-button'
@@ -234,7 +234,7 @@ function TestsPage() {
       <h1 id="tests-heading" className="tests-title">
         {copy.tests}
       </h1>
-      <CabinetStats items={testStats(tests, questions, copy)} />
+      <Figures items={testStats(tests, questions, copy)} />
       <div className="tests-grid">
         <section className="tests-section" aria-labelledby="bank-heading">
           <h2 id="bank-heading">{copy.questionBank}</h2>

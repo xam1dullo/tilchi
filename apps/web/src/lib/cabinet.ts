@@ -10,32 +10,15 @@ export function testStats(
 ) {
   const published = questions.filter((q) => q.status === 'published').length
   return [
-    {
-      label: copy.cabinetTests,
-      value: tests.length,
-      hint: copy.cabinetTestsHint,
-    },
-    {
-      label: copy.cabinetQuestions,
-      value: questions.length,
-      hint: copy.cabinetQuestionsHint,
-    },
-    {
-      label: copy.cabinetPublishedQuestions,
-      value: published,
-      hint: copy.cabinetPublishedHint,
-    },
-    {
-      label: copy.cabinetDraftQuestions,
-      value: questions.length - published,
-      hint: copy.cabinetDraftHint,
-    },
+    { label: copy.figTests, value: tests.length },
+    { label: copy.figQuestions, value: questions.length },
+    { label: copy.figPublished, value: published },
+    { label: copy.figDrafts, value: questions.length - published },
   ]
 }
 
 export type AssignmentFilter = 'all' | AttemptStatus
 
-/** Counts always describe the full loaded list, independent of the filter. */
 export function assignmentView(
   assignments: MyAssignment[],
   filter: AssignmentFilter,

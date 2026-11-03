@@ -78,9 +78,11 @@ describe('AssignmentsList', () => {
       },
     ])
     expect(html).toContain('Unit 1')
-    expect(html).toContain('<dt>Assigned</dt><dd class="num">1</dd>')
-    expect(html).toContain('<dt>Graded</dt><dd class="num">1</dd>')
-    expect(html).toContain('<dt>Missed</dt><dd class="num">0</dd>')
+    // One line of non-zero counts; Missed (0) is left out.
+    const figures = html.match(/<p class="figures">(.*?)<\/p>/)?.[1] ?? ''
+    expect(figures).toContain('Assigned <span class="num">1</span>')
+    expect(figures).toContain('Graded <span class="num">1</span>')
+    expect(figures).not.toContain('Missed')
     expect(html).toContain('<th scope="row">Aziz</th>')
     expect(html).toContain('<th scope="row">abcdef12</th>')
     expect(html).toContain('<td class="num" data-label="Score">7</td>')

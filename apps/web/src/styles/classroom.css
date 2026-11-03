@@ -761,13 +761,6 @@
   font-weight: 600;
 }
 
-.assignment-counts {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin: 0 0 8px;
-}
-
 /* Group detail only: shared classroom and attempt styles stay unchanged. */
 .group-page {
   min-width: 0;
@@ -930,41 +923,6 @@
 .group-page .assign-field {
   min-width: 0;
   max-width: 100%;
-}
-
-.group-page .assignment-counts {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-  margin: 16px 0;
-}
-
-/* Four counts: 2 by 2 in a narrow group page, one row above; never 3 + 1. */
-@container group (min-width: 32rem) {
-  .group-page .assignment-counts {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-}
-
-.group-page .assignment-counts > div {
-  display: flex;
-  flex-direction: column-reverse;
-  /* Pack to the top: numbers line up even when a label wraps. */
-  justify-content: flex-end;
-  gap: 4px;
-  border-top: 1px solid var(--line);
-  padding-top: 12px;
-}
-
-.group-page .assignment-counts dt {
-  color: var(--muted);
-  font-size: var(--fs-xs);
-}
-
-.group-page .assignment-counts dd {
-  margin: 0;
-  font: 400 var(--fs-stat) / 1 var(--font-display);
-  font-variant-numeric: tabular-nums;
 }
 
 .group-page .assignment-details {
@@ -1238,48 +1196,6 @@
   }
 }
 
-/* Cabinet list pages only. Shared classroom rows on detail pages are untouched. */
-:is(.assignments-page, .groups-page, .tests-page) .cabinet-stats {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr));
-  gap: 16px;
-  margin: 24px 0 32px;
-}
-
-/* Keep the learner's two cards together at a readable desktop size. */
-.groups-page .cabinet-stats:has(> div:last-child:nth-child(2)) {
-  max-width: calc(40rem + 16px);
-}
-
-:is(.assignments-page, .groups-page, .tests-page) .cabinet-stats > div {
-  min-width: 0;
-  padding: 20px;
-  border-radius: var(--r-md);
-  background: var(--bg-elev);
-}
-
-:is(.assignments-page, .groups-page, .tests-page) .cabinet-stats dt {
-  overflow-wrap: anywhere;
-  hyphens: auto;
-  font-size: var(--fs-xs);
-  color: var(--ink-2);
-}
-
-:is(.assignments-page, .groups-page, .tests-page) .cabinet-stats dd {
-  overflow-wrap: anywhere;
-  margin: 12px 0;
-  font: 400 var(--fs-stat) / 1 var(--font-display);
-  font-variant-numeric: tabular-nums;
-}
-
-:is(.assignments-page, .groups-page, .tests-page) dd.cabinet-stat-hint {
-  overflow-wrap: anywhere;
-  hyphens: auto;
-  margin: 0;
-  color: var(--muted);
-  font: 400 var(--fs-xs) / 1.45 var(--font-sans);
-}
-
 :is(.assignments-page, .groups-page, .tests-page) .classroom-row {
   padding: 0;
 }
@@ -1341,12 +1257,6 @@
 /* Use content width: the tests list also stacks in its narrow desktop column. */
 :is(.assignments-page, .groups-page) {
   container-type: inline-size;
-}
-
-@container (max-width: 720px) {
-  :is(.assignments-page, .groups-page, .tests-page) .cabinet-stats {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
 }
 
 @container (max-width: 640px) {
@@ -1500,4 +1410,21 @@
 
 .home-more {
   margin-top: 12px;
+}
+
+/* Counts are a sentence, not a dashboard. */
+.figures {
+  margin: 0 0 24px;
+  color: var(--muted);
+  font-size: var(--fs-sm);
+}
+
+.figures .num {
+  color: var(--ink);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.assignment-row > .figures {
+  margin: 8px 0 12px;
 }
