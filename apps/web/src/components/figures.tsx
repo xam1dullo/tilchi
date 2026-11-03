@@ -8,7 +8,13 @@ export function Figures({ items }: { items: Figure[] }) {
     <p className="figures">
       {shown.map((item, i) => (
         <span key={item.label}>
-          {i > 0 ? <span aria-hidden="true"> · </span> : null}
+          {/* A real space on each side: the dot is visual only. */}
+          {i > 0 ? (
+            <>
+              {' '}
+              <span aria-hidden="true">·</span>{' '}
+            </>
+          ) : null}
           {item.label} <span className="num">{item.value}</span>
         </span>
       ))}

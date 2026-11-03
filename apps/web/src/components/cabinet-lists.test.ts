@@ -219,6 +219,10 @@ describe('group and test cabinets', () => {
       ['Drafts', 1],
     ])
       expect(figures).toContain(`${label} <span class="num">${number}</span>`)
+    // Spaces live outside the visual dot, so the accessible text keeps its words apart.
+    expect(figures).toContain(
+      '<span> <span aria-hidden="true">·</span> Questions',
+    )
     expect(html).toContain('href="/app/tests/t?preview=teacher"')
     expect(html).toContain('Questions: 2')
     expect(html).toContain('Open')
