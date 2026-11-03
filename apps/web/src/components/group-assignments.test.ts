@@ -83,7 +83,10 @@ describe('AssignmentsList', () => {
     expect(html).toContain('<dt>Missed</dt><dd class="num">0</dd>')
     expect(html).toContain('<th scope="row">Aziz</th>')
     expect(html).toContain('<th scope="row">abcdef12</th>')
-    expect(html).toContain('<td class="num">7</td>')
+    expect(html).toContain('<td class="num" data-label="Score">7</td>')
+    // Phones stack each row; every cell carries its column name.
+    expect(html).toMatch(/<td data-label="Status"><span class="tag"/)
+    expect(html).toMatch(/<td data-label="Submitted at">/)
     expect(html).toContain('Learners (2)')
     expect(html).not.toContain('<a ')
   })

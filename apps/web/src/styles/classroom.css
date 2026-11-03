@@ -958,6 +958,7 @@
 }
 
 .group-page .assignment-details {
+  container-type: inline-size;
   overflow-x: auto;
 }
 
@@ -970,6 +971,42 @@
   display: inline-flex;
   align-items: center;
   min-height: 44px;
+}
+
+/* Phones: each attempt is a small card, no sideways scroll. Cells name
+   their column (data-label); the header row stays for screen readers. */
+@container (max-width: 30rem) {
+  .group-page .attempt-table {
+    min-width: 0;
+  }
+
+  .group-page .attempt-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .group-page .attempt-table tbody tr {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 4px 12px;
+    padding: 8px 0 12px;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .group-page .attempt-table tbody :is(th, td) {
+    display: block;
+    padding: 0;
+    border: 0;
+  }
+
+  .group-page .attempt-table td[data-label]:not(:has(.tag))::before {
+    content: attr(data-label) " ";
+    color: var(--muted);
+  }
 }
 
 /* Attempt and grading layouts: shared classroom pages retain their own styles. */

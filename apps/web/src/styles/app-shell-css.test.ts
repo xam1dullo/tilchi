@@ -18,4 +18,11 @@ describe('app chrome styles', () => {
     expect(base).toMatch(/\.tag\[data-tone="mark"\]/)
     expect(base).toMatch(/\.tag\[data-tone="warn"\]/)
   })
+
+  it('stacks the attempt table into cards on narrow screens instead of scrolling', () => {
+    const css = read('./classroom.css')
+    const phone = css.split('@container (max-width: 30rem)')[1] ?? ''
+    expect(phone).toMatch(/\.attempt-table tbody tr \{\s*display: grid;/)
+    expect(phone).toMatch(/content: attr\(data-label\)/)
+  })
 })
