@@ -147,6 +147,8 @@ describeWithDatabase('AttendanceService', (current) => {
       [first, vali],
       [second, ali],
       [stillLive, vali],
+      // The teacher's join never counts as a learner present.
+      [first, teacher],
     ] as const) {
       await events.record({
         lessonId: lesson.id,

@@ -11,9 +11,10 @@ export type AttendanceRow = {
 }
 
 /**
- * Per user: present once they joined, and the seconds inside join→leave
- * intervals clipped to the lesson window. A second join while one is open
- * and a leave with none open are ignored; an open join runs to `window.end`.
+ * Per user: the seconds inside join→leave intervals clipped to the lesson
+ * window, and present when any of that time falls inside it. A second join
+ * while one is open and a leave with none open are ignored; an open join
+ * runs to `window.end`.
  */
 export function summarizeAttendance(
   events: AttendanceEvent[],
@@ -22,7 +23,6 @@ export function summarizeAttendance(
   const sorted = [...events].sort((a, b) => a.at.getTime() - b.at.getTime())
   const open = new Map<string, number>()
   const ms = new Map<string, number>()
-  const present = new Set<string>()
   const users: string[] = []
   const clip = (from: number, to: number) =>
     Math.max(
@@ -37,7 +37,6 @@ export function summarizeAttendance(
     }
     const at = event.at.getTime()
     if (event.kind === 'join') {
-      present.add(event.userId)
       if (!open.has(event.userId)) open.set(event.userId, at)
     } else if (event.kind === 'leave') {
       const since = open.get(event.userId)
@@ -51,7 +50,7 @@ export function summarizeAttendance(
   }
   return users.map((userId) => ({
     userId,
-    present: present.has(userId),
+    present: (ms.get(userId) ?? 0) > 0,
     seconds: Math.floor((ms.get(userId) ?? 0) / 1000),
   }))
 }

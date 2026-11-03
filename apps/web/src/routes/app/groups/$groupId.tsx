@@ -59,7 +59,10 @@ export const Route = createFileRoute('/app/groups/$groupId')({
           loadAssessment(group.can, group.id, (url) =>
             apiFetch(url, { previewRole }),
           ),
-          apiFetch<GroupAttendance>(`${path}/attendance`, { previewRole }),
+          // Counts are secondary: without them the page still opens.
+          apiFetch<GroupAttendance>(`${path}/attendance`, {
+            previewRole,
+          }).catch((): GroupAttendance => ({ attendance: [], lessons: [] })),
         ])
       return {
         group,

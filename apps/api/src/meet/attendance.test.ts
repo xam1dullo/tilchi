@@ -50,6 +50,15 @@ describe('summarizeAttendance', () => {
     ).toEqual([{ userId: 'a', present: true, seconds: 3600 }])
   })
 
+  it('is not present on a join outside the window', () => {
+    expect(summarizeAttendance([ev('a', 'join', 65)], window)).toEqual([
+      { userId: 'a', present: false, seconds: 0 },
+    ])
+    expect(
+      summarizeAttendance([ev('a', 'join', -10), ev('a', 'leave', -5)], window),
+    ).toEqual([{ userId: 'a', present: false, seconds: 0 }])
+  })
+
   it('orders events by time whatever the input order and skips token events', () => {
     expect(
       summarizeAttendance(

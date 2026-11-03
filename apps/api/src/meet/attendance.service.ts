@@ -2,7 +2,7 @@ import { Inject, Injectable } from '@nestjs/common'
 import { type Actor, can } from '../authz/policy'
 import { GroupsService } from '../groups/groups.service'
 import { LessonsService } from '../lessons/lessons.service'
-import { summarizeAttendance } from './attendance'
+import { type AttendanceEvent, summarizeAttendance } from './attendance'
 import { AttendanceRepository } from './attendance.repository'
 
 /**
@@ -78,22 +78,31 @@ export class AttendanceService {
 
   async forGroup(actor: Actor, groupId: string): Promise<GroupAttendance> {
     const group = await this.groups.visible(actor, groupId)
-    const held = (await this.attendance.heldLessons(groupId)).filter(
-      (lesson) => lesson.status === 'ended',
-    )
-    const events = await this.attendance.eventsFor(held.map((l) => l.id))
+    const held = await this.attendance.endedLessons(groupId)
+    const learners = await this.learners(groupId)
+    const learnerIds = new Set(learners.map((l) => l.id))
+    const byLesson = new Map<string, AttendanceEvent[]>()
+    for (const event of await this.attendance.eventsFor(
+      held.map((l) => l.id),
+    )) {
+      byLesson.set(event.lessonId, [
+        ...(byLesson.get(event.lessonId) ?? []),
+        event,
+      ])
+    }
+    // Only current learners count: the teacher and anyone since removed do not.
     const presentIn = held.map((lesson) => ({
       lessonId: lesson.id,
       users: new Set(
         summarizeAttendance(
-          events.filter((event) => event.lessonId === lesson.id),
+          byLesson.get(lesson.id) ?? [],
           windowOf(lesson, new Date()),
         )
-          .filter((row) => row.present)
+          .filter((row) => row.present && learnerIds.has(row.userId))
           .map((row) => row.userId),
       ),
     }))
-    const rows = (await this.learners(groupId)).map((learner) => ({
+    const rows = learners.map((learner) => ({
       userId: learner.id,
       name: learner.name,
       lessonsHeld: held.length,

@@ -59,14 +59,11 @@ export class AttendanceRepository {
     return row ?? null
   }
 
-  /** The group's lessons that went live, in time order. */
-  async heldLessons(groupId: string) {
+  /** The group's ended lessons, in time order. */
+  async endedLessons(groupId: string) {
     if (!isUuid(groupId)) return []
     return this.windows(
-      and(
-        eq(lessons.groupId, groupId),
-        inArray(lessons.status, ['live', 'ended']),
-      ),
+      and(eq(lessons.groupId, groupId), eq(lessons.status, 'ended')),
     )
   }
 
