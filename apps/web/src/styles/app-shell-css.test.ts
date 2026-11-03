@@ -42,4 +42,10 @@ describe('app chrome styles', () => {
     expect(rule).not.toMatch(/italic|accent/)
     expect(rule).toMatch(/tabular-nums/)
   })
+
+  it('tightens the figures line inside an assignment row', () => {
+    expect(read('./classroom.css')).toMatch(
+      /\.assignment-row > \.figures \{\s*margin: 8px 0 12px;/,
+    )
+  })
 })

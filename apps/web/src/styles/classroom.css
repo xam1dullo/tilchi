@@ -1194,7 +1194,9 @@
   .attempt-page .question-options .catalog-publish {
     transition: none;
   }
-}:is(.assignments-page, .groups-page, .tests-page) .classroom-row {
+}
+
+:is(.assignments-page, .groups-page, .tests-page) .classroom-row {
   padding: 0;
 }
 
@@ -1423,6 +1425,6 @@
   font-variant-numeric: tabular-nums;
 }
 
-.assign-row > .figures {
+.assignment-row > .figures {
   margin: 8px 0 12px;
 }
