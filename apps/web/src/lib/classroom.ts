@@ -5,10 +5,13 @@ export type GroupCan = {
   createLesson: boolean
   manageMembers: boolean
   seeMembers: boolean
+  setCourse: boolean
   assignTest: boolean
   viewAssignments: boolean
   gradeAttempts: boolean
 }
+
+export type GroupCourse = { id: string; title: string; level: string }
 
 export type GroupRecord = {
   id: string
@@ -16,6 +19,7 @@ export type GroupRecord = {
   kind: 'adult' | 'kids'
   capacity: number
   learnerCount: number
+  course: GroupCourse | null
   can: GroupCan
 }
 
@@ -126,6 +130,7 @@ export function tashkentInputToIso(value: string) {
 }
 
 export type Teacher = { id: string; name: string | null }
+export type CourseOption = { id: string; title: string }
 
 export type CreateGroupForm = {
   name: string
@@ -133,6 +138,9 @@ export type CreateGroupForm = {
   /** Admins must pick a teacher; teachers create under their own name. */
   assignTeacher: boolean
   teachers: Teacher[]
+  /** Optional: '' is "no course". Published courses only. */
+  courseId: string
+  courses: CourseOption[]
   busy: boolean
 }
 
@@ -148,11 +156,13 @@ export function createGroupView(form: CreateGroupForm) {
   }
 }
 
-/** The request body: only an admin sends a teacherId. */
+/** The request body: only an admin sends a teacherId; courseId only when picked. */
 export function createGroupBody(form: CreateGroupForm) {
-  return form.assignTeacher
-    ? { name: form.name, teacherId: form.teacherId }
-    : { name: form.name }
+  return {
+    name: form.name,
+    ...(form.assignTeacher ? { teacherId: form.teacherId } : {}),
+    ...(form.courseId ? { courseId: form.courseId } : {}),
+  }
 }
 
 /** Copy key for a failed create; anything but teacher_required is generic. */

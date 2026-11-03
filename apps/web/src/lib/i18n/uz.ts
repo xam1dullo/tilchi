@@ -331,4 +331,8 @@ export const uz = {
   figQuestions: 'Savollar',
   figPublished: 'Chop etilgan',
   figDrafts: 'Qoralama',
+  courseSelect: 'Kursni tanlash',
+  courseNone: 'Kurssiz',
+  progressTests: 'Testlar',
+  progressAverage: "O'rtacha",
 }

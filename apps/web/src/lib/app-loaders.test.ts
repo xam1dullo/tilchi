@@ -110,6 +110,7 @@ describe('app child loaders', () => {
         groups: [],
         can: { createGroup: false, assignTeacher: false },
         teachers: [],
+        courses: [],
         lessonsByGroup: {},
         assignments: [],
         queue: [],

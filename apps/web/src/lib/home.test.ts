@@ -7,10 +7,12 @@ const group = (id: string, name: string) => ({
   kind: 'adult' as const,
   capacity: 12,
   learnerCount: 3,
+  course: null,
   can: {
     createLesson: false,
     manageMembers: false,
     seeMembers: false,
+    setCourse: false,
     assignTest: false,
     viewAssignments: false,
     gradeAttempts: false,

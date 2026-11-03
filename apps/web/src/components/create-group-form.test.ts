@@ -16,11 +16,17 @@ const teachers = [
   { id: 't1', name: 'Mukhtasar' },
   { id: 't2', name: null },
 ]
+const courses = [
+  { id: 'c1', title: 'General English' },
+  { id: 'c2', title: 'IELTS' },
+]
 const base: CreateGroupForm = {
   name: 'A1',
   teacherId: 't1',
   assignTeacher: true,
   teachers,
+  courseId: '',
+  courses,
   busy: false,
 }
 
@@ -36,6 +42,7 @@ function render(
       error,
       onName: () => {},
       onTeacher: () => {},
+      onCourse: () => {},
       onSubmit: () => {},
     }),
   )
@@ -75,6 +82,17 @@ describe('createGroupBody / createGroupError', () => {
     })
   })
 
+  it('sends courseId only when a course is chosen', () => {
+    expect(
+      createGroupBody({ ...base, assignTeacher: false, courseId: 'c2' }),
+    ).toEqual({ name: 'A1', courseId: 'c2' })
+    expect(createGroupBody({ ...base, courseId: 'c1' })).toEqual({
+      name: 'A1',
+      teacherId: 't1',
+      courseId: 'c1',
+    })
+  })
+
   it('maps teacher_required, and any other failure to the generic copy', () => {
     expect(
       createGroupError(new ApiError(400, { error: 'teacher_required' })),
@@ -96,11 +114,27 @@ describe('CreateGroupFormView', () => {
   })
 
   it('keeps teachers on the name-only form', () => {
-    expect(render({ ...base, assignTeacher: false })).not.toContain('<select')
+    expect(
+      render({ ...base, assignTeacher: false, courses: [] }),
+    ).not.toContain('<select')
+  })
+
+  it('offers published courses as an optional pick, none by default', () => {
+    const html = render({ ...base, assignTeacher: false })
+    expect(html).toContain('<select name="courseId"')
+    expect(html).not.toContain('<select name="courseId" required')
+    expect(html).toContain('<option value="" selected="">No course</option>')
+    expect(html).toContain('<option value="c2">IELTS</option>')
+    expect(
+      render({ ...base, assignTeacher: false, courses: [] }),
+    ).not.toContain('name="courseId"')
+    expect(render({ ...base, courseId: 'c1' })).toContain(
+      '<option value="c1" selected="">',
+    )
   })
 
   it('says so when there are no teachers, and disables submit', () => {
-    const html = render({ ...base, teachers: [] })
+    const html = render({ ...base, teachers: [], courses: [] })
     expect(html).toContain('No teachers yet')
     expect(html).not.toContain('<select')
     expect(html).toContain('disabled')
