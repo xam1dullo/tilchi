@@ -123,24 +123,20 @@ describe('assignment cabinet', () => {
         assignment(s as MyAssignment['status'], i),
       ),
     )
-    expect(html).toContain('<dt>Assigned</dt><dd>2</dd>')
-    for (const label of ['Submitted', 'Graded', 'Missed'])
-      expect(html).toContain(`<dt>${label}</dt><dd>1</dd>`)
+    // Counts live on the filter buttons only; no cards above them.
+    expect(html).not.toContain('<dt>')
+    expect(html).toContain('aria-label="Assigned: 2"')
+    expect(html).toContain('aria-label="Missed: 1"')
     expect(html).toContain('href="/app/attempts/a3?preview=learner"')
     expect(html).toContain('<span class="tag" data-tone="mark">Graded</span>')
     expect(html).toContain('class="num">0</span>')
-    for (const hint of [
-      copy.cabinetAssignedHint,
-      copy.cabinetSubmittedHint,
-      copy.cabinetGradedHint,
-      copy.cabinetMissedHint,
-    ])
-      expect(html).toContain(hint)
     expect(html).toContain('Open')
   })
-  it('keeps four zero counts and the empty message', () => {
+  it('shows only the empty message when nothing is assigned', () => {
     const html = render([])
-    expect(html.match(/<dd>0<\/dd>/g)).toHaveLength(4)
+    // Nothing assigned: the message alone, no filters and no counts.
+    expect(html).not.toContain('aria-label="All')
+    expect(html).not.toContain('<dt>')
     expect(html).toContain(copy.myTestsEmpty)
     expect(html).not.toContain('<a ')
   })
@@ -214,22 +210,17 @@ describe('group and test cabinets', () => {
       ],
     }
     const html = page(TestsRoute)
+    // One quiet line of figures instead of four cards.
+    const figures = html.match(/<p class="figures">(.*?)<\/p>/)?.[1] ?? ''
     for (const [label, number] of [
-      ['Test library', 1],
-      ['Question count', 2],
-      ['Published questions', 1],
-      ['Draft questions', 1],
+      ['Tests', 1],
+      ['Questions', 2],
+      ['Published', 1],
+      ['Drafts', 1],
     ])
-      expect(html).toContain(`<dt>${label}</dt><dd>${number}</dd>`)
+      expect(figures).toContain(`${label} <span class="num">${number}</span>`)
     expect(html).toContain('href="/app/tests/t?preview=teacher"')
     expect(html).toContain('Questions: 2')
-    for (const hint of [
-      'Tests available to assign',
-      'Across the question bank',
-      'Questions ready to use',
-      'Questions in progress',
-    ])
-      expect(html).toContain(hint)
     expect(html).toContain('Open')
   })
   it('renders zero statistics and existing empty messages for both pages', () => {
@@ -247,7 +238,8 @@ describe('group and test cabinets', () => {
     expect(groups).toContain(copy.emptyBody)
     state.data = { tests: [], questions: [] }
     const tests = page(TestsRoute)
-    expect(tests.match(/<dd>0<\/dd>/g)).toHaveLength(4)
+    // Nothing to count: no figures line at all.
+    expect(tests).not.toContain('class="figures"')
     expect(tests).toContain(copy.testEmpty)
   })
 })

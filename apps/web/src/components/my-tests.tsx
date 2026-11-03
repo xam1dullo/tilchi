@@ -2,7 +2,6 @@ import { statusTone } from '../lib/tone'
 import { useState } from 'react'
 import { assignmentView, type AssignmentFilter } from '../lib/cabinet'
 import { Link } from '@tanstack/react-router'
-import { CabinetStats } from './cabinet-stats'
 import { ATTEMPT_STATUSES, statusKey } from '../lib/assignments'
 import type { MyAssignment } from '../lib/attempt'
 import { formatLessonTime } from '../lib/classroom'
@@ -37,21 +36,8 @@ export function MyTestsView({
   const filters = ['all', ...ATTEMPT_STATUSES] as const
   const filterLabel = (value: AssignmentFilter) =>
     value === 'all' ? copy.assignmentFilterAll : copy[statusKey[value]]
-  const hints = {
-    assigned: copy.cabinetAssignedHint,
-    submitted: copy.cabinetSubmittedHint,
-    graded: copy.cabinetGradedHint,
-    missed: copy.cabinetMissedHint,
-  }
   return (
     <div className="assignments-page">
-      <CabinetStats
-        items={ATTEMPT_STATUSES.map((status) => ({
-          label: copy[statusKey[status]],
-          value: counts[status],
-          hint: hints[status],
-        }))}
-      />
       {assignments.length > 0 && (
         <fieldset
           className="assignment-filters"

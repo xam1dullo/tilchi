@@ -34,16 +34,6 @@ describe('app chrome styles', () => {
     )
   })
 
-  it('lays the four attempt counts out 2 by 2 in a narrow group page, never 3 + 1', () => {
-    const css = read('./classroom.css')
-    expect(css).toMatch(
-      /\.group-page \.assignment-counts \{[^}]*repeat\(2, minmax\(0, 1fr\)\)/,
-    )
-    expect(css).toMatch(
-      /@container group \(min-width: 32rem\) \{\s*\.group-page \.assignment-counts \{\s*grid-template-columns: repeat\(4, minmax\(0, 1fr\)\);/,
-    )
-  })
-
   it('numbers questions in plain muted figures, not accent italics', () => {
     const rule =
       read('./classroom.css').match(

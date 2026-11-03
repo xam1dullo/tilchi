@@ -328,4 +328,8 @@ export const uz = {
   homeGroupNoLesson: 'Dars belgilanmagan',
   homeToGrade: 'Baholash navbati',
   homeWaiting: 'baholashni kutmoqda',
+  figTests: 'Testlar',
+  figQuestions: 'Savollar',
+  figPublished: 'Chop etilgan',
+  figDrafts: 'Qoralama',
 }

@@ -306,4 +306,8 @@ export const en = {
   homeGroupNoLesson: 'No lesson scheduled',
   homeToGrade: 'To grade',
   homeWaiting: 'waiting for a grade',
+  figTests: 'Tests',
+  figQuestions: 'Questions',
+  figPublished: 'Published',
+  figDrafts: 'Drafts',
 }

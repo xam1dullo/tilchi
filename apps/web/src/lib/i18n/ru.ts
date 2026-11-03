@@ -301,4 +301,8 @@ export const ru = {
   homeGroupNoLesson: 'Урок не назначен',
   homeToGrade: 'Очередь на проверку',
   homeWaiting: 'ждут проверки',
+  figTests: 'Тесты',
+  figQuestions: 'Вопросы',
+  figPublished: 'Опубликовано',
+  figDrafts: 'Черновики',
 }
