@@ -42,6 +42,20 @@ export type LessonRecord = {
   can: LessonCan
 }
 
+/**
+ * GET /api/groups/:id/attendance. A learner gets only their own row and no
+ * per-lesson counts; the teacher and admin get every learner.
+ */
+export type GroupAttendance = {
+  attendance: {
+    userId: string
+    name: string | null
+    lessonsHeld: number
+    lessonsPresent: number
+  }[]
+  lessons: { lessonId: string; present: number }[]
+}
+
 export function groupsView(input: {
   groups: GroupRecord[]
   can: { createGroup: boolean }

@@ -114,6 +114,8 @@ export const uz = {
   lessonScheduled: 'Rejalashtirilgan',
   lessonEnded: 'Tugagan',
   lessonCancelled: 'Bekor qilingan',
+  attendance: 'Davomat',
+  attendanceLessons: 'dars',
   previewAs: "Ko'rish roli",
   roleLearner: "O'quvchi",
   roleTeacher: "O'qituvchi",

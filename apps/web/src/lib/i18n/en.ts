@@ -93,6 +93,8 @@ export const en = {
   lessonScheduled: 'Scheduled',
   lessonEnded: 'Ended',
   lessonCancelled: 'Cancelled',
+  attendance: 'Attendance',
+  attendanceLessons: 'lessons',
   previewAs: 'Preview as',
   roleLearner: 'Learner',
   roleTeacher: 'Teacher',

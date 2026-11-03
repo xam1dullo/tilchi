@@ -94,6 +94,8 @@ export const ru = {
   lessonScheduled: 'Запланирован',
   lessonEnded: 'Завершён',
   lessonCancelled: 'Отменён',
+  attendance: 'Посещаемость',
+  attendanceLessons: 'уроков',
   previewAs: 'Просмотр как',
   roleLearner: 'Ученик',
   roleTeacher: 'Преподаватель',
