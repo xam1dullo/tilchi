@@ -28,6 +28,12 @@ Contents: 00 Overview · 01 Color · 02 Type · 03 Foundations · 04 Components 
 5. Motion is restrained and reversible; everything respects `prefers-reduced-motion`.
 6. Keep what works: copy/data in `packages/content` (`src/site.ts`), build gates.
 
+**App direction (2026-11-04, after unslop review).** The classroom at `/app` follows the same world — a teacher's desk in daylight: paper, the lesson timetable, a red pencil. Character: warm, exact, patient. Each screen leads with its one moment and carries one signature mark:
+- Home: the next lesson (live first, else the soonest across groups), its Tashkent time set in Fraunces with a red pencil line under it (`.mark`). Then open tests by deadline, then groups with their own next lesson. No statistics cards for learners, never a row of zeros.
+- The red pencil (`.mark`, `data-tone="mark"`) is the teacher's hand: a grade, a correct answer, the next lesson. It appears once per screen and nowhere else.
+- Chrome stays paper: sidebar on `--bg` with a hairline, current page as a surface step, no filled pills, no dark block.
+- Screens still to recompose in this pass: teacher home (today's lesson with Start, grading queue instead of cards), group page, tests page.
+
 **Verified facts** (from repo): stack, data modules, contrast gate (`scripts/check-contrast.mjs`, `pnpm contrast`), no teacher photo asset exists, no Tailwind utility classes are used in components.
 **Assumptions** (need owner confirmation): a real portrait photo will be supplied later (slot is built, fallback is a typographic monogram); copy stays Uzbek-only; "Birinchi oqim — 2026 avgust" label is still current.
 

@@ -293,4 +293,10 @@ export const ru = {
   cabinetDraftQuestions: 'Черновики вопросов',
   cabinetPublishedHint: 'Вопросы готовы к использованию',
   cabinetDraftHint: 'Вопросы в подготовке',
+  homeNextLesson: 'Следующий урок',
+  homeNoLesson: 'Следующий урок ещё не назначен',
+  homeLiveNow: 'Урок идёт',
+  homeDueTests: 'Тесты со сроком',
+  homeAllTests: 'Все тесты',
+  homeGroupNoLesson: 'Урок не назначен',
 }

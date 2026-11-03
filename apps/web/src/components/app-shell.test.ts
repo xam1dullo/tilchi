@@ -83,7 +83,7 @@ const classroomCss = readFileSync(
 describe('sidebar layout constraints', () => {
   it('draws every desktop sidebar link focus ring inside its scroll clip', () => {
     expect(shellCss).toMatch(
-      /\.app-shell \.app-sidebar a:focus-visible\s*\{[^}]*outline: 2px solid var\(--bg\);[^}]*outline-offset: -2px;/,
+      /\.app-shell \.app-sidebar a:focus-visible\s*\{[^}]*outline: 2px solid var\(--focus\);[^}]*outline-offset: -2px;/,
     )
   })
 })
@@ -100,7 +100,8 @@ it('stretches the intermediate sidebar divider for the full shell height', () =>
   expect(shellCss).toMatch(
     /\.app-sidebar\s*\{[^}]*border-right: 1px solid var\(--line\);/,
   )
-  expect(shellCss).toMatch(
+  // The paper sidebar keeps that hairline on desktop too.
+  expect(shellCss).not.toMatch(
     /\.app-shell \.app-sidebar\s*\{[^}]*border-right: 0;/,
   )
 })

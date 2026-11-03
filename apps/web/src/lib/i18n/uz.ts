@@ -320,4 +320,10 @@ export const uz = {
   cabinetDraftQuestions: 'Qoralama savollar',
   cabinetPublishedHint: 'Foydalanishga tayyor savollar',
   cabinetDraftHint: 'Tayyorlanayotgan savollar',
+  homeNextLesson: 'Keyingi dars',
+  homeNoLesson: 'Keyingi dars hali belgilanmagan',
+  homeLiveNow: 'Dars boshlandi',
+  homeDueTests: 'Muddati yaqin testlar',
+  homeAllTests: 'Barcha testlar',
+  homeGroupNoLesson: 'Dars belgilanmagan',
 }

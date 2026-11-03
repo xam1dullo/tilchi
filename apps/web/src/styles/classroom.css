@@ -1441,3 +1441,63 @@
   font-size: var(--fs-h2);
   line-height: 1.02;
 }
+
+/* Home: the next lesson leads. The red line under its time is the page's
+   one mark, the teacher's pencil; nothing else on the page is red. */
+.home-lead {
+  margin: 0 0 32px;
+  padding: 20px 0 24px;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.home-lead h2,
+.home-tests h2 {
+  margin: 0 0 8px;
+  font: 500 var(--fs-sm) / 1.4 var(--font-sans);
+  letter-spacing: 0;
+  color: var(--muted);
+}
+
+.home-lead-body {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px 24px;
+}
+
+.home-lead-time {
+  margin: 0;
+  font: 400 var(--fs-h2) / 1.05 var(--font-display);
+  letter-spacing: -0.028em;
+  color: var(--ink);
+  text-wrap: balance;
+}
+
+.mark {
+  text-decoration: underline;
+  text-decoration-color: var(--accent);
+  text-decoration-thickness: 3px;
+  text-underline-offset: 0.14em;
+  text-decoration-skip-ink: none;
+}
+
+.home-lead-group {
+  margin: 8px 0 0;
+  color: var(--ink-2);
+}
+
+.home-lead-empty {
+  margin: 0;
+  font-size: var(--fs-lead);
+  color: var(--muted);
+}
+
+.home-tests {
+  margin: 0 0 32px;
+}
+
+.home-more {
+  margin-top: 12px;
+}
