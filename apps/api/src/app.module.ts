@@ -27,7 +27,9 @@ import { HealthController } from './health/health.controller'
 import { LessonsController } from './lessons/lessons.controller'
 import { LessonsService } from './lessons/lessons.service'
 import { LessonsRepository } from './lessons/lessons.repository'
+import { AttendanceController } from './meet/attendance.controller'
 import { AttendanceRepository } from './meet/attendance.repository'
+import { AttendanceService } from './meet/attendance.service'
 import { LivekitWebhook } from './meet/livekit-webhook'
 import { LivekitWebhookController } from './meet/livekit-webhook.controller'
 import { MeetController } from './meet/meet.controller'
@@ -57,6 +59,7 @@ import { UsersRepository } from './users/users.repository'
     UsersController,
     LessonsController,
     MeetController,
+    AttendanceController,
     LivekitWebhookController,
     NotificationsController,
     CoursesController,
@@ -81,6 +84,7 @@ import { UsersRepository } from './users/users.repository'
     LessonsService,
     MeetService,
     AttendanceRepository,
+    AttendanceService,
     LivekitWebhook,
     RoomAdmin,
     DemoSeedService,
