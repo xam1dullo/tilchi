@@ -162,12 +162,43 @@ describe('group and test cabinets', () => {
       ],
       can: { createGroup: false },
       teachers: [],
-      lessonsByGroup: { g: [], h: [] },
+      lessonsByGroup: {
+        g: [
+          {
+            id: 'l1',
+            groupId: 'g',
+            scheduledAt: '2030-01-02T04:00:00.000Z',
+            status: 'scheduled',
+            meetingId: null,
+            can: {
+              start: true,
+              end: false,
+              cancel: false,
+              reschedule: false,
+              join: false,
+            },
+          },
+        ],
+        h: [],
+      },
       assignments: [],
+      queue: [
+        {
+          groupId: 'g',
+          groupName: 'Evening',
+          assignmentId: 'a',
+          title: 'Unit 1',
+          waiting: 2,
+        },
+      ],
       now: 0,
     }
     const html = page(GroupsRoute)
     expect(html).toContain('Next lesson')
+    // The teacher starts the lesson from here and sees what waits for a grade.
+    expect(html).toContain(copy.startLesson)
+    expect(html).toContain('Unit 1')
+    expect(html).toContain('class="num">2</span>')
     // Membership lives on the rows now; no statistics cards for anyone.
     expect(html).not.toContain('<dt>')
     expect(html).toContain('href="/app/groups/g?preview=teacher"')

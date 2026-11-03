@@ -28,14 +28,17 @@ export function HomeLead({
   const hasActions = Boolean(can && (can.start || can.end || can.join))
   return (
     <section className="home-lead" aria-labelledby="home-lead-title">
-      <h2 id="home-lead-title">
+      <h2 id="home-lead-title" tabIndex={-1}>
         {live ? copy.homeLiveNow : copy.homeNextLesson}
       </h2>
       {next ? (
         <div className="home-lead-body">
           <div>
             <p className="home-lead-time">
-              <time dateTime={next.lesson.scheduledAt}>
+              <time
+                id={`primary-lesson-time-${next.lesson.id}`}
+                dateTime={next.lesson.scheduledAt}
+              >
                 <span className="mark">
                   {formatLessonTime(next.lesson.scheduledAt, locale)}
                 </span>

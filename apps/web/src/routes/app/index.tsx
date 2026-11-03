@@ -142,6 +142,7 @@ function GroupsPage() {
                   previewRole={previewRole}
                   search={search}
                   copy={lessonCopy}
+                  focusId="home-lead-title"
                 />
               ) : null
             }

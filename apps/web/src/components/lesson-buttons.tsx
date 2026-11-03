@@ -14,9 +14,12 @@ export function LessonButtons({
   previewRole,
   search,
   copy,
+  focusId = 'group-lessons-title',
 }: {
   primary?: boolean
   lesson: LessonRecord
+  /** Where focus lands after a refresh removes the pressed button. */
+  focusId?: string
   previewRole: 'learner' | 'teacher' | 'admin' | null
   search: ReturnType<typeof keepAppSearch>
   copy: LessonActionsCopy
@@ -35,7 +38,7 @@ export function LessonButtons({
       setBusy(false)
       setFailed(!ok)
       // The pressed button is gone after a refresh; keep focus in the rail.
-      if (ok) document.getElementById('group-lessons-title')?.focus()
+      if (ok) document.getElementById(focusId)?.focus()
     })
   }
   const endRef = useRef(() => {})
