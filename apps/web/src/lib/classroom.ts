@@ -170,3 +170,32 @@ export function lessonMaterialsError(error: unknown) {
     ? ('materialsInvalid' as const)
     : ('lessonActionFailed' as const)
 }
+
+/**
+ * Saves, tells the row "Saved" before the refresh, then refreshes. A failed
+ * refresh keeps the note: the save itself succeeded.
+ */
+export async function saveMaterials(
+  request: () => Promise<unknown>,
+  refresh: () => Promise<unknown>,
+  onNote: (note: MaterialsNote) => void,
+): Promise<MaterialsNote> {
+  try {
+    await request()
+  } catch (error) {
+    const note = lessonMaterialsError(error)
+    onNote(note)
+    return note
+  }
+  onNote('materialsSaved')
+  try {
+    await refresh()
+  } catch {
+    // Stale row until the next load; the save is done.
+  }
+  return 'materialsSaved'
+}
+
+export type MaterialsNote =
+  | 'materialsSaved'
+  | ReturnType<typeof lessonMaterialsError>

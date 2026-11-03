@@ -4,8 +4,9 @@ import { apiFetch } from '../lib/api'
 import {
   type LessonRecord,
   type MaterialsForm,
+  type MaterialsNote,
   lessonMaterialsBody,
-  lessonMaterialsError,
+  saveMaterials,
 } from '../lib/classroom'
 import type { Copy } from '../lib/i18n'
 
@@ -99,7 +100,7 @@ export function MaterialsEditor({
     canvasUrl: lesson.canvasUrl ?? '',
   })
   const [busy, setBusy] = useState(false)
-  const [note, setNote] = useState<keyof MaterialsCopy | null>(null)
+  const [note, setNote] = useState<MaterialsNote | null>(null)
   return (
     <details className="lesson-materials">
       <summary>{copy.materials}</summary>
@@ -109,16 +110,16 @@ export function MaterialsEditor({
           event.preventDefault()
           setBusy(true)
           setNote(null)
-          apiFetch(`/api/lessons/${lesson.id}/materials`, {
-            method: 'POST',
-            previewRole,
-            body: JSON.stringify(lessonMaterialsBody(form)),
-          })
-            .then(() =>
-              router.invalidate().then(() => setNote('materialsSaved')),
-            )
-            .catch((error: unknown) => setNote(lessonMaterialsError(error)))
-            .finally(() => setBusy(false))
+          void saveMaterials(
+            () =>
+              apiFetch(`/api/lessons/${lesson.id}/materials`, {
+                method: 'POST',
+                previewRole,
+                body: JSON.stringify(lessonMaterialsBody(form)),
+              }),
+            () => router.invalidate(),
+            setNote,
+          ).finally(() => setBusy(false))
         }}
       >
         <MaterialFields form={form} onChange={setForm} copy={copy} />

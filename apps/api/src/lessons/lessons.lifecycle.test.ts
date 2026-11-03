@@ -86,6 +86,10 @@ describeWithDatabase('LessonsService cancel and reschedule', (current) => {
       status: 400,
       response: { error: 'invalid_material' },
     })
+    await expect(set(actorOf('admin'), {})).rejects.toMatchObject({
+      status: 400,
+      response: { error: 'invalid_material' },
+    })
     const changed = await set(actorOf('admin'), {
       canvasUrl: 'https://board.example/1',
       slideUrl: null,

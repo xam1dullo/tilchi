@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import {
   lessonMaterialsBody,
   lessonMaterialsError,
+  saveMaterials,
   nextGroupLesson,
   formatLessonTime,
   groupsView,
@@ -202,6 +203,30 @@ describe('lesson materials', () => {
       slideUrl: null,
       canvasUrl: 'https://board.example/1',
     })
+  })
+  it('reports Saved before the refresh, and keeps it when the refresh fails', async () => {
+    const order: string[] = []
+    const note = await saveMaterials(
+      async () => {
+        order.push('request')
+      },
+      async () => {
+        order.push('refresh')
+        throw new Error('offline')
+      },
+      (n) => order.push(n),
+    )
+    expect(note).toBe('materialsSaved')
+    expect(order).toEqual(['request', 'materialsSaved', 'refresh'])
+    const refresh = vi.fn()
+    expect(
+      await saveMaterials(
+        () => Promise.reject(new Error('invalid_material')),
+        refresh,
+        () => {},
+      ),
+    ).toBe('materialsInvalid')
+    expect(refresh).not.toHaveBeenCalled()
   })
   it('maps invalid_material to its copy and everything else to the generic one', () => {
     expect(lessonMaterialsError(new Error('invalid_material'))).toBe(

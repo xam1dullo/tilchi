@@ -47,7 +47,7 @@ export function parseMaterials(body: unknown): LessonMaterials {
     if (typeof raw !== 'string') {
       throw new HttpException({ error: 'invalid_material' }, 400)
     }
-    const value = raw.trim()
+    const value = raw.replace(/\p{Cc}/gu, '').trim()
     if (value === '') {
       out[key] = null
       return
@@ -65,6 +65,8 @@ function isHttpUrl(value: string) {
   if (value.length > URL_MAX) return false
   try {
     const url = new URL(value)
+    // Userinfo is refused: "https://docs.google.com@evil.example" reads as Google.
+    if (url.username || url.password) return false
     return url.protocol === 'http:' || url.protocol === 'https:'
   } catch {
     return false
@@ -101,6 +103,9 @@ export class LessonsService {
   ) {
     await this.managed(input.actor, input.lessonId, 'lesson.editMaterials')
     const patch = parseMaterials(input)
+    if (Object.keys(patch).length === 0) {
+      throw new HttpException({ error: 'invalid_material' }, 400)
+    }
     const result = await this.lessons.setMaterials(input.lessonId, patch)
     if (result.kind === 'not_found') {
       throw new HttpException({ error: 'not_found' }, 404)

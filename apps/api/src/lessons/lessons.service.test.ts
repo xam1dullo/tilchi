@@ -87,6 +87,16 @@ describe('parseMaterials', () => {
       400,
     )
     expect(status({ canvasUrl: 'HTTPS://x.example/a' })).toBe(200)
+    expect(status({ slideUrl: 'https://docs.google.com@evil.example/' })).toBe(
+      400,
+    )
+    expect(status({ slideUrl: 'https://:pw@evil.example/' })).toBe(400)
+  })
+
+  it('strips control characters from the topic', () => {
+    expect(parseMaterials({ topic: 'Unit\u0000 1\u001f\n' })).toEqual({
+      topic: 'Unit 1',
+    })
   })
 })
 

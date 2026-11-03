@@ -204,7 +204,6 @@ function GroupPage() {
                     <LessonMeta lesson={lesson} locale={locale} copy={copy} />
                     {lesson.can.editMaterials ? (
                       <MaterialsEditor
-                        key={`${lesson.id}:${lesson.topic}:${lesson.slideUrl}:${lesson.canvasUrl}`}
                         lesson={lesson}
                         previewRole={previewRole}
                         copy={copy}
