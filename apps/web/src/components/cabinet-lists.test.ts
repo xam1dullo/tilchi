@@ -73,6 +73,7 @@ const assignment = (
   deadline: '2030-01-01T10:00:00Z',
   status,
   score: status === 'graded' ? 0 : null,
+  maxScore: 10,
   submittedAt: null,
 })
 

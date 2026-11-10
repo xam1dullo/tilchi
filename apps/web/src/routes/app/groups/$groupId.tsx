@@ -77,12 +77,12 @@ export const Route = createFileRoute('/app/groups/$groupId')({
               previewRole,
             }).catch(() => ({ courses: [] as CourseOption[] }))
           : { courses: [] as CourseOption[] },
-        // A learner's own tests for their figures line; a visiting teacher gets none.
-        group.can.viewAssignments
-          ? { assignments: [] as MyAssignment[] }
-          : apiFetch<{ assignments: MyAssignment[] }>('/api/me/assignments', {
+        // A learner's own tests for their figures line; nobody else may call it.
+        context.session?.role === 'learner'
+          ? apiFetch<{ assignments: MyAssignment[] }>('/api/me/assignments', {
               previewRole,
-            }).catch(() => ({ assignments: [] as MyAssignment[] })),
+            }).catch(() => ({ assignments: [] as MyAssignment[] }))
+          : { assignments: [] as MyAssignment[] },
       ])
       return {
         group,
@@ -386,7 +386,7 @@ function CourseSelect({
       ? [current, ...courses]
       : courses
   return (
-    <label className="classroom-form group-course">
+    <label className="classroom-form">
       <span className="sr-only">{copy.courseSelect}</span>
       <select
         name="courseId"
@@ -438,7 +438,11 @@ function MembersList({
     admin: copy.roleAdmin,
   }
   const attemptsOf = (userId: string) =>
-    assignments.flatMap((a) => a.attempts.filter((x) => x.userId === userId))
+    assignments.flatMap((a) =>
+      a.attempts
+        .filter((x) => x.userId === userId)
+        .map((x) => ({ ...x, maxScore: a.maxScore })),
+    )
   return (
     <section className="members" aria-labelledby="members-title">
       <h2 id="members-title">{copy.members}</h2>

@@ -19,6 +19,13 @@ describe('app chrome styles', () => {
     expect(base).toMatch(/\.tag\[data-tone="warn"\]/)
   })
 
+  it('sits the learner figures line on the member row, without the section gap', () => {
+    const rule = read('./classroom.css').match(
+      /\n\.members \.figures \{([^}]*)\}/,
+    )
+    expect(rule?.[1]).toMatch(/margin: 0;/)
+  })
+
   it('stacks the attempt table into cards on narrow screens instead of scrolling', () => {
     const css = read('./classroom.css')
     const phone = css.split('@container (max-width: 30rem)')[1] ?? ''

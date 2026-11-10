@@ -54,6 +54,7 @@ const assignment = (
   deadline,
   status,
   score: null,
+  maxScore: 10,
   submittedAt: null,
 })
 const NOW = Date.parse('2030-01-10T06:00:00Z')
@@ -133,6 +134,7 @@ describe('gradingQueue', () => {
     testId: `t-${id}`,
     title,
     deadline: '2030-01-20T00:00:00Z',
+    maxScore: 10,
     attempts: statuses.map((status, i) => ({
       id: `${id}-${i}`,
       userId: `u${i}`,

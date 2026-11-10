@@ -15,6 +15,7 @@ const state = vi.hoisted(() => ({
     groupId: string
     status: string
     score: number | null
+    maxScore: number
   }[],
   members: [] as {
     id: string
@@ -63,6 +64,7 @@ vi.mock('@tanstack/react-router', () => ({
               testId: 't1',
               title: 'Unit 1',
               deadline: '2030-01-05T06:00:00Z',
+              maxScore: 10,
               attempts: [
                 {
                   id: 'x1',
@@ -87,6 +89,7 @@ vi.mock('@tanstack/react-router', () => ({
               testId: 't2',
               title: 'Unit 2',
               deadline: '2030-01-06T06:00:00Z',
+              maxScore: 10,
               attempts: [
                 {
                   id: 'y1',
@@ -336,7 +339,7 @@ describe('attendance on the group page', () => {
     )?.[0]
     // One quiet line per learner: attendance, tests graded of assigned, mean score.
     expect(members).toContain(
-      `<p class="figures"><span>${copy.attendance} <span class="num">4/5</span></span><span> <span aria-hidden="true">·</span> ${copy.progressTests} <span class="num">2/2</span></span><span> <span aria-hidden="true">·</span> ${copy.progressAverage} <span class="num">7.5</span></span></p>`,
+      `<p class="figures"><span>${copy.attendance} <span class="num">4/5</span></span><span> <span aria-hidden="true">·</span> ${copy.progressTests} <span class="num">2/2</span></span><span> <span aria-hidden="true">·</span> ${copy.progressAverage} <span class="num">75%</span></span></p>`,
     )
     expect(members?.indexOf('4/5')).toBeGreaterThan(members?.indexOf('T') ?? 0)
     // The teacher row carries no figures; no attendance line in the header either.
@@ -383,11 +386,11 @@ describe('attendance on the group page', () => {
     expect(html).not.toContain('<section class="members"')
     // Their own tests join the line; another group's test does not.
     state.myAssignments = [
-      { groupId: 'g', status: 'graded', score: 9 },
-      { groupId: 'other', status: 'graded', score: 1 },
+      { groupId: 'g', status: 'graded', score: 9, maxScore: 10 },
+      { groupId: 'other', status: 'graded', score: 1, maxScore: 10 },
     ]
     expect(render()).toContain(
-      `<span class="num">4/5</span></span><span> <span aria-hidden="true">·</span> ${copy.progressTests} <span class="num">1/1</span></span><span> <span aria-hidden="true">·</span> ${copy.progressAverage} <span class="num">9</span></span></p>`,
+      `<span class="num">4/5</span></span><span> <span aria-hidden="true">·</span> ${copy.progressTests} <span class="num">1/1</span></span><span> <span aria-hidden="true">·</span> ${copy.progressAverage} <span class="num">90%</span></span></p>`,
     )
     state.myAssignments = []
     state.attendance = { attendance: [], lessons: [] }

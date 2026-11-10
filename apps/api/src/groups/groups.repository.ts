@@ -73,13 +73,22 @@ export class GroupsRepository {
     })
   }
 
-  /** The course as the group DTO shows it, or null when it is missing or deleted. */
+  /**
+   * A course a group may be put on: published and not deleted. A course that
+   * is unpublished after being attached still shows on the group (withMembers).
+   */
   async course(id: string): Promise<GroupCourse | null> {
     if (!isUuid(id)) return null
     const [row] = await this.database.db
       .select({ id: courses.id, title: courses.title, level: courses.level })
       .from(courses)
-      .where(and(eq(courses.id, id), isNull(courses.deletedAt)))
+      .where(
+        and(
+          eq(courses.id, id),
+          eq(courses.published, true),
+          isNull(courses.deletedAt),
+        ),
+      )
     return row ?? null
   }
 

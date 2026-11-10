@@ -15,6 +15,7 @@ export type MyAssignment = {
   deadline: string
   status: AttemptStatus
   score: number | null
+  maxScore: number
   submittedAt: string | null
 }
 

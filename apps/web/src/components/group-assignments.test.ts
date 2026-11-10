@@ -37,6 +37,7 @@ const one: AssignmentRecord = {
   testId: 't',
   title: 'T',
   deadline: '',
+  maxScore: 10,
   attempts: [
     {
       id: 'x9',
@@ -57,6 +58,7 @@ describe('AssignmentsList', () => {
         testId: 't1',
         title: 'Unit 1',
         deadline: '2030-01-02T04:30:00.000Z',
+        maxScore: 10,
         attempts: [
           {
             id: 'x1',
@@ -96,7 +98,14 @@ describe('AssignmentsList', () => {
   it('says so when there are no assignments or no learners', () => {
     expect(render([])).toContain(copy.assignmentsEmpty)
     const html = render([
-      { id: 'a', testId: 't', title: 'T', deadline: '', attempts: [] },
+      {
+        id: 'a',
+        testId: 't',
+        title: 'T',
+        deadline: '',
+        maxScore: 10,
+        attempts: [],
+      },
     ])
     expect(html).toContain(copy.attemptNoLearners)
     expect(html).not.toContain('<details')

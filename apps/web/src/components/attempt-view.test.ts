@@ -84,6 +84,7 @@ describe('MyTestsList', () => {
     groupName: 'Morning B1',
     title: 'Unit 1',
     deadline: '2030-01-02T04:30:00.000Z',
+    maxScore: 10,
     submittedAt: null,
   }
   const render = (assignments: MyAssignment[]) =>

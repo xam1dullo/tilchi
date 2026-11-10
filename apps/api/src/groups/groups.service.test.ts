@@ -310,7 +310,11 @@ describeWithDatabase('GroupsService', (current) => {
   })
 
   describe('course', () => {
-    const course = async (title = 'General English', deleted = false) => {
+    const course = async (
+      title = 'General English',
+      deleted = false,
+      published = true,
+    ) => {
       const id = uuidv7()
       await current()
         .database.db.insert(coursesTable)
@@ -320,6 +324,7 @@ describeWithDatabase('GroupsService', (current) => {
           description: 'd',
           segment: 'kattalar',
           level: 'orta',
+          published,
           deletedAt: deleted ? new Date() : null,
         })
       return id
@@ -343,9 +348,14 @@ describeWithDatabase('GroupsService', (current) => {
       expect((await groups().listForUser(teacher))[0]?.course).toEqual(expected)
     })
 
-    it('refuses a course that is missing, malformed or deleted', async () => {
+    it('refuses a course that is missing, malformed, deleted or unpublished', async () => {
       const teacher = await person('teacher')
-      for (const courseId of [uuidv7(), 'nope', await course('x', true)]) {
+      for (const courseId of [
+        uuidv7(),
+        'nope',
+        await course('x', true),
+        await course('draft', false, false),
+      ]) {
         expect(
           await outcome(
             groups().create({

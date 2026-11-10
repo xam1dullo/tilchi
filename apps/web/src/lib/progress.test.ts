@@ -5,17 +5,28 @@ const held = { lessonsHeld: 5, lessonsPresent: 4 }
 const attempt = (
   status: 'assigned' | 'submitted' | 'graded' | 'missed',
   score: number | null = null,
-) => ({ status, score })
+  maxScore = 10,
+) => ({ status, score, maxScore })
 
 describe('learnerProgress', () => {
-  it('reads attendance, graded-of-assigned tests and the mean graded score', () => {
+  it('reads attendance, graded-of-assigned tests and the graded share of points', () => {
     expect(
       learnerProgress(held, [
         attempt('graded', 8),
         attempt('graded', 7),
         attempt('submitted'),
       ]),
-    ).toEqual({ attendance: '4/5', tests: '2/3', average: '7.5' })
+    ).toEqual({ attendance: '4/5', tests: '2/3', average: '75%' })
+  })
+
+  it('weighs each test by its own maximum, not by raw points', () => {
+    // 1 of 1 and 5 of 10: 6 of 11 points, not a mean of 100% and 50%.
+    expect(
+      learnerProgress(undefined, [
+        attempt('graded', 1, 1),
+        attempt('graded', 5, 10),
+      ]).average,
+    ).toBe('55%')
   })
 
   it('counts a missed test as assigned but never graded', () => {
@@ -24,7 +35,7 @@ describe('learnerProgress', () => {
     ).toEqual({
       attendance: '4/5',
       tests: '1/2',
-      average: '10',
+      average: '100%',
     })
   })
 
@@ -39,15 +50,18 @@ describe('learnerProgress', () => {
     expect(learnerProgress(held, [])).toEqual({ attendance: '4/5' })
   })
 
-  it('rounds the average to one decimal and skips graded rows without a score', () => {
+  it('rounds to a whole percent and skips graded rows without a score or a maximum', () => {
     expect(
       learnerProgress(undefined, [
         attempt('graded', 7),
         attempt('graded', 8),
         attempt('graded', 8),
       ]),
-    ).toEqual({ tests: '3/3', average: '7.7' })
+    ).toEqual({ tests: '3/3', average: '77%' })
     expect(learnerProgress(undefined, [attempt('graded', null)])).toEqual({
+      tests: '1/1',
+    })
+    expect(learnerProgress(undefined, [attempt('graded', 0, 0)])).toEqual({
       tests: '1/1',
     })
   })
