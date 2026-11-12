@@ -1,7 +1,11 @@
 import { eq } from 'drizzle-orm'
 import { describe, expect, it } from 'vitest'
 import type { Role } from '../auth/policy'
-import { groups as groupsTable, users as usersTable } from '../db/schema'
+import {
+  courses as coursesTable,
+  groups as groupsTable,
+  users as usersTable,
+} from '../db/schema'
 import { uuidv7 } from '../id'
 import { describeWithDatabase } from '../test/postgres'
 import { UsersRepository } from '../users/users.repository'
@@ -41,6 +45,7 @@ describeWithDatabase('GroupsService', (current) => {
       teacherId: teacher,
       memberIds: [teacher],
       learnerCount: 0,
+      course: null,
     })
     expect((await groups().listForUser(teacher))[0]?.id).toBe(group.id)
     expect(
@@ -301,6 +306,100 @@ describeWithDatabase('GroupsService', (current) => {
       expect(await outcome(groups().members(actorOf('admin'), 'nope'))).toBe(
         '404 not_found',
       )
+    })
+  })
+
+  describe('course', () => {
+    const course = async (
+      title = 'General English',
+      deleted = false,
+      published = true,
+    ) => {
+      const id = uuidv7()
+      await current()
+        .database.db.insert(coursesTable)
+        .values({
+          id,
+          title,
+          description: 'd',
+          segment: 'kattalar',
+          level: 'orta',
+          published,
+          deletedAt: deleted ? new Date() : null,
+        })
+      return id
+    }
+
+    it('creates a group under an existing course and carries it in the DTO', async () => {
+      const teacher = await person('teacher')
+      const courseId = await course()
+      const group = await groups().create({
+        name: 'A1',
+        actor: actorOf('teacher', teacher),
+        courseId,
+      })
+      const expected = {
+        id: courseId,
+        title: 'General English',
+        level: 'orta',
+      }
+      expect(group.course).toEqual(expected)
+      expect((await groups().get(group.id))?.course).toEqual(expected)
+      expect((await groups().listForUser(teacher))[0]?.course).toEqual(expected)
+    })
+
+    it('refuses a course that is missing, malformed, deleted or unpublished', async () => {
+      const teacher = await person('teacher')
+      for (const courseId of [
+        uuidv7(),
+        'nope',
+        await course('x', true),
+        await course('draft', false, false),
+      ]) {
+        expect(
+          await outcome(
+            groups().create({
+              name: 'A1',
+              actor: actorOf('teacher', teacher),
+              courseId,
+            }),
+          ),
+        ).toBe('400 invalid_course')
+      }
+      expect(await groups().listForUser(teacher)).toEqual([])
+    })
+
+    it('lets the group teacher and admins set or clear the course, nobody else', async () => {
+      const [teacher, visitor, learner] = await Promise.all([
+        person('teacher'),
+        person('teacher'),
+        person('learner'),
+      ])
+      const group = await groups().create({
+        name: 'A1',
+        actor: actorOf('teacher', teacher),
+      })
+      await groups().putMember(group.id, learner)
+      const courseId = await course()
+      const set = (actor: ReturnType<typeof actorOf>, id: string | null) =>
+        groups().setCourse(actor, group.id, id)
+      expect(
+        (await set(actorOf('teacher', teacher), courseId)).course?.id,
+      ).toBe(courseId)
+      expect((await set(actorOf('admin'), null)).course).toBeNull()
+      expect(await outcome(set(actorOf('teacher', visitor), courseId))).toBe(
+        '404 not_found',
+      )
+      expect(await outcome(set(actorOf('learner', learner), courseId))).toBe(
+        '403 forbidden',
+      )
+      expect(await outcome(set(actorOf('admin'), uuidv7()))).toBe(
+        '400 invalid_course',
+      )
+      expect(
+        await outcome(groups().setCourse(actorOf('admin'), uuidv7(), null)),
+      ).toBe('404 not_found')
+      expect((await groups().get(group.id))?.course).toBeNull()
     })
   })
 })

@@ -325,6 +325,8 @@ describe.skipIf(!hasTestDatabase)('tests, assignments and grading', () => {
       attemptId: t.attemptId,
       title: 'Unit 1',
       groupName: 'G',
+      // single + multi + speaking: the figure a score is read against.
+      maxScore: 7,
     })
 
     const presign = await call(
@@ -756,6 +758,7 @@ describe.skipIf(!hasTestDatabase)('tests, assignments and grading', () => {
       `/api/groups/${group}/assignments`,
     )
     expect(list.status).toBe(200)
+    expect(list.body.assignments[0].maxScore).toBe(7)
     expect(
       list.body.assignments[0].attempts.map(
         (a: { name: string; status: string }) => [a.name, a.status],

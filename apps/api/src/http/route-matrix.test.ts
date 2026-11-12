@@ -295,6 +295,14 @@ const ROWS: Row[] = [
     expect: [401, 403, 403, 403, 403, 201],
   },
   {
+    name: 'set group course',
+    handler: 'GroupsController.setCourse',
+    method: 'POST',
+    path: (c) => `/api/groups/${c.group}/course`,
+    body: () => ({ courseId: null }),
+    expect: [401, 403, 404, 201, 404, 201],
+  },
+  {
     name: 'list lessons',
     handler: 'LessonsController.list',
     method: 'GET',
@@ -696,6 +704,7 @@ describe.skipIf(!hasTestDatabase)('route x role matrix', () => {
       createLesson: true,
       manageMembers: true,
       seeMembers: true,
+      setCourse: true,
       assignTest: true,
       viewAssignments: true,
       gradeAttempts: true,
@@ -707,6 +716,7 @@ describe.skipIf(!hasTestDatabase)('route x role matrix', () => {
     })
     expect((await detail('member')).group.can).toMatchObject({
       seeMembers: false,
+      setCourse: false,
       assignTest: false,
       viewAssignments: false,
       gradeAttempts: false,

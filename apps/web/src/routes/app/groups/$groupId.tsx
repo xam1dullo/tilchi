@@ -14,11 +14,15 @@ import {
   lessonMaterialsBody,
   nextGroupLesson,
   tashkentInputToIso,
+  type CourseOption,
   type MaterialsForm,
   type GroupAttendance,
   type GroupRecord,
   type LessonRecord,
 } from '../../../lib/classroom'
+import { Figures } from '../../../components/figures'
+import { learnerProgress, type LearnerProgress } from '../../../lib/progress'
+import type { MyAssignment } from '../../../lib/attempt'
 import { EnrolPanel } from '../../../components/enrol-panel'
 import {
   AssignForm,
@@ -30,7 +34,7 @@ import {
   MaterialsEditor,
 } from '../../../components/lesson-materials'
 import { RetryButton } from '../../../components/retry-button'
-import { loadAssessment } from '../../../lib/assignments'
+import { loadAssessment, type AssignmentRecord } from '../../../lib/assignments'
 import { displayName, type Member } from '../../../lib/enrol'
 import { messages, type Copy } from '../../../lib/i18n'
 import { keepAppSearch } from '../../../lib/preview'
@@ -49,21 +53,37 @@ export const Route = createFileRoute('/app/groups/$groupId')({
       )
       const { previewRole } = context
       const path = `/api/groups/${params.groupId}`
-      const [{ members }, { tests, assignments }, attendance] =
-        await Promise.all([
-          group.can.seeMembers
-            ? apiFetch<{ members: Member[] }>(`${path}/members`, {
-                previewRole,
-              })
-            : { members: [] },
-          loadAssessment(group.can, group.id, (url) =>
-            apiFetch(url, { previewRole }),
-          ),
-          // Counts are secondary: without them the page still opens.
-          apiFetch<GroupAttendance>(`${path}/attendance`, {
-            previewRole,
-          }).catch((): GroupAttendance => ({ attendance: [], lessons: [] })),
-        ])
+      const [
+        { members },
+        { tests, assignments },
+        attendance,
+        { courses },
+        { assignments: myAssignments },
+      ] = await Promise.all([
+        group.can.seeMembers
+          ? apiFetch<{ members: Member[] }>(`${path}/members`, {
+              previewRole,
+            })
+          : { members: [] },
+        loadAssessment(group.can, group.id, (url) =>
+          apiFetch(url, { previewRole }),
+        ),
+        // Counts are secondary: without them the page still opens.
+        apiFetch<GroupAttendance>(`${path}/attendance`, {
+          previewRole,
+        }).catch((): GroupAttendance => ({ attendance: [], lessons: [] })),
+        group.can.setCourse
+          ? apiFetch<{ courses: CourseOption[] }>('/api/courses', {
+              previewRole,
+            }).catch(() => ({ courses: [] as CourseOption[] }))
+          : { courses: [] as CourseOption[] },
+        // A learner's own tests for their figures line; nobody else may call it.
+        context.session?.role === 'learner'
+          ? apiFetch<{ assignments: MyAssignment[] }>('/api/me/assignments', {
+              previewRole,
+            }).catch(() => ({ assignments: [] as MyAssignment[] }))
+          : { assignments: [] as MyAssignment[] },
+      ])
       return {
         group,
         lessons: lessons.lessons,
@@ -71,6 +91,8 @@ export const Route = createFileRoute('/app/groups/$groupId')({
         tests,
         assignments,
         attendance,
+        courses,
+        myAssignments,
       }
     }),
   notFoundComponent: AppNotFound,
@@ -92,8 +114,16 @@ function GroupError() {
 function GroupPage() {
   const { locale } = useRouteContext({ from: '__root__' })
   const { previewRole } = useRouteContext({ from: '/app' })
-  const { group, lessons, members, tests, assignments, attendance } =
-    sessionData(Route.useLoaderData())
+  const {
+    group,
+    lessons,
+    members,
+    tests,
+    assignments,
+    attendance,
+    courses,
+    myAssignments,
+  } = sessionData(Route.useLoaderData())
   const copy = messages(locale)
   const search = keepAppSearch(previewRole)
   const [now, setNow] = useState<number | null>(null)
@@ -128,7 +158,12 @@ function GroupPage() {
     attendance.attendance.map((row) => [row.userId, row]),
   )
   // A learner's reply holds only their own row; the teacher sees it per member.
-  const mine = group.can.seeMembers ? undefined : attendance.attendance[0]
+  const mine = group.can.seeMembers
+    ? undefined
+    : learnerProgress(
+        attendance.attendance[0],
+        myAssignments.filter((a) => a.groupId === group.id),
+      )
   const lessonCopy = {
     start: copy.startLesson,
     end: copy.endLesson,
@@ -147,16 +182,18 @@ function GroupPage() {
       <div className="classroom-head">
         <div>
           <h1>{group.name}</h1>
+          {group.course ? <p className="hint">{group.course.title}</p> : null}
           <p className="hint">
             {copy.members} {group.learnerCount}/{group.capacity}
           </p>
-          {mine && mine.lessonsHeld > 0 ? (
-            <p className="figures">
-              {copy.attendance}{' '}
-              <span className="num">
-                {mine.lessonsPresent}/{mine.lessonsHeld}
-              </span>
-            </p>
+          {mine ? <ProgressLine progress={mine} copy={copy} /> : null}
+          {group.can.setCourse ? (
+            <CourseSelect
+              group={group}
+              courses={courses}
+              previewRole={previewRole}
+              copy={copy}
+            />
           ) : null}
         </div>
         {group.can.createLesson ? (
@@ -187,7 +224,12 @@ function GroupPage() {
             />
           ) : null}
           {group.can.seeMembers ? (
-            <MembersList members={members} attendance={byLearner} copy={copy} />
+            <MembersList
+              members={members}
+              attendance={byLearner}
+              assignments={assignments ?? []}
+              copy={copy}
+            />
           ) : null}
           {group.can.manageMembers ? (
             <EnrolPanel group={group} previewRole={previewRole} copy={copy} />
@@ -304,13 +346,90 @@ function LessonMeta({
   )
 }
 
+/** "Attendance 4/5 · Tests 2/3 · Average 7.5", or nothing at all. */
+function ProgressLine({
+  progress,
+  copy,
+}: {
+  progress: LearnerProgress
+  copy: Copy
+}) {
+  return (
+    <Figures
+      items={[
+        { label: copy.attendance, value: progress.attendance ?? 0 },
+        { label: copy.progressTests, value: progress.tests ?? 0 },
+        { label: copy.progressAverage, value: progress.average ?? 0 },
+      ]}
+    />
+  )
+}
+
+function CourseSelect({
+  group,
+  courses,
+  previewRole,
+  copy,
+}: {
+  group: GroupRecord
+  courses: CourseOption[]
+  previewRole: 'learner' | 'teacher' | 'admin' | null
+  copy: Copy
+}) {
+  const router = useRouter()
+  const [busy, setBusy] = useState(false)
+  const [failed, setFailed] = useState(false)
+  const current = group.course
+  // A current course that is unpublished stays pickable so the select is honest.
+  const options =
+    current && !courses.some((c) => c.id === current.id)
+      ? [current, ...courses]
+      : courses
+  return (
+    <label className="classroom-form">
+      <span className="sr-only">{copy.courseSelect}</span>
+      <select
+        name="courseId"
+        value={current?.id ?? ''}
+        disabled={busy}
+        onChange={(event) => {
+          setBusy(true)
+          setFailed(false)
+          void apiFetch(`/api/groups/${group.id}/course`, {
+            method: 'POST',
+            previewRole,
+            body: JSON.stringify({ courseId: event.target.value || null }),
+          })
+            .then(() => router.invalidate())
+            .catch(() => setFailed(true))
+            .finally(() => setBusy(false))
+        }}
+      >
+        <option value="">{copy.courseNone}</option>
+        {options.map((course) => (
+          <option key={course.id} value={course.id}>
+            {course.title}
+          </option>
+        ))}
+      </select>
+      {failed ? (
+        <span className="notice" data-tone="error" role="alert">
+          {copy.lessonActionFailed}
+        </span>
+      ) : null}
+    </label>
+  )
+}
+
 function MembersList({
   members,
   attendance,
+  assignments,
   copy,
 }: {
   members: Member[]
   attendance: Map<string, GroupAttendance['attendance'][number]>
+  assignments: AssignmentRecord[]
   copy: Copy
 }) {
   const role = {
@@ -318,6 +437,12 @@ function MembersList({
     teacher: copy.roleTeacher,
     admin: copy.roleAdmin,
   }
+  const attemptsOf = (userId: string) =>
+    assignments.flatMap((a) =>
+      a.attempts
+        .filter((x) => x.userId === userId)
+        .map((x) => ({ ...x, maxScore: a.maxScore })),
+    )
   return (
     <section className="members" aria-labelledby="members-title">
       <h2 id="members-title">{copy.members}</h2>
@@ -325,12 +450,14 @@ function MembersList({
         {members.map((member) => (
           <li key={member.id} className="row classroom-row">
             <strong>{displayName(member)}</strong>
-            {attendance.get(member.id)?.lessonsHeld ? (
-              <span className="group-lesson-attendance">
-                {attendance.get(member.id)?.lessonsPresent}/
-                {attendance.get(member.id)?.lessonsHeld}{' '}
-                {copy.attendanceLessons}
-              </span>
+            {member.role === 'learner' ? (
+              <ProgressLine
+                progress={learnerProgress(
+                  attendance.get(member.id),
+                  attemptsOf(member.id),
+                )}
+                copy={copy}
+              />
             ) : null}
             <span className="tag">{role[member.role]}</span>
           </li>

@@ -183,6 +183,16 @@ export class AssessmentRepository {
       .orderBy(desc(assignments.deadline), desc(assignments.id))
   }
 
+  /** Question types per test, enough for grading.maxScore. */
+  questionTypesOfTests(testIds: string[]) {
+    if (testIds.length === 0) return Promise.resolve([])
+    return this.db
+      .select({ testId: testQuestions.testId, type: questions.type })
+      .from(testQuestions)
+      .innerJoin(questions, eq(questions.id, testQuestions.questionId))
+      .where(inArray(testQuestions.testId, testIds))
+  }
+
   attemptsOfAssignments(assignmentIds: string[]) {
     if (assignmentIds.length === 0) return Promise.resolve([])
     return this.db
@@ -206,6 +216,7 @@ export class AssessmentRepository {
       .select({
         attemptId: attempts.id,
         assignmentId: assignments.id,
+        testId: assignments.testId,
         groupId: assignments.groupId,
         groupName: groups.name,
         title: tests.title,

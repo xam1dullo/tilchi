@@ -304,4 +304,8 @@ export const ru = {
   figQuestions: 'Вопросы',
   figPublished: 'Опубликовано',
   figDrafts: 'Черновики',
+  courseSelect: 'Выбрать курс',
+  courseNone: 'Без курса',
+  progressTests: 'Тесты',
+  progressAverage: 'Средний балл',
 }

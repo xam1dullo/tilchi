@@ -20,6 +20,7 @@ export type AssignmentRecord = {
   testId: string
   title: string
   deadline: string
+  maxScore: number
   attempts: AttemptSummary[]
 }
 

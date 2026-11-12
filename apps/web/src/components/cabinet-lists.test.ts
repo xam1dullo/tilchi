@@ -73,6 +73,7 @@ const assignment = (
   deadline: '2030-01-01T10:00:00Z',
   status,
   score: status === 'graded' ? 0 : null,
+  maxScore: 10,
   submittedAt: null,
 })
 
@@ -150,6 +151,45 @@ const page = (route: typeof GroupsRoute | typeof TestsRoute) =>
   )
 
 describe('group and test cabinets', () => {
+  it('shows a learner the next lesson first, then the course', () => {
+    state.role = 'learner'
+    state.previewRole = 'learner'
+    state.data = {
+      groups: [
+        {
+          id: 'g',
+          name: 'Evening',
+          learnerCount: 3,
+          capacity: 8,
+          course: { id: 'c', title: 'General English', level: 'orta' },
+          can: {},
+        },
+        {
+          id: 'h',
+          name: 'Morning',
+          learnerCount: 2,
+          capacity: 4,
+          course: null,
+          can: {},
+        },
+      ],
+      can: { createGroup: false },
+      teachers: [],
+      courses: [],
+      lessonsByGroup: { g: [], h: [] },
+      assignments: [],
+      queue: [],
+      now: 0,
+    }
+    const html = page(GroupsRoute)
+    expect(html).toContain(
+      `<span>${copy.homeGroupNoLesson} <span aria-hidden="true">·</span> General English</span>`,
+    )
+    expect(html).toContain(
+      `<strong>Morning</strong><span>${copy.homeGroupNoLesson}</span>`,
+    )
+    expect(html).not.toContain('3/8')
+  })
   it('sums group membership and capacity while retaining the group link', () => {
     state.data = {
       groups: [

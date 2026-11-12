@@ -1,8 +1,8 @@
-export type Figure = { label: string; value: number }
+export type Figure = { label: string; value: number | string }
 
-/** One quiet line of counts: "Tests 1 · Questions 2". Zeros are left out. */
+/** One quiet line of counts: "Tests 1 · Questions 2". Zero counts are left out. */
 export function Figures({ items }: { items: Figure[] }) {
-  const shown = items.filter((item) => item.value > 0)
+  const shown = items.filter((item) => item.value !== 0)
   if (shown.length === 0) return null
   return (
     <p className="figures">

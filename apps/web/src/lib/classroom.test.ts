@@ -77,6 +77,7 @@ const can = {
   createLesson: false,
   manageMembers: false,
   seeMembers: false,
+  setCourse: false,
   assignTest: false,
   viewAssignments: false,
   gradeAttempts: false,
@@ -99,6 +100,7 @@ describe('groupsView', () => {
         kind: 'adult' as const,
         capacity: 12,
         learnerCount: 3,
+        course: null,
         can,
       },
     ]
@@ -115,6 +117,7 @@ describe('groupsView', () => {
         kind: 'adult' as const,
         capacity: 12,
         learnerCount: 0,
+        course: null,
         can,
       },
     ]

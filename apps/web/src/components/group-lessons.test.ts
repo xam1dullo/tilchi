@@ -9,6 +9,14 @@ const state = vi.hoisted(() => ({
   lessons: [] as LessonRecord[],
   teacher: false,
   seeMembers: false,
+  course: null as { id: string; title: string; level: string } | null,
+  courses: [] as { id: string; title: string }[],
+  myAssignments: [] as {
+    groupId: string
+    status: string
+    score: number | null
+    maxScore: number
+  }[],
   members: [] as {
     id: string
     name: string | null
@@ -35,13 +43,74 @@ vi.mock('@tanstack/react-router', () => ({
         name: 'Group',
         learnerCount: 5,
         capacity: 12,
-        can: { createLesson: state.teacher, seeMembers: state.seeMembers },
+        course: state.course,
+        can: {
+          createLesson: state.teacher,
+          seeMembers: state.seeMembers,
+          setCourse: state.teacher,
+          viewAssignments: state.seeMembers,
+        },
       },
       lessons: state.lessons,
       members: state.members,
       attendance: state.attendance,
+      courses: state.courses,
+      myAssignments: state.myAssignments,
       tests: [],
-      assignments: [],
+      assignments: state.seeMembers
+        ? [
+            {
+              id: 'a1',
+              testId: 't1',
+              title: 'Unit 1',
+              deadline: '2030-01-05T06:00:00Z',
+              maxScore: 10,
+              attempts: [
+                {
+                  id: 'x1',
+                  userId: 'u1',
+                  name: 'Ali',
+                  status: 'graded',
+                  score: 8,
+                  submittedAt: null,
+                },
+                {
+                  id: 'x2',
+                  userId: 'u2',
+                  name: 'Vali',
+                  status: 'assigned',
+                  score: null,
+                  submittedAt: null,
+                },
+              ],
+            },
+            {
+              id: 'a2',
+              testId: 't2',
+              title: 'Unit 2',
+              deadline: '2030-01-06T06:00:00Z',
+              maxScore: 10,
+              attempts: [
+                {
+                  id: 'y1',
+                  userId: 'u1',
+                  name: 'Ali',
+                  status: 'graded',
+                  score: 7,
+                  submittedAt: null,
+                },
+                {
+                  id: 'y2',
+                  userId: 'u2',
+                  name: 'Vali',
+                  status: 'missed',
+                  score: null,
+                  submittedAt: null,
+                },
+              ],
+            },
+          ]
+        : [],
     }),
   }),
   useRouteContext: () => ({
@@ -268,9 +337,35 @@ describe('attendance on the group page', () => {
     const members = html.match(
       /<section class="members"[\s\S]*?<\/section>/,
     )?.[0]
-    expect(members).toContain(`4/5 ${copy.attendanceLessons}`)
+    // One quiet line per learner: attendance, tests graded of assigned, mean score.
+    expect(members).toContain(
+      `<p class="figures"><span>${copy.attendance} <span class="num">4/5</span></span><span> <span aria-hidden="true">·</span> ${copy.progressTests} <span class="num">2/2</span></span><span> <span aria-hidden="true">·</span> ${copy.progressAverage} <span class="num">75%</span></span></p>`,
+    )
     expect(members?.indexOf('4/5')).toBeGreaterThan(members?.indexOf('T') ?? 0)
-    expect(html).not.toContain('class="figures"')
+    // The teacher row carries no figures; no attendance line in the header either.
+    expect(members?.match(/class="figures"/g)).toHaveLength(1)
+    expect(html.slice(0, html.indexOf('group-layout'))).not.toContain(
+      'class="figures"',
+    )
+  })
+  it('shows tests without attendance and nothing for a learner with neither', () => {
+    state.teacher = true
+    state.seeMembers = true
+    state.lessons = []
+    state.members = [
+      { id: 'u2', name: 'Vali', role: 'learner' },
+      { id: 'u3', name: 'Zero', role: 'learner' },
+    ]
+    state.attendance = { attendance: [], lessons: [] }
+    const html = render()
+    const members = html.match(
+      /<section class="members"[\s\S]*?<\/section>/,
+    )?.[0]
+    expect(members).toContain(
+      `<p class="figures"><span>${copy.progressTests} <span class="num">0/2</span></span></p>`,
+    )
+    expect(members).not.toContain(copy.progressAverage)
+    expect(members?.match(/class="figures"/g)).toHaveLength(1)
   })
   it('shows a learner only their own attendance line, never other members', () => {
     state.teacher = false
@@ -285,10 +380,19 @@ describe('attendance on the group page', () => {
     }
     const html = render()
     expect(html).toContain(
-      `<p class="figures">${copy.attendance} <span class="num">4/5</span></p>`,
+      `<p class="figures"><span>${copy.attendance} <span class="num">4/5</span></span></p>`,
     )
     expect(html).not.toContain('3/5')
     expect(html).not.toContain('<section class="members"')
+    // Their own tests join the line; another group's test does not.
+    state.myAssignments = [
+      { groupId: 'g', status: 'graded', score: 9, maxScore: 10 },
+      { groupId: 'other', status: 'graded', score: 1, maxScore: 10 },
+    ]
+    expect(render()).toContain(
+      `<span class="num">4/5</span></span><span> <span aria-hidden="true">·</span> ${copy.progressTests} <span class="num">1/1</span></span><span> <span aria-hidden="true">·</span> ${copy.progressAverage} <span class="num">90%</span></span></p>`,
+    )
+    state.myAssignments = []
     state.attendance = { attendance: [], lessons: [] }
     expect(render()).not.toContain('class="figures"')
     state.attendance = {
@@ -298,5 +402,43 @@ describe('attendance on the group page', () => {
       lessons: [],
     }
     expect(render()).not.toContain('class="figures"')
+  })
+})
+
+describe('course on the group page', () => {
+  it('names the course under the group name and lets a manager change it', () => {
+    state.teacher = true
+    state.seeMembers = true
+    state.lessons = []
+    state.members = []
+    state.course = { id: 'c1', title: 'General English', level: 'orta' }
+    state.courses = [
+      { id: 'c1', title: 'General English' },
+      { id: 'c2', title: 'IELTS' },
+    ]
+    const html = render()
+    const head = html.slice(0, html.indexOf('group-layout'))
+    expect(head).toContain('<h1>Group</h1><p class="hint">General English</p>')
+    expect(head).toContain(`<span class="sr-only">${copy.courseSelect}</span>`)
+    expect(head).toContain(
+      '<option value="c1" selected="">General English</option>',
+    )
+    expect(head).toContain('<option value="c2">IELTS</option>')
+    expect(head).toContain(`<option value="">${copy.courseNone}</option>`)
+  })
+  it('keeps an unlisted current course selectable and hides the select from learners', () => {
+    state.teacher = true
+    state.course = { id: 'c9', title: 'Old draft', level: 'orta' }
+    state.courses = [{ id: 'c2', title: 'IELTS' }]
+    expect(render()).toContain(
+      '<option value="c9" selected="">Old draft</option>',
+    )
+    state.teacher = false
+    state.seeMembers = false
+    const html = render()
+    expect(html).toContain('<p class="hint">Old draft</p>')
+    expect(html).not.toContain('<select')
+    state.course = null
+    expect(render()).not.toContain('<p class="hint">Old draft</p>')
   })
 })

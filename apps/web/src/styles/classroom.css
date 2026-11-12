@@ -1498,3 +1498,7 @@
 .assignment-row > .figures {
   margin: 8px 0 12px;
 }
+
+.members .figures {
+  margin: 0;
+}

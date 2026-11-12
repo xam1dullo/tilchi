@@ -12,6 +12,7 @@ export type CreateGroupFormProps = {
   error: 'teacherRequired' | 'createGroupFailed' | null
   onName: (value: string) => void
   onTeacher: (value: string) => void
+  onCourse: (value: string) => void
   onSubmit: () => void
 }
 
@@ -24,6 +25,7 @@ export function CreateGroupFormView({
   error,
   onName,
   onTeacher,
+  onCourse,
   onSubmit,
 }: CreateGroupFormProps) {
   const view = createGroupView(form)
@@ -59,6 +61,23 @@ export function CreateGroupFormView({
             {form.teachers.map((teacher) => (
               <option key={teacher.id} value={teacher.id}>
                 {teacherName(teacher)}
+              </option>
+            ))}
+          </select>
+        </label>
+      ) : null}
+      {form.courses.length > 0 ? (
+        <label>
+          <span className="sr-only">{copy.courseSelect}</span>
+          <select
+            name="courseId"
+            value={form.courseId}
+            onChange={(event) => onCourse(event.target.value)}
+          >
+            <option value="">{copy.courseNone}</option>
+            {form.courses.map((course) => (
+              <option key={course.id} value={course.id}>
+                {course.title}
               </option>
             ))}
           </select>

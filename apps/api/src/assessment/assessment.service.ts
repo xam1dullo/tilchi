@@ -273,9 +273,10 @@ export class AssessmentService {
     if (!group) return notFound()
     authorize(actor, 'assignment.view', group)
     const rows = await this.repo.listGroupAssignments(groupId)
-    const all = await this.repo.attemptsOfAssignments(
-      rows.map((r) => r.assignment.id),
-    )
+    const [all, maxOf] = await Promise.all([
+      this.repo.attemptsOfAssignments(rows.map((r) => r.assignment.id)),
+      this.maxScores(rows.map((r) => r.assignment.testId)),
+    ])
     const now = new Date()
     return {
       assignments: rows.map(({ assignment, title }) => ({
@@ -283,6 +284,7 @@ export class AssessmentService {
         testId: assignment.testId,
         title,
         deadline: assignment.deadline,
+        maxScore: maxOf(assignment.testId),
         attempts: all
           .filter((a) => a.assignmentId === assignment.id)
           .map((a) => ({
@@ -304,12 +306,21 @@ export class AssessmentService {
     authorize(actor, 'attempt.take')
     const now = new Date()
     const rows = await this.repo.listForLearner(actor.userId)
+    const maxOf = await this.maxScores(rows.map((r) => r.testId))
     return {
-      assignments: rows.map((r) => ({
+      assignments: rows.map(({ testId, ...r }) => ({
         ...r,
         status: effectiveStatus(r.status, { now, deadline: r.deadline }),
+        maxScore: maxOf(testId),
       })),
     }
+  }
+
+  /** maxScore per test, one query for the whole list. */
+  private async maxScores(testIds: string[]) {
+    const types = await this.repo.questionTypesOfTests([...new Set(testIds)])
+    return (testId: string) =>
+      maxScore(types.filter((t) => t.testId === testId))
   }
 
   // --- attempts ---

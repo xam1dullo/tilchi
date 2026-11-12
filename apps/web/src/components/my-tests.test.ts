@@ -32,6 +32,7 @@ const assignments: MyAssignment[] = ['assigned', 'graded'].map((status, i) => ({
   deadline: '2026-10-31T10:00:00Z',
   status: status as MyAssignment['status'],
   score: status === 'graded' ? 90 : null,
+  maxScore: 100,
   submittedAt: null,
 }))
 const props = {

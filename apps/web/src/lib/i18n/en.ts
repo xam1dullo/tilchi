@@ -309,4 +309,8 @@ export const en = {
   figQuestions: 'Questions',
   figPublished: 'Published',
   figDrafts: 'Drafts',
+  courseSelect: 'Choose a course',
+  courseNone: 'No course',
+  progressTests: 'Tests',
+  progressAverage: 'Average',
 }
